@@ -14,7 +14,7 @@ permissions:
 #   TEST_IMAGE_NODE_MAJOR_VERSION: 22
 
 jobs:
-  test-linux:
+  build-linux:
     runs-on: ubuntu-22.04
     timeout-minutes: 15
     strategy:
@@ -24,13 +24,37 @@ jobs:
           - './appImage-packages-ia32.sh'
           - './appImage-packages-x64.sh'
           - './zstd-linux.sh'
-          - './wine/wine-ia32.sh'
-          - './wine/wine-mac-ia32-and-x64.sh'
-          - './wine/wine-only-x64.sh'
+          # - './wine/wine-ia32.sh'
+          # - './wine/wine-mac-ia32-and-x64.sh'
+          # - './wine/wine-only-x64.sh'
           - './scripts/nsis-plugins.sh'
           - './scripts/update-zstd.sh'
           # - ['./nsis-linux.sh']
           # - ['./nsis.sh', './nsis-prepare.sh', './nsis.sh']
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
+      - name: Build and test
+        run: |
+          echo "Running build for ${{ env.buildFile }}"
+          chmod +x "$buildFile"
+          "$buildFile"
+          echo "Build completed for ${{ matrix.buildFiles }}"
+        env:
+          buildFile: ${{ matrix.buildFiles }}
+  build-mac:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        buildFiles:
+          - './wine/wine-ia32.sh'
+          - './wine/wine-mac-ia32-and-x64.sh'
+          - './wine/wine-only-x64.sh'
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
