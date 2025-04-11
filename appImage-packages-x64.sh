@@ -47,6 +47,9 @@ rm -rf ef
 # libxss1, required for fedora
 curl http://old-releases.ubuntu.com/ubuntu/pool/main/libx/libxss/libxss1_1.2.2-1_amd64.deb -o f.deb
 dpkg-deb -R f.deb ef
-mv ef/usr/lib/libXss.so.1 packages/libXss.so.1
+mv ef/usr/lib/x86_64-linux-gnu/libXss.so.1.0.0 packages/libXss.so.1
 
-cp /tmp/appimage/packages/* $BASEDIR/x86_64-linux-gnu/
+OUTPUT_DIR=$BASEDIR/x86_64-linux-gnu
+rm -rf $OUTPUT_DIR
+mkdir $OUTPUT_DIR
+cp /tmp/appimage/packages/* $OUTPUT_DIR
