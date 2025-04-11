@@ -37,11 +37,6 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
-          cache: 'npm'
       - name: Build and test
         run: |
           echo "Running build for ${{ env.buildFile }}"
