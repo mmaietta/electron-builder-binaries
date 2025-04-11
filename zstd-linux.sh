@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -ex
 
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
-sudo dpkg -i minikube_latest_amd64.deb
+# dependency for minimkube
+# curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+# sudo dpkg -i minikube_latest_amd64.deb
 
 # shellcheck disable=SC2046
-eval $(minikube -p minikube docker-env)
+# eval $(minikube -p minikube docker-env)
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
