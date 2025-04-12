@@ -23,8 +23,9 @@ jobs:
         buildFiles:
           - './appImage-packages-ia32.sh'
           - './appImage-packages-x64.sh'
-          - './appimage-tools.sh'
-          - './zstd-linux.sh'
+          - './appimage-tools-x64.sh'
+          # - './appimage-tools.sh'
+          # - './zstd-linux.sh'
           # - './wine/wine-ia32.sh'
           # - './wine/wine-mac-ia32-and-x64.sh'
           # - './wine/wine-only-x64.sh'
