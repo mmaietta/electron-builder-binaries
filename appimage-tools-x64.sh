@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # desktop-file-validate
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Build the latest version of NSIS (Linux) in docker container
 cidFile="/tmp/desktop-file-validate-build-container-id"
