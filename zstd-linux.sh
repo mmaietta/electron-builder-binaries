@@ -40,6 +40,7 @@ docker run --cidfile="$cidFile" i386/buildpack-deps:bionic bash -c \
  apt-get update -y && apt-get install -y liblzo2-dev && make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install &&
  cp /usr/local/bin/mksquashfs /tmp/mksquashfs-32
  '
+containerId=$(cat "$cidFile")
 docker cp "$containerId":/tmp/mksquashfs-32 AppImage/linux-ia32/mksquashfs
 docker rm "$containerId"
 unlink "$cidFile"
