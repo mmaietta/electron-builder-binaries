@@ -58,36 +58,16 @@ jobs:
           - './wine/wine-mac-ia32-and-x64.sh'
           # - './wine/wine-only-x64.sh'
           - './nsis.sh'
+          - './scripts/update-zstd.sh'
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      # - name: Install docker
-      #   run: |
-      #     brew install docker
-      # - name: Start Docker
-      #   run: |
-      #     echo "Pull Docker"
-      #     docker
-      # - name: Wait for Docker to be ready
-      #   run: |
-      #     echo "Waiting for Docker to be ready"
-      #     while ! docker info > /dev/null 2>&1; do
-      #       sleep 5
-      #     done
-      # - name: Check Docker status
-      #   run: |
-      #     echo "Checking Docker status"
-      #     docker info
-      # - name: Check Docker version
-      #   run: |
-      #     brew install docker
       - name: Build and test
         run: |
+          sudo ln -s ~/.docker/run/docker.sock /var/run/docker.sock
           echo "Running build for ${{ env.buildFile }}"
           chmod +x "$buildFile"
           "$buildFile"
