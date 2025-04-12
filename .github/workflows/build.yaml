@@ -64,13 +64,15 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Install docker
-        run: |
-          brew install docker
-      - name: Start Docker
-        run: |
-          echo "Pull Docker"
-          docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      # - name: Install docker
+      #   run: |
+      #     brew install docker
+      # - name: Start Docker
+      #   run: |
+      #     echo "Pull Docker"
+      #     docker
       # - name: Wait for Docker to be ready
       #   run: |
       #     echo "Waiting for Docker to be ready"
