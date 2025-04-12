@@ -68,7 +68,7 @@ jobs:
       - name: Start Docker
         run: |
           echo "Pull Docker"
-          docker pull buildpack-deps:xenial
+          docker
       # - name: Wait for Docker to be ready
       #   run: |
       #     echo "Waiting for Docker to be ready"
