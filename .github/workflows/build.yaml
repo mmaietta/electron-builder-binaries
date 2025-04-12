@@ -65,9 +65,13 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
+      - name: Setup
+        run: |
+          brew install docker
+          sudo ln -s ~/.docker/run/docker.sock /var/run/docker.sock
+          docker pull buildpack-deps:xenial
       - name: Build and test
         run: |
-          sudo ln -s ~/.docker/run/docker.sock /var/run/docker.sock
           echo "Running build for ${{ env.buildFile }}"
           chmod +x "$buildFile"
           "$buildFile"
