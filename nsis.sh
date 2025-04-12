@@ -46,7 +46,7 @@ cp -a $BASEDIR/nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
 mkdir -p $OUTPUT_DIR/mac
 brew tap nsis-dev/makensis
 brew install makensis@3.11 --with-large-strings --with-advanced-logging
-cp /usr/local/Cellar/makensis/*/bin/makensis $OUTPUT_DIR/mac/makensis
+cp $(which makensis) $OUTPUT_DIR/mac/makensis
 
 # Build the latest version of NSIS (Linux) in docker container
 cidFile="/tmp/nsis-build-container-id"
@@ -58,7 +58,7 @@ if test -f "$cidFile"; then
 fi
 
 cd "$BASEDIR"
-docker run --cidfile="$cidFile" -v /tmp/nsis:/tmp/nsis buildpack-deps:xenial bash -c \
+docker run --cidfile="$cidFile" buildpack-deps:xenial bash -c \
 'mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons &&
  mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 &&
  cd /tmp/nsis &&
@@ -74,5 +74,5 @@ unlink "$cidFile"
 
 rm -rf $BASEDIR/nsis
 mkdir $BASEDIR/nsis
-cp -a $OUTPUT_DIR $BASEDIR/nsis
+cp -a $OUTPUT_DIR/* $BASEDIR/nsis
 # rm -rf $OUTPUT_DIR
