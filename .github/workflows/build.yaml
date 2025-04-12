@@ -68,8 +68,7 @@ jobs:
       - name: Start Docker
         run: |
           echo "Starting Docker"
-          open /Applications/Docker.app
-          sleep 30 # Wait for Docker to start
+          docker && sleep 10 # Wait for Docker to start
       - name: Wait for Docker to be ready
         run: |
           echo "Waiting for Docker to be ready"
@@ -88,6 +87,6 @@ jobs:
           echo "Running build for ${{ env.buildFile }}"
           chmod +x "$buildFile"
           "$buildFile"
-          echo "Build completed for ${{ matrix.buildFiles }}"
+          echo "Build completed for ${{ env.buildFile }}"
         env:
           buildFile: ${{ matrix.buildFiles }}

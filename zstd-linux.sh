@@ -27,6 +27,6 @@ docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
 containerId=$(cat "$cidFile")
 docker cp "$containerId":/usr/local/bin/zstd zstd/linux-x64/zstd
 docker cp "$containerId":/tmp/mksquashfs-64 AppImage/linux-x64/mksquashfs
-docker cp "$containerId":/tmp/mksquashfs-32 AppImage/linux-ia32/mksquashfs
+# docker cp "$containerId":/tmp/mksquashfs-32 AppImage/linux-ia32/mksquashfs
 docker rm "$containerId"
 unlink "$cidFile"
