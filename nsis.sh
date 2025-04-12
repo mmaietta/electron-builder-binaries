@@ -42,6 +42,30 @@ rm $OUTPUT_DIR/makensisw.exe
 # Copy over the "fixed" language files (are these still needed?)
 cp -a $BASEDIR/nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
 
+
+# nsProcess plugin
+curl -L http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip > a.zip
+7za x a.zip -oa
+mv a/Plugin/nsProcessW.dll $OUTPUT_DIR/Plugins/x86-unicode/nsProcess.dll
+mv a/Plugin/nsProcess.dll $OUTPUT_DIR/Plugins/x86-ansi/nsProcess.dll
+mv a/Include/nsProcess.nsh $OUTPUT_DIR/Include/nsProcess.nsh
+rm -rf a a.zip
+
+# UAC plugin
+curl -L http://nsis.sourceforge.net/mediawiki/images/8/8f/UAC.zip > a.zip
+7za x a.zip -oa
+mv a/Plugins/x86-unicode/UAC.dll $OUTPUT_DIR/Plugins/x86-unicode/UAC.dll
+mv a/Plugins/x86-ansi/UAC.dll $OUTPUT_DIR/Plugins/x86-ansi/UAC.dll
+mv a/UAC.nsh $OUTPUT_DIR/Include/UAC.nsh
+rm -rf a a.zip
+
+# WinShell
+curl -L http://nsis.sourceforge.net/mediawiki/images/5/54/WinShell.zip > a.zip
+7za x a.zip -oa
+mv a/Plugins/x86-unicode/WinShell.dll $OUTPUT_DIR/Plugins/x86-unicode/WinShell.dll
+mv a/Plugins/x86-ansi/WinShell.dll $OUTPUT_DIR/Plugins/x86-ansi/WinShell.dll
+rm -rf a a.zip
+
 # Download the latest version of NSIS (macOS)
 mkdir -p $OUTPUT_DIR/mac
 brew tap nsis-dev/makensis

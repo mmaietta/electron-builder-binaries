@@ -62,6 +62,27 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
+      - name: Install docker
+        run: |
+          brew install docker
+      # - name: Start Docker
+      #   run: |
+      #     echo "Starting Docker"
+      #     open /Applications/Docker.app
+      #     sleep 30 # Wait for Docker to start
+      # - name: Wait for Docker to be ready
+      #   run: |
+      #     echo "Waiting for Docker to be ready"
+      #     while ! docker info > /dev/null 2>&1; do
+      #       sleep 5
+      #     done
+      # - name: Check Docker status
+      #   run: |
+      #     echo "Checking Docker status"
+      #     docker info
+      # - name: Check Docker version
+      #   run: |
+      #     brew install docker
       - name: Build and test
         run: |
           echo "Running build for ${{ env.buildFile }}"
