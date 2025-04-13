@@ -2,8 +2,8 @@
 set -ex
 
 BASEDIR=$(dirname "$0")
-
-OUTPUT_DIR=$BASEDIR/../wix
+cd $BASEDIR/..
+OUTPUT_DIR=$(pwd)/wix
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 

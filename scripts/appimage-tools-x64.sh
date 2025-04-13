@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-OUTPUT_DIR=AppImage/linux-x64
+BASEDIR=$(dirname "$0")
+cd $BASEDIR/..
+OUTPUT_DIR=$(pwd)/AppImage/linux-x64
 
 # desktop-file-validate
 
@@ -15,7 +16,6 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-cd "$BASEDIR/.."
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 
