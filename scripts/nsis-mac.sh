@@ -11,4 +11,4 @@ brew tap nsis-dev/makensis
 brew install makensis@3.11 --with-large-strings --with-advanced-logging
 cp $(which makensis) $OUTPUT_DIR/mac/makensis
 
-cp -a $OUTPUT_DIR/* $BASEDIR/nsis
+cp -a $OUTPUT_DIR/* $BASEDIR/../nsis

@@ -2,6 +2,7 @@
 set -ex
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+OUTPUT_DIR=$BASEDIR/../AppImage/linux-x64
 
 # desktop-file-validate
 
@@ -14,7 +15,6 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 

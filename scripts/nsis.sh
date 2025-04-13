@@ -1,6 +1,3 @@
-#!/usr/bin/env bash
-set -ex
-
 # How do update NSIS:
 # 1. Download https://sourceforge.net/projects/nsis/files/NSIS%203/3.03/nsis-3.03.zip/download (replace 3.03 to new version)
 # 2. Copy over nsis in this repo and copy nsis-lang-fixes to nsis/Contrib/Language files

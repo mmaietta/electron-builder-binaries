@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-cd nsis
+cd ../nsis
 
 rm -rf Docs
 rm -rf NSIS.chm

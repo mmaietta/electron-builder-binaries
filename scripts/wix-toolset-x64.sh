@@ -3,13 +3,14 @@ set -ex
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-rm -rf $BASEDIR/wix
-mkdir -p $BASEDIR/wix
+OUTPUT_DIR=$BASEDIR/../wix
+rm -rf $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR
 
 curl -L 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' > a.zip
 7za x a.zip -oa
 unlink a.zip
-cp -a a/* $BASEDIR/wix
+cp -a a/* $OUTPUT_DIR
 rm -rf a
-rm -rf $BASEDIR/wix/sdk
-rm -rf $BASEDIR/wix/doc
+rm -rf $OUTPUT_DIR/sdk
+rm -rf $OUTPUT_DIR/doc

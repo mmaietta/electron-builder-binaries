@@ -15,91 +15,26 @@ permissions:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        buildFiles:
-          - './appImage-packages-ia32.sh'
-          - './appImage-packages-x64.sh'
-          - './appimage-tools-x64.sh'
-          # - './appimage-tools.sh'
-          # - './zstd-linux.sh'
-          # - './wine/wine-ia32.sh'
-          # - './wine/wine-mac-ia32-and-x64.sh'
-          # - './wine/wine-only-x64.sh'
-          - './scripts/nsis-plugins.sh'
-          - './wix-toolset-x64.sh'
-          - './winCodeSign/linux/build.sh'
-          - './nsis-linux.sh'
-          # - './scripts/update-zstd.sh'
-          # - ['./nsis-linux.sh']
-          # - ['./nsis.sh', './nsis-prepare.sh', './nsis.sh']
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Build and test
+      - name: Build
         run: |
-          echo "Running build for ${{ env.buildFile }}"
-          chmod +x "$buildFile"
-          "$buildFile"
-          echo "Build completed for ${{ matrix.buildFiles }}"
-        env:
-          buildFile: ${{ matrix.buildFiles }}
-  # build-windows:
-  #   runs-on: windows-latest
-  #   timeout-minutes: 15
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       buildFiles:
-  #         # - './appImage-packages-ia32.sh'
-  #   steps:
-  #     - name: Checkout code repository
-  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #       with:
-  #         fetch-depth: 2
-  #         submodules: recursive
-  #     - name: Build and test
-  #       run: |
-  #         echo "Running build for ${{ env.buildFile }}"
-  #         chmod +x "$buildFile"
-  #         "$buildFile"
-  #         echo "Build completed for ${{ matrix.buildFiles }}"
-  #       env:
-  #         buildFile: ${{ matrix.buildFiles }}
+          sh build-linux.sh
   build-mac:
     runs-on: macos-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        buildFiles:
-          # - './wine/wine-ia32.sh'
-          - './wine/wine-mac-ia32-and-x64.sh'
-          # - './wine/wine-only-x64.sh'
-          - './nsis-mac.sh'
-          - './scripts/update-zstd.sh'
-          - './winCodeSign/darwin/build.sh'
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Setup
+      - name: Build
         run: |
-          brew install docker
-          sudo ln -s ~/.docker/run/docker.sock /var/run/docker.sock
-      - name: Build and test
-        run: |
-          echo "Running build for ${{ env.buildFile }}"
-          chmod +x "$buildFile"
-          "$buildFile"
-          echo "Build completed for ${{ env.buildFile }}"
-        env:
-          buildFile: ${{ matrix.buildFiles }}
+          sh build-mac.sh

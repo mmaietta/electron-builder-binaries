@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -ex
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 OUTPUT_DIR=/tmp/nsis
@@ -77,8 +79,8 @@ docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $OUTPUT_DIR/
 docker rm "$containerId"
 unlink "$cidFile"
 
-
-rm -rf $BASEDIR/nsis
-mkdir $BASEDIR/nsis
-cp -a $OUTPUT_DIR/* $BASEDIR/nsis
+DIR=$BASEDIR/../nsis
+rm -rf $DIR
+mkdir $DIR
+cp -a $OUTPUT_DIR/* $DIR
 # rm -rf $OUTPUT_DIR

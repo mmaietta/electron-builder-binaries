@@ -2,6 +2,7 @@
 set -ex
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+OUTPUT_DIR=$BASEDIR/../AppImage/lib/x64
 
 rm -rf /tmp/appimage
 mkdir /tmp/appimage
@@ -49,7 +50,6 @@ curl http://old-releases.ubuntu.com/ubuntu/pool/main/libx/libxss/libxss1_1.2.2-1
 dpkg-deb -R f.deb ef
 mv ef/usr/lib/x86_64-linux-gnu/libXss.so.1.0.0 packages/libXss.so.1
 
-OUTPUT_DIR=$BASEDIR/AppImage/lib/x64
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 cp /tmp/appimage/packages/* $OUTPUT_DIR
