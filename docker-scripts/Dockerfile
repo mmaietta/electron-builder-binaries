@@ -15,7 +15,7 @@ RUN apt-get update && \
         python3-wheel \
         tar \
         unzip \
-        wget && \
+        wget \
         liblzo2-dev && \
     rm -rf /var/lib/apt/lists/*
 

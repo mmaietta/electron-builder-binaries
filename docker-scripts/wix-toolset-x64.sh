@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
-OUTPUT_DIR=$(pwd)/wix
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/wix
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 

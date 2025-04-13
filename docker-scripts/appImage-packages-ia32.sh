@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-OUTPUT_DIR=AppImage/lib/ia32
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/AppImage/lib/ia32
+mkdir -p $OUTPUT_DIR
 
 rm -rf /tmp/appimage
 mkdir /tmp/appimage

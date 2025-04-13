@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
-OUTPUT_DIR=$(pwd)/winCodeSign/darwin
+
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/winCodeSign/darwin
+mkdir -p $OUTPUT_DIR
 
 rm -rf a $OUTPUT_DIR
 curl -L 'https://github.com/mtrojnar/osslsigncode/releases/download/2.9/osslsigncode-2.9-macOS.zip' > a.zip

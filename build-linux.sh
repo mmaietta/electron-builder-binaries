@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
-sh ./scripts/nsis-plugins.sh
-sh ./scripts/nsis-linux.sh
-sh ./scripts/update-zstd.sh
-sh ./scripts/winCodeSign-tools-x64.sh
-sh ./scripts/appimage-tools-x64.sh
-sh ./scripts/appImage-packages-ia32.sh
-sh ./scripts/appImage-packages-x64.sh
+docker build -f docker-scripts/Dockerfile -t binaries-builder .
+docker run --rm -v ${PWD}:/app -v ./docker-scripts:/usr/src/app/docker-scripts binaries-builder bash -c \
+'
+sh ./docker-scripts/appImage-packages-ia32.sh
+sh ./docker-scripts/appImage-packages-x64.sh
+sh ./docker-scripts/nsis-linux.sh
+sh ./docker-scripts/nsis-plugins.sh
+sh ./docker-scripts/nsis.sh
+sh ./docker-scripts/winCodeSign-tools-x64.sh
+'
+
 sh ./winCodeSign/linux/build.sh

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
-OUTPUT_DIR=$(pwd)/AppImage/lib/x64
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/AppImage/lib/x64
+mkdir -p $OUTPUT_DIR
 
 rm -rf /tmp/appimage
 mkdir /tmp/appimage
