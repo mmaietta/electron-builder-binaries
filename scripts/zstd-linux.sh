@@ -26,6 +26,10 @@ docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
  cp /usr/local/bin/mksquashfs /tmp/mksquashfs-64
  '
 
+mkdir -p zstd/linux-x64
+mkdir -p zstd/linux-ia32
+mkdir -p AppImage/linux-x64
+
 containerId=$(cat "$cidFile")
 docker cp "$containerId":/usr/local/bin/zstd zstd/linux-x64/zstd
 docker cp "$containerId":/tmp/mksquashfs-64 AppImage/linux-x64/mksquashfs
