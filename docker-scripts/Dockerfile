@@ -16,6 +16,7 @@ RUN apt-get update && \
         tar \
         unzip \
         wget && \
+        liblzo2-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory

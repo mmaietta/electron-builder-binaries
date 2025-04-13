@@ -3,7 +3,6 @@ set -ex
 
 sh ./scripts/nsis-plugins.sh
 sh ./scripts/nsis-linux.sh
-sh ./scripts/nsis-prepare.sh
 sh ./scripts/update-zstd.sh
 sh ./scripts/winCodeSign-tools-x64.sh
 sh ./scripts/appimage-tools-x64.sh

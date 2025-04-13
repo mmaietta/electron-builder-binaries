@@ -19,7 +19,7 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
+docker run --cidfile="$cidFile"  --platform=linux/x86_64 buildpack-deps:bionic bash -c \
 'git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. &&
  git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools &&
  apt-get update -y && apt-get install -y liblzo2-dev && make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install &&
@@ -37,7 +37,7 @@ docker cp "$containerId":/tmp/mksquashfs-64 AppImage/linux-x64/mksquashfs
 docker rm "$containerId"
 unlink "$cidFile"
 
-docker run --cidfile="$cidFile" i386/buildpack-deps:bionic bash -c \
+docker run --cidfile="$cidFile" --platform=linux/i386 buildpack-deps:bionic bash -c \
 'git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. &&
  git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools &&
  apt-get update -y && apt-get install -y liblzo2-dev && make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install &&

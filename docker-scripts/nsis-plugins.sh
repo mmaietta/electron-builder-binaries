@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd "$BASEDIR/.."
-OUT_DIR=$(pwd)/nsis-resources/plugins/
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+OUT_DIR=$BASEDIR/nsis-resources/plugins/
 
 unpack()
 {

@@ -1,12 +1,24 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+DIR=$BASEDIR/nsis
 
 OUTPUT_DIR=/tmp/nsis
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
+
+# Download the latest version of NSIS (Linux)
+mkdir -p /tmp/scons
+curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons
+mkdir -p /tmp/nsis
+curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1
+cd /tmp/nsis
+python2 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
+
+mkdir $OUTPUT_DIR/linux
+cp /tmp/nsis/build/urelease/makensis/makensis $OUTPUT_DIR/linux/makensis
 
 # Download the latest version of NSIS (Windows)
 curl 'https://pilotfiber.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip?viasf=1' > nsis.zip
@@ -32,7 +44,7 @@ rm $OUTPUT_DIR/NSIS.chm
 rm $OUTPUT_DIR/makensisw.exe
 
 # Copy over the "fixed" language files (are these still needed?)
-cp -a nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
+cp -a $BASEDIR/nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
 
 # nsProcess plugin
 curl -L http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip > a.zip
@@ -57,30 +69,6 @@ mv a/Plugins/x86-unicode/WinShell.dll $OUTPUT_DIR/Plugins/x86-unicode/WinShell.d
 mv a/Plugins/x86-ansi/WinShell.dll $OUTPUT_DIR/Plugins/x86-ansi/WinShell.dll
 rm -rf a a.zip
 
-# Build the latest version of NSIS (Linux) in docker container
-cidFile="/tmp/nsis-build-container-id"
-if test -f "$cidFile"; then
-  echo "already running (removing $cidFile)"
-  containerId=$(cat "$cidFile")
-  docker rm "$containerId"
-  unlink "$cidFile"
-fi
-
-docker run --cidfile="$cidFile" buildpack-deps:xenial bash -c \
-'mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons &&
- mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 &&
- cd /tmp/nsis &&
- python /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
- '
-
-containerId=$(cat "$cidFile")
-mkdir $OUTPUT_DIR/linux
-docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $OUTPUT_DIR/linux/makensis
-docker rm "$containerId"
-unlink "$cidFile"
-
-DIR=./nsis
 rm -rf $DIR
 mkdir $DIR
 cp -a $OUTPUT_DIR/* $DIR
-# rm -rf $OUTPUT_DIR
