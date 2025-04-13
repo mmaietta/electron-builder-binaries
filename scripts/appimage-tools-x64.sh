@@ -2,7 +2,7 @@
 set -ex
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-OUTPUT_DIR=$BASEDIR/../AppImage/linux-x64
+OUTPUT_DIR=AppImage/linux-x64
 
 # desktop-file-validate
 
@@ -15,10 +15,10 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
+cd "$BASEDIR/.."
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 
-cd "$BASEDIR"
 docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
 'git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. &&
  git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools &&
@@ -28,7 +28,7 @@ docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
 '
 
 containerId=$(cat "$cidFile")
-docker cp "$containerId":/usr/local/bin/zstd $BASEDIR/zstd/linux-x64/zstd
+docker cp "$containerId":/usr/local/bin/zstd zstd/linux-x64/zstd
 docker cp "$containerId":/usr/bin/desktop-file-validate $OUTPUT_DIR/desktop-file-validate
 docker cp "$containerId":/usr/local/bin/mksquashfs $OUTPUT_DIR/mksquashfs
 docker rm "$containerId"

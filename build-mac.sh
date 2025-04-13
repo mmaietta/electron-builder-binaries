@@ -2,6 +2,6 @@
 set -ex
 
 sh ./scripts/nsis-mac.sh
-sh ./scripts/wine/wine-mac-ia32-and-x64.sh
-sh ./scripts/scripts/update-zstd.sh
-sh ./scripts/./winCodeSign/darwin/build.sh
+sh ./scripts/update-zstd.sh
+sh ./winCodeSign/darwin/build.sh
+sh ./wine/wine-mac-ia32-and-x64.sh
