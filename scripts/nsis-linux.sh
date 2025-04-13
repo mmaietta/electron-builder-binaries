@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASEDIR=$(dirname "$0")
+cd $BASEDIR/..
+
 OUTPUT_DIR=/tmp/nsis
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
@@ -30,7 +32,7 @@ rm $OUTPUT_DIR/NSIS.chm
 rm $OUTPUT_DIR/makensisw.exe
 
 # Copy over the "fixed" language files (are these still needed?)
-cp -a $BASEDIR/nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
+cp -a nsis-lang-fixes/* $OUTPUT_DIR/Contrib/Language\ files/
 
 
 # nsProcess plugin
@@ -65,7 +67,6 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-cd "$BASEDIR"
 docker run --cidfile="$cidFile" buildpack-deps:xenial bash -c \
 'mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons &&
  mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 &&
@@ -79,7 +80,7 @@ docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $OUTPUT_DIR/
 docker rm "$containerId"
 unlink "$cidFile"
 
-DIR=$BASEDIR/../nsis
+DIR=./nsis
 rm -rf $DIR
 mkdir $DIR
 cp -a $OUTPUT_DIR/* $DIR

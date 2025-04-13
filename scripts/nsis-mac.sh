@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -ex
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASEDIR=$(dirname "$0")
 OUTPUT_DIR=/tmp/nsis
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR

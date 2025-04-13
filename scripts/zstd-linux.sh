@@ -8,7 +8,8 @@ set -ex
 # shellcheck disable=SC2046
 # eval $(minikube -p minikube docker-env)
 
-BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+BASEDIR=$(dirname "$0")
+cd "$BASEDIR/.."
 
 cidFile="/tmp/zstd-build-container-id"
 if test -f "$cidFile"; then
@@ -18,7 +19,6 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-cd "$BASEDIR../"
 docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
 'git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. &&
  git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools &&
