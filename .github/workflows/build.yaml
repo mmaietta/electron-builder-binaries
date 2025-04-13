@@ -32,6 +32,7 @@ jobs:
           - './scripts/nsis-plugins.sh'
           - './wix-toolset-x64.sh'
           - './winCodeSign/linux/build.sh'
+          - './nsis-linux.sh'
           # - './scripts/update-zstd.sh'
           # - ['./nsis-linux.sh']
           # - ['./nsis.sh', './nsis-prepare.sh', './nsis.sh']
@@ -81,7 +82,7 @@ jobs:
           # - './wine/wine-ia32.sh'
           - './wine/wine-mac-ia32-and-x64.sh'
           # - './wine/wine-only-x64.sh'
-          - './nsis.sh'
+          - './nsis-mac.sh'
           - './scripts/update-zstd.sh'
           - './winCodeSign/darwin/build.sh'
     steps:
