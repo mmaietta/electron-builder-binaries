@@ -4,14 +4,14 @@ set -ex
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
 cd $BASEDIR
 
-if [[ -v  "$ARCH" ]]; then
+if [ -z "$ARCH" ]; then
   echo "Building default target."
   ARCH="x86_64"
 fi
-if [[ "$ARCH" == "x86_64" ]]; then
+if [ "$ARCH" == "x86_64" ]; then
   echo "Building x64 target."
   OUTPUT_ARCH="x64"
-elif [[ "$ARCH" == "i386" ]]; then
+elif [ "$ARCH" == "i386" ]; then
   echo "Building ia32 target."
   OUTPUT_ARCH="ia32"
 else
