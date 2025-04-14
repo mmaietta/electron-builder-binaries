@@ -3,7 +3,7 @@ set -ex
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 cd $BASEDIR
-OUTPUT_DIR=/tmp/wix
+OUTPUT_DIR=$BASEDIR/wix
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 

@@ -50,3 +50,4 @@ RUN sh ./docker-scripts/nsis-plugins.sh
 RUN sh ./docker-scripts/winCodeSign-tools-mac-x64.sh
 RUN sh ./docker-scripts/wix-toolset-x64.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
+# RUN sh ./docker-scripts/appImage-packages-ia32.sh
