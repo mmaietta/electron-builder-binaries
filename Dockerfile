@@ -45,7 +45,8 @@ COPY ./nsis-lang-fixes /usr/src/app/nsis-lang-fixes
 # Set the working directory
 WORKDIR /usr/src/app
 
-RUN sh ./docker-scripts/appImage-packages-x64.sh
 RUN sh ./docker-scripts/nsis-linux.sh
 RUN sh ./docker-scripts/nsis-plugins.sh
 RUN sh ./docker-scripts/winCodeSign-tools-mac-x64.sh
+RUN sh ./docker-scripts/wix-toolset-x64.sh
+RUN sh ./docker-scripts/appImage-packages-x64.sh

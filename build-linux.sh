@@ -27,6 +27,21 @@ if test -f "$cidFile"; then
   docker rm "$containerId"
 fi
 
+# cleanup docker container (if-exists) on error
+f () {
+    errorCode=$? # save the exit code as the first thing done in the trap function
+    echo "error $errorCode"
+    echo "the command executing at the time of the error was"
+    echo "$BASH_COMMAND"
+    echo "on line ${BASH_LINENO[0]}"
+
+    unlink "$cidFile"
+    docker rm "$containerId"
+
+    exit $errorCode  # or use some other value or do return instead
+}
+trap f ERR
+
 # these all build in the own docker container
 # sh ./winCodeSign/linux/build.sh
 # ARCH=x86_64 sh ./scripts/appimage-tools-arch-arg.sh
@@ -34,7 +49,7 @@ fi
 
 
 IMAGE_ARCH=x86_64
-docker build -f docker-scripts/Dockerfile -t binaries-builder:${IMAGE_ARCH} .
+docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
 docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app -v ./docker-scripts:/usr/src/app/docker-scripts binaries-builder:${IMAGE_ARCH} 
 #  bash -c \
 # '
@@ -90,6 +105,13 @@ MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
 rm -rf $MAKENSIS_OUTPUT
 mkdir -p $MAKENSIS_OUTPUT
 docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+
+# wix
+WIX_OUTPUT_DIR=$BASEDIR/wix
+rm -rf $WIX_OUTPUT_DIR
+mkdir -p $WIX_OUTPUT_DIR
+docker cp "$containerId":/tmp/wix/* $WIX_OUTPUT_DIR
+
 
 # wine
 # WINE_OUTPUT_DIR=$BASEDIR/wine
