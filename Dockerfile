@@ -33,7 +33,7 @@ RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scon
     mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
     cd /tmp/nsis && \
     python2 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
-# RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
+RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
 
 RUN git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. && \
     git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
@@ -49,5 +49,6 @@ RUN sh ./docker-scripts/nsis-linux.sh
 RUN sh ./docker-scripts/nsis-plugins.sh
 RUN sh ./docker-scripts/winCodeSign-tools-mac-x64.sh
 RUN sh ./docker-scripts/wix-toolset-x64.sh
+RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
 # RUN sh ./docker-scripts/appImage-packages-ia32.sh

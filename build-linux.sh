@@ -38,7 +38,7 @@ f () {
     unlink "$cidFile"
     docker rm "$containerId"
 
-    exit $errorCode  # or use some other value or do return instead
+    exit $errorCode
 }
 trap f ERR
 
@@ -49,7 +49,7 @@ trap f ERR
 
 
 IMAGE_ARCH=x86_64
-# docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
+docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
 docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app binaries-builder:${IMAGE_ARCH} 
 
 containerId=$(cat "$cidFile")
@@ -73,7 +73,7 @@ rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
 mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/appimage/. $APPIMAGE_TOOLS_OUTPUT_DIR
 
-# nsis-linux
+# nsis-linux and makensis
 NSIS_OUTPUT_DIR=$BASEDIR/nsis/linux
 rm -rf $NSIS_OUTPUT_DIR
 mkdir -p $NSIS_OUTPUT_DIR
@@ -91,11 +91,18 @@ rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/winCodeSign/. $WIN_CODE_SIGN_OUTPUT_DIR
 
+# openjpeg
+OPENJPEG_OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
+rm -rf $OPENJPEG_OUTPUT_DIR
+mkdir -p $OPENJPEG_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
+
+
 # makensis
-MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
-rm -rf $MAKENSIS_OUTPUT
-mkdir -p $MAKENSIS_OUTPUT
-docker cp "$containerId":/usr/src/app/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+# MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
+# rm -rf $MAKENSIS_OUTPUT
+# mkdir -p $MAKENSIS_OUTPUT
+# docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
 
 # wix
 WIX_OUTPUT_DIR=$BASEDIR/wix
@@ -103,15 +110,7 @@ rm -rf $WIX_OUTPUT_DIR
 mkdir -p $WIX_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/wix/. $WIX_OUTPUT_DIR
 
-
-# wine
-# WINE_OUTPUT_DIR=$BASEDIR/wine
-# rm -rf $WINE_OUTPUT_DIR
-# mkdir -p $WINE_OUTPUT_DIR
-# # docker cp "$containerId":/usr/src/app/wine/* $WINE_OUTPUT_DIR
-
 # cleanup
 docker rm "$containerId"
 unlink "$cidFile"
-
-sh ./scripts/appimage-openjpeg-x64.sh
+echo "Build completed successfully."
