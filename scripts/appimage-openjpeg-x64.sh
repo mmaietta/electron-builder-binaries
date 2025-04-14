@@ -1,3 +1,11 @@
+#!/usr/bin/env bash
+set -ex
+
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
+mkdir -p $OUTPUT_DIR
+
 # get openjpg
 rm -rf /tmp/openjpeg
 mkdir /tmp/openjpeg
