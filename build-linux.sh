@@ -19,12 +19,12 @@ else
   exit 1
 fi
 
-cidFile="/tmp/desktop-file-validate-build-container-id"
+cidFile="/tmp/linux-build-container-id"
 if test -f "$cidFile"; then
   echo "already running (removing $cidFile)"
   containerId=$(cat "$cidFile")
-  docker rm "$containerId"
   unlink "$cidFile"
+  docker rm "$containerId"
 fi
 
 # these all build in the own docker container
@@ -32,17 +32,22 @@ fi
 # ARCH=x86_64 sh ./scripts/appimage-tools-arch-arg.sh
 # ARCH=i386 sh ./scripts/appimage-tools-arch-arg.sh
 
-docker build -f docker-scripts/Dockerfile -t binaries-builder .
-docker run --cidfile="$cidFile" -e IMAGE_VERSION=x86_64 --rm -v ${PWD}:/app -v ./docker-scripts:/usr/src/app/docker-scripts binaries-builder bash -c \
-'
-sh ./docker-scripts/appImage-packages-x64.sh
-sh ./docker-scripts/nsis-linux.sh
-sh ./docker-scripts/nsis-plugins.sh
-sh ./docker-scripts/nsis.sh
-sh ./docker-scripts/winCodeSign-tools-x64.sh
-'
+
+IMAGE_ARCH=x86_64
+docker build -f docker-scripts/Dockerfile -t binaries-builder:${IMAGE_ARCH} .
+docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app -v ./docker-scripts:/usr/src/app/docker-scripts binaries-builder:${IMAGE_ARCH} 
+#  bash -c \
+# '
+# sh ./docker-scripts/appImage-packages-x64.sh
+# sh ./docker-scripts/nsis-linux.sh
+# sh ./docker-scripts/nsis-plugins.sh
+# sh ./docker-scripts/nsis.sh
+# sh ./docker-scripts/winCodeSign-tools-x64.sh
+# '
 # might not be needed anymore. if so, move into `docker run` command
 # sh ./docker-scripts/appImage-packages-ia32.sh
+
+containerId=$(cat "$cidFile")
 
 # desktop-file-validate & mksquashfs
 APPIMAGE_OUTPUT_DIR=$BASEDIR/AppImage/linux-$OUTPUT_ARCH
@@ -56,6 +61,41 @@ ZTSD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
 rm -rf $ZTSD_OUTPUT_DIR
 mkdir -p $ZTSD_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/zstd $ZTSD_OUTPUT_DIR/zstd
+
+# appimage-tools
+APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
+rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
+mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
+docker cp "$containerId":/tmp/appimage/packages/* $APPIMAGE_TOOLS_OUTPUT_DIR
+
+# nsis-linux
+NSIS_OUTPUT_DIR=$BASEDIR/nsis/linux
+rm -rf $NSIS_OUTPUT_DIR
+mkdir -p $NSIS_OUTPUT_DIR
+docker cp "$containerId":/tmp/nsis/* $NSIS_OUTPUT_DIR
+# nsis-plugins
+NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
+rm -rf $NSIS_PLUGINS_OUTPUT_DIR
+mkdir -p $NSIS_PLUGINS_OUTPUT_DIR
+docker cp "$containerId":/tmp/nsis-resources/plugins/* $NSIS_PLUGINS_OUTPUT_DIR
+
+# winCodeSign
+WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
+rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
+mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
+docker cp "$containerId":/tmp/winCodeSign/* $WIN_CODE_SIGN_OUTPUT_DIR
+
+# makensis
+MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
+rm -rf $MAKENSIS_OUTPUT
+mkdir -p $MAKENSIS_OUTPUT
+docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+
+# wine
+# WINE_OUTPUT_DIR=$BASEDIR/wine
+# rm -rf $WINE_OUTPUT_DIR
+# mkdir -p $WINE_OUTPUT_DIR
+# # docker cp "$containerId":/tmp/wine/* $WINE_OUTPUT_DIR
 
 # cleanup
 docker rm "$containerId"
