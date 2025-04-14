@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
-OUTPUT_DIR=$(pwd)/AppImage/linux-x64
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
 
-# desktop-file-validate
+if [ -z "$ARCH" ]; then
+  echo "Building default target."
+  ARCH="x86_64"
+fi
+if [ "$ARCH" == "x86_64" ]; then
+  echo "Building x64 target."
+  OUTPUT_ARCH="x64"
+elif [ "$ARCH" == "i386" ]; then
+  echo "Building ia32 target."
+  OUTPUT_ARCH="ia32"
+else
+  echo "Unknown architecture: $ARCH"
+  exit 1
+fi
+OUTPUT_DIR=$BASEDIR/AppImage/linux-$OUTPUT_ARCH
 
-# Build the latest version of NSIS (Linux) in docker container
+# Build the latest version of mksquashfs and ztsd (Linux) in docker container
 cidFile="/tmp/desktop-file-validate-build-container-id"
 if test -f "$cidFile"; then
   echo "already running (removing $cidFile)"
@@ -16,7 +29,7 @@ if test -f "$cidFile"; then
   unlink "$cidFile"
 fi
 
-docker run --cidfile="$cidFile" buildpack-deps:bionic bash -c \
+docker run --cidfile="$cidFile" --platform=linux/$ARCH buildpack-deps:bionic bash -c \
 'git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. &&
  git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools &&
  apt-get update -yq &&
@@ -29,20 +42,10 @@ rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 docker cp "$containerId":/usr/bin/desktop-file-validate $OUTPUT_DIR/desktop-file-validate
 docker cp "$containerId":/usr/local/bin/mksquashfs $OUTPUT_DIR/mksquashfs
-ZTSD_OUTPUT_DIR=$(pwd)/zstd/linux-x64
+
+ZTSD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
 rm -rf $ZTSD_OUTPUT_DIR
 mkdir -p $ZTSD_OUTPUT_DIR
-docker cp "$containerId":/usr/local/bin/zstd $ZTSD_OUTPUT_DIR/zstd/linux-x64/zstd
+docker cp "$containerId":/usr/local/bin/zstd $ZTSD_OUTPUT_DIR/zstd
 docker rm "$containerId"
 unlink "$cidFile"
-
-# get openjpg
-rm -rf /tmp/openjpeg
-mkdir /tmp/openjpeg
-curl -L https://github.com/uclouvain/openjpeg/releases/download/v2.5.3/openjpeg-v2.5.3-linux-x86_64.tar.gz | tar -xz -C /tmp/openjpeg
-mkdir -p $OUTPUT_DIR/lib/openjpeg-2.5
-cp -a /tmp/openjpeg/openjpeg-v2.5.3-linux-x86_64/bin/* $OUTPUT_DIR/
-cp -a /tmp/openjpeg/openjpeg-v2.5.3-linux-x86_64/lib/cmake/openjpeg-2.5 $OUTPUT_DIR/lib/openjpeg-2.5
-cp -a /tmp/openjpeg/openjpeg-v2.5.3-linux-x86_64/lib/libopenjp2.* $OUTPUT_DIR/lib/
-cp -a /tmp/openjpeg/openjpeg-v2.5.3-linux-x86_64/lib/pkgconfig $OUTPUT_DIR/lib
-rm -rf /tmp/openjpeg
