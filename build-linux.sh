@@ -50,7 +50,7 @@ trap f ERR
 
 IMAGE_ARCH=x86_64
 docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
-docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app -v ./docker-scripts:/usr/src/app/docker-scripts binaries-builder:${IMAGE_ARCH} 
+docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app binaries-builder:${IMAGE_ARCH} 
 #  bash -c \
 # '
 # sh ./docker-scripts/appImage-packages-x64.sh
@@ -78,46 +78,47 @@ mkdir -p $ZTSD_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/zstd $ZTSD_OUTPUT_DIR/zstd
 
 # appimage-tools
-APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
-rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
-mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
-docker cp "$containerId":/tmp/appimage/packages/* $APPIMAGE_TOOLS_OUTPUT_DIR
+# APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
+# rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
+# mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
+# docker cp "$containerId":/usr/src/app/appimage/packages/* $APPIMAGE_TOOLS_OUTPUT_DIR
 
 # nsis-linux
 NSIS_OUTPUT_DIR=$BASEDIR/nsis/linux
 rm -rf $NSIS_OUTPUT_DIR
 mkdir -p $NSIS_OUTPUT_DIR
-docker cp "$containerId":/tmp/nsis/* $NSIS_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/nsis/* $NSIS_OUTPUT_DIR
+
 # nsis-plugins
 NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
 rm -rf $NSIS_PLUGINS_OUTPUT_DIR
 mkdir -p $NSIS_PLUGINS_OUTPUT_DIR
-docker cp "$containerId":/tmp/nsis-resources/plugins/* $NSIS_PLUGINS_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/nsis-resources/plugins/* $NSIS_PLUGINS_OUTPUT_DIR
 
 # winCodeSign
 WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
 rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
-docker cp "$containerId":/tmp/winCodeSign/* $WIN_CODE_SIGN_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/winCodeSign/* $WIN_CODE_SIGN_OUTPUT_DIR
 
 # makensis
 MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
 rm -rf $MAKENSIS_OUTPUT
 mkdir -p $MAKENSIS_OUTPUT
-docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+docker cp "$containerId":/usr/src/app/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
 
 # wix
 WIX_OUTPUT_DIR=$BASEDIR/wix
 rm -rf $WIX_OUTPUT_DIR
 mkdir -p $WIX_OUTPUT_DIR
-docker cp "$containerId":/tmp/wix/* $WIX_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/wix/* $WIX_OUTPUT_DIR
 
 
 # wine
 # WINE_OUTPUT_DIR=$BASEDIR/wine
 # rm -rf $WINE_OUTPUT_DIR
 # mkdir -p $WINE_OUTPUT_DIR
-# # docker cp "$containerId":/tmp/wine/* $WINE_OUTPUT_DIR
+# # docker cp "$containerId":/usr/src/app/wine/* $WINE_OUTPUT_DIR
 
 # cleanup
 docker rm "$containerId"

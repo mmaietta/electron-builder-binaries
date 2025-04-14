@@ -3,7 +3,7 @@ set -ex
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 cd $BASEDIR
-OUTPUT_DIR=$BASEDIR/AppImage/lib/x64
+OUTPUT_DIR=$BASEDIR/appimage
 mkdir -p $OUTPUT_DIR
 
 rm -rf /tmp/appimage
