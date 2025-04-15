@@ -38,3 +38,15 @@ jobs:
       - name: Build
         run: |
           sh build-mac.sh
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
+      - name: Setup WDK
+        run: |
+          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100

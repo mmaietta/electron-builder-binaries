@@ -80,10 +80,10 @@ mkdir -p $NSIS_PLUGINS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
 
 # winCodeSign
-WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
+WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign/darwin
 rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
-docker cp "$containerId":/usr/src/app/winCodeSign/. $WIN_CODE_SIGN_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/winCodeSign/darwin/. $WIN_CODE_SIGN_OUTPUT_DIR
 
 # openjpeg
 OPENJPEG_OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
