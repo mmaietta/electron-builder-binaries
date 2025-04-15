@@ -42,23 +42,31 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9.4.0
+      - name: Setup node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Setup Build Tools
+        run: |
+          winget install --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
+          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100 --silent
+          winget install --source winget --exact --id Microsoft.VisualStudio.2022.BuildTools --silent
+          
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
-          cache: 'pnpm'
       - name: Install dependencies
-        run: |
-          npm install
-      - name: Setup Build Tools
-        run: |
-          winget install --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
-          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100 --silent
+        run: pnpm install --frozen-lockfile
+        shell: bash
+
       - name: Build
         run: |
           node scripts/appx.js
