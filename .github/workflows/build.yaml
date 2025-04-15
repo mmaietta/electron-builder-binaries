@@ -47,6 +47,18 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Setup WDK
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install dependencies
         run: |
-          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100
+          npm install
+      - name: Setup Build Tools
+        run: |
+          winget install --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
+          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100 --silent
+      - name: Build
+        run: |
+          node scripts/appx.js
