@@ -43,12 +43,9 @@ f () {
 trap f ERR
 
 # these all build in the own docker container
-# sh ./winCodeSign/linux/build.sh
-# ARCH=x86_64 sh ./scripts/appimage-tools-arch-arg.sh
-# ARCH=i386 sh ./scripts/appimage-tools-arch-arg.sh
+sh ./winCodeSign/linux/build.sh
 
-
-IMAGE_ARCH=x86_64
+IMAGE_ARCH=${IMAGE_ARCH:-x86_64}
 docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
 docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app binaries-builder:${IMAGE_ARCH} 
 
