@@ -59,6 +59,19 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
+      - name: Install winget
+        uses: Cyberboss/install-winget@v1
+        id: stepid
+        with:
+          # version: 1.18.0
+          # install_path: C:\winget
+          # install_location: C:\winget
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          wget_release_id: latest
+
+      - name: WinGet version
+        run: echo '${{ steps.stepid.outputs.winget-version }}'
+
       - name: Setup Build Tools
         run: |
           winget install --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
