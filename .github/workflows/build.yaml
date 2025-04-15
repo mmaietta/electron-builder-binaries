@@ -50,7 +50,7 @@ jobs:
           # install_path: C:\winget
           # install_location: C:\winget
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          wget_release_id: v1.10.390 # v1.9.25200 # v1.10.390
+          wget_release_id: 210203928 # v1.9.25200 # v1.10.390
 
       - name: WinGet version
         run: echo '${{ steps.stepid.outputs.winget-version }}'
