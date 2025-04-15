@@ -42,9 +42,6 @@ f () {
 }
 trap f ERR
 
-# these all build in the own docker container
-sh ./winCodeSign/linux/build.sh
-
 IMAGE_ARCH=${IMAGE_ARCH:-x86_64}
 docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
 docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app binaries-builder:${IMAGE_ARCH} 
@@ -94,7 +91,11 @@ rm -rf $OPENJPEG_OUTPUT_DIR
 mkdir -p $OPENJPEG_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
 
-
+# osslsigncode
+OSSLSIGNCODE_OUTPUT_DIR=$BASEDIR/winCodeSign/linux/
+rm -rf $OSSLSIGNCODE_OUTPUT_DIR
+mkdir -p $OSSLSIGNCODE_OUTPUT_DIR
+docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
 # makensis
 # MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
 # rm -rf $MAKENSIS_OUTPUT
