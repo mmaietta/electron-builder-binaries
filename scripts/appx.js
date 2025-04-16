@@ -1,9 +1,9 @@
 const path = require("path")
-const BluebirdPromise = require("bluebird-lst")
-const copy = BluebirdPromise.promisify(require("fs").copyFile)
+const promisify = require("util").promisify
+const copy = promisify(require("fs").copyFile)
 
 const windowsKitsDir = "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10"
-const sourceDir = path.join(windowsKitsDir, "bin/10.0.26100")
+const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100")
 const destination = path.join(__dirname, "../winCodeSign/windows-10")
 
 // noinspection SpellCheckingInspection
@@ -33,16 +33,15 @@ const files = [
   "pvk2pfx.exe"
 ]
 
-function copyFiles(files, sourceDir, archWin, archNode) {
-  return BluebirdPromise.map(files, file => copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file)))
+function copyFiles(files, archWin, archNode) {
+  return files.map(file => copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file)))
 }
 
 Promise.all([
-  copyFiles(files, sourceDir, "x86", "ia32"),
-  copyFiles(files, sourceDir, "x64", "x64"),
-])
-  .catch(error => {
-    process.exitCode = 1
-    console.error(error)
-  })
+  ...copyFiles(files, "x86", "ia32"),
+  ...copyFiles(files, "x64", "x64"),
+]).catch(error => {
+  process.exitCode = 1
+  console.error(error)
+})
 
