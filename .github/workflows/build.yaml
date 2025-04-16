@@ -54,7 +54,6 @@ jobs:
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
         with:
           node-version: '22'
-          cache: 'pnpm'
 
       - name: List Windows Kits versions installed
         run: |
@@ -62,7 +61,7 @@ jobs:
           ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin"
           ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0"
       
-      - name: Build 2
+      - name: Copy specific Windows Kits assets (makeappx, signtool, etc.)
         run: |
           node scripts/appx.js
       

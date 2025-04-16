@@ -36,14 +36,25 @@ const files = [
 
 function copyFiles(files, archWin, archNode) {
   fs.mkdirSync(path.join(destination, archNode), { recursive: true })
-  return files.map(file => copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file)))
+  return files.map(async file => {
+    await copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file))
+    return file
+  })
 }
 
 Promise.all([
   ...copyFiles(files, "x86", "ia32"),
   ...copyFiles(files, "x64", "x64"),
   ...copyFiles(files, "arm64", "arm64"),
-]).catch(error => {
+])
+.then(files => {
+  console.log("Files copied successfully")
+  console.log("Files copied:")
+  files.forEach(file => {
+    console.log(`- ${file}`)
+  })
+})
+.catch(error => {
   process.exitCode = 1
   console.error(error)
 })
