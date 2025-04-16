@@ -1,4 +1,4 @@
-name: Test
+name: Build artifacts
 
 on:
   push:
@@ -9,9 +9,6 @@ on:
 
 permissions:
   contents: read
-
-# env:
-#   TEST_IMAGE_NODE_MAJOR_VERSION: 22
 
 jobs:
   build-linux:
@@ -42,33 +39,11 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
-      # - name: Install winget
-      #   uses: Cyberboss/install-winget@v1
-      #   id: winget
-      #   with:
-      #     # gh api \
-      #     # -H "Accept: application/vnd.github+json" \
-      #     # -H "X-GitHub-Api-Version: 2022-11-28" \
-      #     # /repos/electronuserland/electron-builder-binaries/releases
-      #     wget_release_id: 162380400 # v1.8.1762
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      # - name: WinGet version
-      #   run: echo '${{ steps.winget.outputs.winget-version }}'
-
-
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-
-
-      # - name: Setup Build Tools
-      #   run: |
-      #     winget install --id Microsoft.WindowsSDK.10.0.26100 --disable-interactivity --source winget --exact --silent
-        # winget install --id Microsoft.VisualStudio.2022.Community --disable-interactivity --source winget --exact --silent --override "--passive --config .\wdk.vsconfig"
-        # winget install --id Microsoft.WindowsWDK.10.0.26100 --disable-interactivity --source winget --exact --silent
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -80,11 +55,6 @@ jobs:
         with:
           node-version: '22'
           cache: 'pnpm'
-
-      # - uses: ChristopheLav/windows-sdk-install@v1
-      #   with:
-      #     version-sdk: 26100
-      #     features: OptionId.SigningTools,OptionId.MSIInstallTools
 
       - name: List Windows Kits versions installed
         run: |

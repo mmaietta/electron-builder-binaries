@@ -3,7 +3,7 @@ const promisify = require("util").promisify
 const fs = require("fs")
 const copy = promisify(fs.copyFile)
 
-const windowsKitsDir = "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10"
+const windowsKitsDir = "C:\\Program Files (x86)\\Windows Kits\\10"
 const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100.0")
 const destination = path.join(__dirname, "../winCodeSign/windows-10")
 
