@@ -58,9 +58,9 @@ jobs:
 
       - name: Setup Build Tools
         run: |
-          winget install --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
-          winget install --source winget --exact --id Microsoft.WindowsWDK.10.0.26100 --silent
-          winget install --source winget --exact --id Microsoft.VisualStudio.2022.BuildTools --silent
+          winget install --disable-interactivity --source winget --exact --id Microsoft.WindowsWDK.10.0.26100
+        # winget install --disable-interactivity --source winget --exact --id Microsoft.VisualStudio.2022.Community --silent
+        # winget install --disable-interactivity --source winget --exact --id Microsoft.VisualStudio.2022.BuildTools --silent
 
 
       - name: Checkout code repository
