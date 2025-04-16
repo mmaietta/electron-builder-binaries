@@ -83,9 +83,10 @@ jobs:
 
       - name: Build
         run: |
-          ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10\\Include\\10.0.26100.0\\um" || true
-          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64"  || true
-          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x86"  || true
+          ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10" || true
+          ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10\\bin" || true
+          ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10\\bin\\10.0.26100" || true
+          ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10\\bin\\10.0.26100\\x64" || true
       
       - name: Build 2
         run: |
