@@ -64,11 +64,11 @@ jobs:
           submodules: recursive
 
 
-      - name: Setup Build Tools
-        run: |
-          winget install --id Microsoft.VisualStudio.2022.Community --disable-interactivity --source winget --exact --silent --override "--passive --config .\wdk.vsconfig"
-          winget install --id Microsoft.WindowsSDK.10.0.26100 --disable-interactivity --source winget --exact --silent
-          winget install --id Microsoft.WindowsWDK.10.0.26100 --disable-interactivity --source winget --exact --silent
+      # - name: Setup Build Tools
+      #   run: |
+      #     winget install --id Microsoft.WindowsSDK.10.0.26100 --disable-interactivity --source winget --exact --silent
+        # winget install --id Microsoft.VisualStudio.2022.Community --disable-interactivity --source winget --exact --silent --override "--passive --config .\wdk.vsconfig"
+        # winget install --id Microsoft.WindowsWDK.10.0.26100 --disable-interactivity --source winget --exact --silent
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
