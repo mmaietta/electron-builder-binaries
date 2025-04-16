@@ -1,9 +1,10 @@
 const path = require("path")
 const promisify = require("util").promisify
-const copy = promisify(require("fs").copyFile)
+const fs = require("fs")
+const copy = promisify(fs.copyFile)
 
 const windowsKitsDir = "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10"
-const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100")
+const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100.0")
 const destination = path.join(__dirname, "../winCodeSign/windows-10")
 
 // noinspection SpellCheckingInspection
@@ -34,6 +35,7 @@ const files = [
 ]
 
 function copyFiles(files, archWin, archNode) {
+  fs.mkdirSync(path.join(destination, archNode), { recursive: true })
   return files.map(file => copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file)))
 }
 
