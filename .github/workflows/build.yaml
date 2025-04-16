@@ -81,6 +81,11 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
+      - uses: ChristopheLav/windows-sdk-install@v1
+        with:
+          version-sdk: 26100
+          features: OptionId.SigningTools,OptionId.MSIInstallTools
+
       - name: Build
         run: |
           ls "C:\\Program Files (x86)\\Microsoft SDKs\\Windows Kits\\10" || true
