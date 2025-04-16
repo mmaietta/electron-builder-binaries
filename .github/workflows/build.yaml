@@ -44,16 +44,17 @@ jobs:
     steps:
       - name: Install winget
         uses: Cyberboss/install-winget@v1
-        id: stepid
+        id: winget
         with:
-          # version: 1.18.0
-          # install_path: C:\winget
-          # install_location: C:\winget
+          # gh api \
+          # -H "Accept: application/vnd.github+json" \
+          # -H "X-GitHub-Api-Version: 2022-11-28" \
+          # /repos/electronuserland/electron-builder-binaries/releases
+          wget_release_id: 162380400 # v1.8.1762
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          wget_release_id: 232164562 # v1.9.25200 # v1.10.390
-
+          
       - name: WinGet version
-        run: echo '${{ steps.stepid.outputs.winget-version }}'
+        run: echo '${{ steps.winget.outputs.winget-version }}'
 
       - name: Setup Build Tools
         run: |
