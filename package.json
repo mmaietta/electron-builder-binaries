@@ -9,6 +9,5 @@
   },
   "//": "go get -u github.com/develar/tool-releaser",
   "dependencies": {
-    "bluebird-lst": "^1.0.9"
   }
 }

@@ -14,30 +14,30 @@ permissions:
 #   TEST_IMAGE_NODE_MAJOR_VERSION: 22
 
 jobs:
-  # build-linux:
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 15
-  #   steps:
-  #     - name: Checkout code repository
-  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #       with:
-  #         fetch-depth: 2
-  #         submodules: recursive
-  #     - name: Build
-  #       run: |
-  #         bash build-linux.sh
-  # build-mac:
-  #   runs-on: macos-latest
-  #   timeout-minutes: 15
-  #   steps:
-  #     - name: Checkout code repository
-  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-  #       with:
-  #         fetch-depth: 2
-  #         submodules: recursive
-  #     - name: Build
-  #       run: |
-  #         bash build-mac.sh
+  build-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
+      - name: Build
+        run: |
+          bash build-linux.sh
+  build-mac:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
+      - name: Build
+        run: |
+          bash build-mac.sh
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 15
