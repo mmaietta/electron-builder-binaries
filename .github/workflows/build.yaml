@@ -81,17 +81,16 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
 
-      - uses: ChristopheLav/windows-sdk-install@v1
-        with:
-          version-sdk: 26100
-          features: OptionId.SigningTools,OptionId.MSIInstallTools
+      # - uses: ChristopheLav/windows-sdk-install@v1
+      #   with:
+      #     version-sdk: 26100
+      #     features: OptionId.SigningTools,OptionId.MSIInstallTools
 
-      - name: Build
+      - name: List Windows Kits versions installed
         run: |
-          ls "C:\\Program Files (x86)\\Windows Kits\\10" || true
-          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin" || true
-          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100" || true
-          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100\\x64" || true
+          ls "C:\\Program Files (x86)\\Windows Kits"
+          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin"
+          ls "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0"
       
       - name: Build 2
         run: |

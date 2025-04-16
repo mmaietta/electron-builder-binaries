@@ -40,6 +40,7 @@ function copyFiles(files, archWin, archNode) {
 Promise.all([
   ...copyFiles(files, "x86", "ia32"),
   ...copyFiles(files, "x64", "x64"),
+  ...copyFiles(files, "arm64", "arm64"),
 ]).catch(error => {
   process.exitCode = 1
   console.error(error)
