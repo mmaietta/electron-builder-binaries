@@ -24,7 +24,7 @@ jobs:
         run: |
           rm -rf out
           ARCH=i386 bash build-linux.sh
-          ARCH=x64 bash build-linux.sh
+          ARCH=x86_64 bash build-linux.sh
   build-mac:
     runs-on: macos-latest
     timeout-minutes: 15
