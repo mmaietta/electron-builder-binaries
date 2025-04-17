@@ -3,5 +3,6 @@ set -ex
 
 sh ./scripts/nsis-mac.sh
 sh ./scripts/zstd-win-mac.sh
+sh ./scripts/nsis-plugins-TBD.sh
 sh ./winCodeSign/darwin/build.sh
 sh ./wine/wine-mac-ia32-and-x64.sh

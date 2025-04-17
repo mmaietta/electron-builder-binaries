@@ -5,7 +5,7 @@ BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 cd $BASEDIR
 DIR=$BASEDIR/nsis
 
-OUTPUT_DIR=/tmp/nsis
+OUTPUT_DIR=/tmp/nsis-linux
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 
@@ -61,6 +61,6 @@ mv a/Plugins/x86-unicode/WinShell.dll $OUTPUT_DIR/Plugins/x86-unicode/WinShell.d
 mv a/Plugins/x86-ansi/WinShell.dll $OUTPUT_DIR/Plugins/x86-ansi/WinShell.dll
 rm -rf a a.zip
 
-rm -rf $DIR
+find ./nsis -type d ! -name 'linux' ! -name 'darwin' -exec rm -rf {} +
 mkdir $DIR
 cp -a $OUTPUT_DIR/* $DIR

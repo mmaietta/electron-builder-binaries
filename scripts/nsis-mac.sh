@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -ex
-BASEDIR=$(dirname "$0")
-OUTPUT_DIR=/tmp/nsis
+
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+
+OUTPUT_DIR=/tmp/nsis-mac
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 
@@ -11,5 +14,4 @@ brew tap nsis-dev/makensis
 brew install makensis@3.11 --with-large-strings --with-advanced-logging
 cp $(which makensis) $OUTPUT_DIR/mac/makensis
 
-cd $BASEDIR/..
 cp -a $OUTPUT_DIR/* ./nsis

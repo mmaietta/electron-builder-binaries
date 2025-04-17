@@ -6,9 +6,10 @@ cd $BASEDIR
 OUTPUT_DIR=$BASEDIR/appimage
 mkdir -p $OUTPUT_DIR
 
-rm -rf /tmp/appimage
-mkdir /tmp/appimage
-cd /tmp/appimage
+TMP_DIR=/tmp/appimage-packages-x64
+rm -rf $TMP_DIR
+mkdir $TMP_DIR
+cd $TMP_DIR
 
 mkdir packages
 
@@ -52,6 +53,8 @@ curl http://old-releases.ubuntu.com/ubuntu/pool/main/libx/libxss/libxss1_1.2.2-1
 dpkg-deb -R f.deb ef
 mv ef/usr/lib/x86_64-linux-gnu/libXss.so.1.0.0 packages/libXss.so.1
 
+rm -rf ef
+
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
-cp /tmp/appimage/packages/* $OUTPUT_DIR
+cp $TMP_DIR/packages/* $OUTPUT_DIR
