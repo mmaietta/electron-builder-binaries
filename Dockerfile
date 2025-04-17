@@ -55,6 +55,8 @@ RUN cd osslsigncode-2.9 && \
 # build scripts
 WORKDIR /usr/src/app
 COPY ./docker-scripts /usr/src/app/docker-scripts
+
+# build resources
 COPY ./nsis-lang-fixes /usr/src/app/nsis-lang-fixes
 
 RUN sh ./docker-scripts/nsis-linux.sh

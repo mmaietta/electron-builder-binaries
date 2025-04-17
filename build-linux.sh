@@ -2,9 +2,10 @@
 set -ex
 
 CWD=$(cd "$(dirname "$0")" && pwd)
+cd $CWD
+
 BASEDIR=$CWD/out
 mkdir -p $BASEDIR
-cd $BASEDIR
 
 if [ -z "$ARCH" ]; then
   echo "Building default target."
@@ -98,11 +99,18 @@ OSSLSIGNCODE_OUTPUT_DIR=$BASEDIR/winCodeSign/linux/
 rm -rf $OSSLSIGNCODE_OUTPUT_DIR
 mkdir -p $OSSLSIGNCODE_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
+
 # makensis
-# MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
-# rm -rf $MAKENSIS_OUTPUT
-# mkdir -p $MAKENSIS_OUTPUT
-# docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
+rm -rf $MAKENSIS_OUTPUT
+mkdir -p $MAKENSIS_OUTPUT
+docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+
+# makensis Windows
+MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows/
+rm -rf $MAKENSIS_WINDOWS_OUTPUT
+mkdir -p $MAKENSIS_WINDOWS_OUTPUT
+docker cp "$containerId":/usr/src/app/nsis/win/. $MAKENSIS_WINDOWS_OUTPUT
 
 # Squirrel.Windows
 SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/Squirrel.Windows
