@@ -64,3 +64,4 @@ RUN sh ./docker-scripts/wix-toolset-x64.sh
 RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
 # RUN sh ./docker-scripts/appImage-packages-ia32.sh
+RUN sh ./docker-scripts/squirrel-windows.sh

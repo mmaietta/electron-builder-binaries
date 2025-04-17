@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(cd "$(dirname "$0")" && pwd)
+CWD=$(cd "$(dirname "$0")" && pwd)
+BASEDIR=$CWD/out
+mkdir -p $BASEDIR
 cd $BASEDIR
 
 if [ -z "$ARCH" ]; then
@@ -101,6 +103,12 @@ docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
 # rm -rf $MAKENSIS_OUTPUT
 # mkdir -p $MAKENSIS_OUTPUT
 # docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+
+# Squirrel.Windows
+SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/Squirrel.Windows
+rm -rf $SQUIRREL_WINDOWS_OUTPUT_DIR
+mkdir -p $SQUIRREL_WINDOWS_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/Squirrel.Windows/. $SQUIRREL_WINDOWS_OUTPUT_DIR
 
 # wix
 WIX_OUTPUT_DIR=$BASEDIR/wix
