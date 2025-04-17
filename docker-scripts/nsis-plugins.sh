@@ -2,7 +2,7 @@
 set -ex
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
-OUT_DIR=$BASEDIR/out/nsis-resources/plugins/
+OUT_DIR=$BASEDIR/nsis-resources/plugins/
 rm -rf $OUT_DIR
 mkdir -p $OUT_DIR
 
