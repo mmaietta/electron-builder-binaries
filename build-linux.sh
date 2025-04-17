@@ -5,6 +5,8 @@ CWD=$(cd "$(dirname "$0")" && pwd)
 cd $CWD
 
 BASEDIR=$CWD/out
+# Note: output directory is not cleaned beforehand
+# we run this script multiple times for each arch to the joined output dir
 mkdir -p $BASEDIR
 
 if [ -z "$ARCH" ]; then
@@ -22,6 +24,7 @@ else
   exit 1
 fi
 
+# check if previous docker containers are still running based off of container lockfile
 cidFile="/tmp/linux-build-container-id"
 if test -f "$cidFile"; then
   echo "already running (removing $cidFile)"
@@ -58,11 +61,11 @@ mkdir -p $APPIMAGE_OUTPUT_DIR
 docker cp "$containerId":/usr/bin/desktop-file-validate $APPIMAGE_OUTPUT_DIR/desktop-file-validate
 docker cp "$containerId":/usr/local/bin/mksquashfs $APPIMAGE_OUTPUT_DIR/mksquashfs
 
-# ztsd
-ZTSD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
-rm -rf $ZTSD_OUTPUT_DIR
-mkdir -p $ZTSD_OUTPUT_DIR
-docker cp "$containerId":/usr/local/bin/zstd $ZTSD_OUTPUT_DIR/zstd
+# zstd
+ZSTD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
+rm -rf $ZSTD_OUTPUT_DIR
+mkdir -p $ZSTD_OUTPUT_DIR
+docker cp "$containerId":/usr/local/bin/zstd $ZSTD_OUTPUT_DIR/zstd
 
 # appimage-tools
 APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
@@ -101,10 +104,10 @@ mkdir -p $OSSLSIGNCODE_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
 
 # makensis
-MAKENSIS_OUTPUT=$BASEDIR/nsis/linux/makensis
-rm -rf $MAKENSIS_OUTPUT
-mkdir -p $MAKENSIS_OUTPUT
-docker cp "$containerId":/tmp/nsis/build/urelease/makensis/makensis $MAKENSIS_OUTPUT
+MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux/makensis
+rm -rf $MAKENSIS_LINUX_OUTPUT
+mkdir -p $MAKENSIS_LINUX_OUTPUT
+docker cp "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT
 
 # makensis Windows
 MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows/

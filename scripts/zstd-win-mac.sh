@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -ex
 
-BASEDIR=$(dirname "$0")
-cd $BASEDIR/..
-OUTPUT_DIR=$(pwd)/zstd
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+cd $BASEDIR
+OUTPUT_DIR=$BASEDIR/out/zstd
+mkdir -p $OUTPUT_DIR
 
-rm -rf /tmp/zstd
-mkdir /tmp/zstd
-cd /tmp/zstd
+TMP_DIR=/tmp/zstd
+rm -rf $TMP_DIR
+mkdir $TMP_DIR
+cd $TMP_DIR
 
 curl -L https://github.com/facebook/zstd/releases/download/v1.5.0/zstd-v1.5.0-win64.zip --output zstd-win64.zip
 unzip zstd-win64.zip
@@ -23,5 +25,4 @@ cd zstd
 make -j5
 cp programs/zstd "$OUTPUT_DIR/mac/zstd"
 
-cd /tmp/
-rm -rf /tmp/zstd
+rm -rf $TMP_DIR

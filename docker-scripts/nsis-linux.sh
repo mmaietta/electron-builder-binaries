@@ -7,10 +7,10 @@ DIR=$BASEDIR/nsis/win
 
 OUTPUT_DIR=/tmp/nsis-linux
 rm -rf $OUTPUT_DIR
-mkdir $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR
 
-mkdir $OUTPUT_DIR/linux
-cp /usr/local/bin/makensis $OUTPUT_DIR/linux/makensis
+# mkdir $OUTPUT_DIR/linux
+# cp /usr/local/bin/makensis $OUTPUT_DIR/linux/makensis
 
 # Download the latest version of NSIS (Windows)
 curl 'https://pilotfiber.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip?viasf=1' > nsis.zip
