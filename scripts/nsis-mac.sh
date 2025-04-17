@@ -14,7 +14,7 @@ mkdir $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR/mac
 brew tap nsis-dev/makensis
 brew install makensis@3.11 --with-large-strings --with-advanced-logging
-cp $(which makensis) $OUTPUT_DIR/makensis
+cp -a $(which makensis) $OUTPUT_DIR/makensis
 
-cp -a $OUTPUT_DIR/* $OUT_DIR/
+cp -a $OUTPUT_DIR/* $OUT_DIR
 rm -rf $OUTPUT_DIR
