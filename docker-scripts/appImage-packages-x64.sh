@@ -57,4 +57,4 @@ rm -rf ef
 
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
-cp $TMP_DIR/packages/* $OUTPUT_DIR
+cp -a $TMP_DIR/packages/* $OUTPUT_DIR

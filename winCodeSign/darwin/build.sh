@@ -7,4 +7,4 @@ OUTPUT_DIR=$BASEDIR/out/winCodeSign/darwin
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 
-cp /opt/homebrew/bin/osslsigncode $OUTPUT_DIR/
+cp -a /opt/homebrew/bin/osslsigncode $OUTPUT_DIR/

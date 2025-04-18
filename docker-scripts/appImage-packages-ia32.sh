@@ -55,4 +55,4 @@ mv ef/usr/lib/i386-linux-gnu/libXss.so.1.0.0 packages/libXss.so.1
 cd $BASEDIR/..
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
-cp /tmp/appimage/packages/* $OUTPUT_DIR
+cp -a /tmp/appimage/packages/* $OUTPUT_DIR
