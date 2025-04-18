@@ -44,11 +44,7 @@ function copyFiles(files, archWin, archNode) {
   })
 }
 
-fs.writeFileSync(
-  path.join(destination, "VERSION"),
-  VERSION,
-  "utf8"
-)
+// copy files
 Promise.all([
   ...copyFiles(files, "x86", "ia32"),
   ...copyFiles(files, "x64", "x64"),
@@ -66,3 +62,9 @@ Promise.all([
   console.error(error)
 })
 
+// add version file
+fs.writeFileSync(
+  path.join(destination, "VERSION"),
+  VERSION,
+  "utf8"
+)

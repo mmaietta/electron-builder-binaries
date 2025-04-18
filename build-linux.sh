@@ -103,13 +103,13 @@ mkdir -p $OSSLSIGNCODE_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
 
 # makensis
-MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux/makensis
+MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux
 rm -rf $MAKENSIS_LINUX_OUTPUT
 mkdir -p $MAKENSIS_LINUX_OUTPUT
 docker cp "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT
 
 # makensis Windows
-MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows/
+MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows
 rm -rf $MAKENSIS_WINDOWS_OUTPUT
 mkdir -p $MAKENSIS_WINDOWS_OUTPUT
 docker cp "$containerId":/usr/src/app/nsis/win/. $MAKENSIS_WINDOWS_OUTPUT
