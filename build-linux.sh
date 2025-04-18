@@ -20,7 +20,7 @@ elif [ "$ARCH" = "i386" ]; then
   echo "Building ia32 target."
   OUTPUT_ARCH="ia32"
 else
-  echo "Unknown architecture: $ARCH"
+  echo "Unknown architecture: $ARCH. Expected: x86_64 or i386"
   exit 1
 fi
 
@@ -79,10 +79,10 @@ rm -rf $NSIS_OUTPUT_DIR
 mkdir -p $NSIS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/nsis/. $NSIS_OUTPUT_DIR
 
-# nsis-plugins
+# nsis-resources (note: we still use some vendored resources committed in this repo)
 NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
 rm -rf $NSIS_PLUGINS_OUTPUT_DIR
-mkdir -p $NSIS_PLUGINS_OUTPUT_DIR
+cp -r $CWD/nsis-resources $BASEDIR/nsis-resources
 docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
 
 # winCodeSign

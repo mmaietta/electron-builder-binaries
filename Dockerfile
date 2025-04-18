@@ -4,28 +4,28 @@ FROM --platform=linux/$IMAGE_ARCH buildpack-deps:22.04-curl
 # Install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        bzip2 \
         ca-certificates \
+        desktop-file-utils \
+        g++ \
+        gcc \
         git \
+        libc-dev \
+        liblzma-dev \
+        liblzo2-dev \
         libssl-dev \
         make \
+        p7zip-full \
+        python2 \
         python3 \
         python3-pip \
         python3-setuptools \
         python3-wheel \
         tar \
+        tree \
         unzip \
         wget \
-        desktop-file-utils \
-        p7zip-full \
-        tree \
-        bzip2 \
-        python2 \
-        zlib1g-dev \
-        gcc \
-        g++ \
-        libc-dev \
-        liblzma-dev \
-        liblzo2-dev && \
+        zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # prepare makensis and build
