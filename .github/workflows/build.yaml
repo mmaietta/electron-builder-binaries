@@ -106,7 +106,7 @@ jobs:
         uses: actions/download-artifact@v4.2.1
         with:
           path: out
-          merge-multiple:: true
+          merge-multiple: true
       - name: Tree the out directory
         run: |
           tree out
