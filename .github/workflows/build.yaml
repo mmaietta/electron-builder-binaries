@@ -100,7 +100,7 @@ jobs:
           apt-get update
           apt-get install -y tree
       - name: Download artifacts
-        uses: actions/download-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        uses: actions/download-artifact@v4.2.1
         with:
           merge-multiple:: true
       - name: Tree the out directory
@@ -111,8 +111,9 @@ jobs:
           rm out.zip
           zip -r out.zip out
       - name: Archive artifacts
-        uses: actions/download-artifact@v4.2.1
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: all-artifacts
+          if-no-files-found: error
           path: |
             out.zip
