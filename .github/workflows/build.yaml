@@ -97,8 +97,8 @@ jobs:
     steps:
       - name: Install `tree`
         run: |
-          apt-get update
-          apt-get install -y tree
+          sudo apt-get update
+          sudo apt-get install -y tree
       - name: Download artifacts
         uses: actions/download-artifact@v4.2.1
         with:
