@@ -3,8 +3,10 @@ const promisify = require("util").promisify
 const fs = require("fs")
 const copy = promisify(fs.copyFile)
 
+const VERSION = "10.0.26100.0"
+
 const windowsKitsDir = "C:\\Program Files (x86)\\Windows Kits\\10"
-const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100.0")
+const sourceDir = path.resolve(windowsKitsDir, "bin", VERSION)
 const destination = path.join(__dirname, "../out/winCodeSign/windows-10")
 
 // noinspection SpellCheckingInspection
@@ -42,6 +44,11 @@ function copyFiles(files, archWin, archNode) {
   })
 }
 
+fs.writeFileSync(
+  path.join(destination, "VERSION"),
+  VERSION,
+  "utf8"
+)
 Promise.all([
   ...copyFiles(files, "x86", "ia32"),
   ...copyFiles(files, "x64", "x64"),

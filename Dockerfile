@@ -40,7 +40,7 @@ RUN git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && 
     git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
     make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
 
-# osslsigncode (requires newer cmake 3.13+)
+# osslsigncode (requires newer cmake 3.17+)
 RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/2.9.zip -o f.zip && \ 
     unzip f.zip && rm f.zip && \ 
     curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 

@@ -48,9 +48,8 @@ f () {
 }
 trap f ERR
 
-IMAGE_ARCH=${IMAGE_ARCH:-x86_64}
-docker build -f Dockerfile -t binaries-builder:${IMAGE_ARCH} .
-docker run --cidfile="$cidFile" -e IMAGE_ARCH=${IMAGE_ARCH} -v ${PWD}:/app binaries-builder:${IMAGE_ARCH} 
+docker build -f Dockerfile -t binaries-builder:${ARCH} .
+docker run --cidfile="$cidFile" -e IMAGE_ARCH=${ARCH} -v ${PWD}:/app binaries-builder:${ARCH} 
 
 containerId=$(cat "$cidFile")
 
@@ -82,7 +81,7 @@ docker cp "$containerId":/usr/src/app/nsis/. $NSIS_OUTPUT_DIR
 # nsis-resources (note: we still use some vendored resources committed in this repo)
 NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
 rm -rf $NSIS_PLUGINS_OUTPUT_DIR
-cp -r $CWD/nsis-resources $BASEDIR/nsis-resources
+cp -a $CWD/nsis-resources $BASEDIR/nsis-resources
 docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
 
 # winCodeSign

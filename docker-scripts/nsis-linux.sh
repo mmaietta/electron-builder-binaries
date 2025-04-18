@@ -9,13 +9,15 @@ OUTPUT_DIR=/tmp/nsis-linux
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 
-# Download the latest version of NSIS (Windows)
-curl 'https://pilotfiber.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip?viasf=1' > nsis.zip
-unzip -o nsis.zip -d nsis-3.11
-cp -a nsis-3.11/nsis-3.11/* $OUTPUT_DIR/
-rm -rf nsis.zip nsis-3.11
+VERSION=3.11
 
-curl 'https://master.dl.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11-strlen_8192.zip?viasf=1' > nsis-strlen_8192.zip
+# Download the latest version of NSIS (Windows)
+curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$VERSION/nsis-$VERSION.zip/download > nsis.zip
+unzip -o nsis.zip -d nsis-$VERSION
+cp -a nsis-$VERSION/nsis-$VERSION/* $OUTPUT_DIR/
+rm -rf nsis.zip nsis-$VERSION
+
+curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$VERSION/nsis-$VERSION-strlen_8192.zip/download > nsis-strlen_8192.zip
 unzip -o nsis-strlen_8192.zip -d nsis-strlen_8192
 cp -a nsis-strlen_8192/* $OUTPUT_DIR/
 rm -rf nsis-strlen_8192.zip nsis-strlen_8192
@@ -58,6 +60,6 @@ mv a/Plugins/x86-unicode/WinShell.dll $OUTPUT_DIR/Plugins/x86-unicode/WinShell.d
 mv a/Plugins/x86-ansi/WinShell.dll $OUTPUT_DIR/Plugins/x86-ansi/WinShell.dll
 rm -rf a a.zip
 
-# find $DIR -type d ! -name 'linux' ! -name 'mac' -exec rm -rf "{}" +
+echo $VERSION > $OUTPUT_DIR/VERSION
 mkdir -p $DIR
 cp -a $OUTPUT_DIR/* $DIR
