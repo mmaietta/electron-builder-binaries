@@ -5,7 +5,7 @@ const copy = promisify(fs.copyFile)
 
 const windowsKitsDir = "C:\\Program Files (x86)\\Windows Kits\\10"
 const sourceDir = path.resolve(windowsKitsDir, "bin\\10.0.26100.0")
-const destination = path.join(__dirname, "../winCodeSign/windows-10")
+const destination = path.join(__dirname, "../out/winCodeSign/windows-10")
 
 // noinspection SpellCheckingInspection
 const files = [
