@@ -10,7 +10,7 @@ OUTPUT_DIR=/tmp/appimage-mac
 rm -rf $OUTPUT_DIR
 mkdir $OUTPUT_DIR
 
-# Download the latest version of NSIS (macOS)
+# Download the latest versions for desktop-file-validate and mksquashfs (macOS)
 mkdir -p $OUTPUT_DIR/mac
 brew install desktop-file-utils
 brew install squashfs
