@@ -57,7 +57,7 @@ RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGN
     cd osslsigncode-$OSSLSIGNCODE_VERSION && \
     mkdir build && \
     cd build && \
-    cmake -S .. && cmake --build .  && \ 
+    /usr/local/bin/cmake -S .. && cmake --build .  && \ 
     cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
 
 # build scripts
