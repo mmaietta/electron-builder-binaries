@@ -71,6 +71,7 @@ ZSTD_VERSION=1.5.0
 SQUASHFS_VERSION=4.5
 OSSLSIGNCODE_VERSION=2.9
 docker buildx build \
+  --load \
   -f Dockerfile \
   --build-arg IMAGE=$DOCKER_IMAGE \
   --build-arg IMAGE_ARCH=$IMAGE_ARCH \
