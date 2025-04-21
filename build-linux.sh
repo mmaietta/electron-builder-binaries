@@ -14,17 +14,18 @@ if [ -z "$ARCH" ]; then
   ARCH="amd64"
 fi
 # need to use buildpack-deps/bookworm in order to build for i386
-DOCKER_IMAGE=buildpack-deps:bookworm-curl
 if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
+  DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "i386" ]; then
   OUTPUT_ARCH="ia32"
-  # DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
+  DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
   OUTPUT_ARCH="arm32"
+  DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm64v8" ]; then
   OUTPUT_ARCH="arm64"
-  # DOCKER_IMAGE=$ARCH/buildpack-deps:22.04-curl
+  DOCKER_IMAGE=amd64/buildpack-deps:22.04-curl
 else
   echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
   echo "Please set the ARCH environment variable to one of these values."
