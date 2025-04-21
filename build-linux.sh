@@ -13,6 +13,7 @@ if [ -z "$ARCH" ]; then
   echo "Building default target."
   ARCH="amd64"
 fi
+# need to use buildpack-deps/bookworm in order to build for i386
 DOCKER_IMAGE=$ARCH/buildpack-deps:bookworm-curl
 if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
