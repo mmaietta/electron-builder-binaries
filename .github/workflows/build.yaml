@@ -30,9 +30,9 @@ jobs:
       # - name: Build amd64
       #   run: |
       #     ARCH=amd64 bash build-linux.sh
-      - name: Build ia32
-        run: |
-          ARCH=i386 bash build-linux.sh
+      # - name: Build ia32
+      #   run: |
+      #     ARCH=i386 bash build-linux.sh
       - name: Build arm32v7
         run: |
           ARCH=arm32v7 bash build-linux.sh
