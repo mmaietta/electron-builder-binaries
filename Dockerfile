@@ -1,6 +1,6 @@
-ARG IMAGE_ARCH=amd64
-ARG IMAGE=buildpack-deps:22.04-curl
-FROM --platform=linux/$IMAGE_ARCH $IMAGE
+ARG PLATFORM_ARCH=amd64
+ARG DOCKER_IMAGE_BASE=buildpack-deps:22.04-curl
+FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE
 
 # Install dependencies
 RUN apt-get update && \
