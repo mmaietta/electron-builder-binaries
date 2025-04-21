@@ -26,7 +26,7 @@ RUN apt-get update && \
         tree \
         unzip \
         wget \
-        # cmake \
+        cmake \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -51,10 +51,10 @@ RUN git clone --depth 1 --branch v$ZSTD_VERSION https://github.com/facebook/zstd
 # osslsigncode (requires newer cmake 3.17+)
 ARG OSSLSIGNCODE_VERSION=2.9
 RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
-    unzip f.zip && rm f.zip && \ 
-    curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
-    mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
-    ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
+    unzip f.zip && rm f.zip
+# RUN curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
+#     mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
+#     ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
 RUN cd osslsigncode-$OSSLSIGNCODE_VERSION && \
     mkdir build && \
     cd build && \
