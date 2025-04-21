@@ -24,7 +24,7 @@ elif [ "$ARCH" = "i386" ]; then
   DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
   OUTPUT_ARCH="arm32"
-  IMAGE_ARCH="arm32v7"
+  IMAGE_ARCH="x86_64"
   DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm64v8" ]; then
   OUTPUT_ARCH="arm64"
@@ -70,7 +70,7 @@ NSIS_VERSION=3.08
 ZSTD_VERSION=1.5.0
 SQUASHFS_VERSION=4.5
 OSSLSIGNCODE_VERSION=2.9
-docker build \
+docker buildx build \
   -f Dockerfile \
   --build-arg IMAGE=$DOCKER_IMAGE \
   --build-arg IMAGE_ARCH=$IMAGE_ARCH \

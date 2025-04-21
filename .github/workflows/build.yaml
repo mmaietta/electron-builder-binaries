@@ -15,17 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Set up QEMU dependency
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 2
           submodules: recursive
-      - name: Build arm64v8
-        run: |
-          ARCH=arm64v8 bash build-linux.sh
-      - name: Build amd64
-        run: |
-          ARCH=amd64 bash build-linux.sh
+      # - name: Build arm64v8
+      #   run: |
+      #     ARCH=arm64v8 bash build-linux.sh
+      # - name: Build amd64
+      #   run: |
+      #     ARCH=amd64 bash build-linux.sh
       - name: Build ia32
         run: |
           ARCH=i386 bash build-linux.sh
