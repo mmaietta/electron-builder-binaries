@@ -28,29 +28,35 @@ RUN apt-get update && \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
+WORKDIR /tmp/build-dir
+
 # prepare makensis and build
+ARG NSIS_VERSION=3.08
 RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons && \
-    mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/3.04/nsis-3.04-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
+    mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
     cd /tmp/nsis && \
     python2 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
 RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
 
 # zstd and mksquashfs
-RUN git clone --depth 1 --branch v1.5.0 https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. && \
-    git clone --depth 1 --branch 4.5 https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
+ARG ZSTD_VERSION=1.5.0
+ARG SQUASHFS_VERSION=4.5
+RUN git clone --depth 1 --branch v$ZSTD_VERSION https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. && \
+    git clone --depth 1 --branch $SQUASHFS_VERSION https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
     make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
 
 # osslsigncode (requires newer cmake 3.17+)
-RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/2.9.zip -o f.zip && \ 
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
+mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
+ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
+ARG OSSLSIGNCODE_VERSION=2.9
+RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
     unzip f.zip && rm f.zip && \ 
-    curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
-    mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
-    ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
-RUN cd osslsigncode-2.9 && \
+    cd osslsigncode-$OSSLSIGNCODE_VERSION && \
     mkdir build && \
     cd build && \
     cmake -S .. && cmake --build .  && \ 
-    cp /osslsigncode-2.9/build/osslsigncode /usr/local/bin/osslsigncode
+    cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
 
 # build scripts
 WORKDIR /usr/src/app

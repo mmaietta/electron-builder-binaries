@@ -19,9 +19,17 @@ if [ "$ARCH" = "x86_64" ]; then
 elif [ "$ARCH" = "i386" ]; then
   echo "Building ia32 target."
   OUTPUT_ARCH="ia32"
+elif [ "$ARCH" = "arm32v7" ]; then
+  echo "Building arm32 target."
+  OUTPUT_ARCH="arm32"
+elif [ "$ARCH" = "arm64" ]; then
+  echo "Building arm64 target."
+  OUTPUT_ARCH="arm64"
 else
-  echo "Unknown architecture: $ARCH. Expected: x86_64 or i386"
-  OUTPUT_ARCH=$ARCH
+  echo "Unknown architecture: $ARCH. Expected: x86_64, i386, arm32v7, or arm64."
+  echo "Please set the ARCH environment variable to one of these values."
+  echo "Example: ARCH=x86_64 ./docker-scripts/build-linux.sh"
+  exit 1
 fi
 
 # check if previous docker containers are still running based off of container lockfile
@@ -33,7 +41,7 @@ if test -f "$cidFile"; then
   docker rm "$containerId"
 fi
 
-# cleanup docker container (if-exists) on error
+# cleanup docker container (if--build-argxists) on error
 f () {
     errorCode=$? # save the exit code as the first thing done in the trap function
     echo "error $errorCode"
@@ -48,8 +56,20 @@ f () {
 }
 trap f ERR
 
-docker build -f Dockerfile -t binaries-builder:${ARCH} .
-docker run --cidfile="$cidFile" -e IMAGE_ARCH=${ARCH} -v ${PWD}:/app binaries-builder:${ARCH} 
+NSIS_VERSION=3.08
+ZSTD_VERSION=1.5.0
+SQUASHFS_VERSION=4.5
+OSSLSIGNCODE_VERSION=2.9
+docker build \
+  -f Dockerfile \
+  --build-arg IMAGE_ARCH=$ARCH \
+  --build-arg NSIS_VERSION=$NSIS_VERSION \
+  --build-arg ZSTD_VERSION=$ZSTD_VERSION \
+  --build-arg SQUASHFS_VERSION=$SQUASHFS_VERSION \
+  --build-arg OSSLSIGNCODE_VERSION=$OSSLSIGNCODE_VERSION \
+  -t binaries-builder:$ARCH \
+  .
+docker run --cidfile="$cidFile" -v ${PWD}:/app binaries-builder:$ARCH
 
 containerId=$(cat "$cidFile")
 
@@ -59,12 +79,14 @@ APPIMAGE_OUTPUT_DIR=$BASEDIR/AppImage/linux-$OUTPUT_ARCH
 mkdir -p $APPIMAGE_OUTPUT_DIR
 docker cp "$containerId":/usr/bin/desktop-file-validate $APPIMAGE_OUTPUT_DIR/desktop-file-validate
 docker cp "$containerId":/usr/local/bin/mksquashfs $APPIMAGE_OUTPUT_DIR/mksquashfs
+echo $SQUASHFS_VERSION > $APPIMAGE_OUTPUT_DIR/VERSION
 
 # zstd
 ZSTD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
 # rm -rf $ZSTD_OUTPUT_DIR
 mkdir -p $ZSTD_OUTPUT_DIR
 docker cp "$containerId":/usr/local/bin/zstd $ZSTD_OUTPUT_DIR/zstd
+echo $ZSTD_VERSION > $ZSTD_OUTPUT_DIR/VERSION
 
 # appimage-tools
 APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
@@ -89,6 +111,7 @@ WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
 # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR/linux/
 docker cp "$containerId":/usr/local/bin/osslsigncode $WIN_CODE_SIGN_OUTPUT_DIR/linux/
+echo $OSSLSIGNCODE_VERSION > $WIN_CODE_SIGN_OUTPUT_DIR/linux/VERSION
 # copy the other remaining winCodeSign files
 cp -a $CWD/winCodeSign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
 cp -a $CWD/winCodeSign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
@@ -106,6 +129,7 @@ MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux
 mkdir -p $MAKENSIS_LINUX_OUTPUT
 # docker cp "$containerId":/usr/src/app/nsis/linux/. $MAKENSIS_LINUX_OUTPUT
 docker cp "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT/makensis
+echo $NSIS_VERSION > $MAKENSIS_LINUX_OUTPUT/VERSION
 
 # makensis Windows
 MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows
