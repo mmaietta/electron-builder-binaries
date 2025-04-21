@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  build-linux:
+  build-linux-arm64v8:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -27,12 +27,52 @@ jobs:
       - name: Build arm64v8
         run: |
           ARCH=arm64v8 bash build-linux.sh
+      - name: Archive artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: docker-artifacts
+          if-no-files-found: error
+          path: |
+            out
+  build-linux-amd64-ia32:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Set up QEMU dependency
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
       - name: Build amd64
         run: |
           ARCH=amd64 bash build-linux.sh
       - name: Build ia32
         run: |
           ARCH=i386 bash build-linux.sh
+      - name: Archive artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: docker-artifacts
+          if-no-files-found: error
+          path: |
+            out
+  build-linux-arm32v7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Set up QEMU dependency
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+          submodules: recursive
       - name: Build arm32v7
         run: |
           ARCH=arm32v7 bash build-linux.sh
