@@ -14,7 +14,7 @@ if [ -z "$ARCH" ]; then
   ARCH="amd64"
 fi
 # need to use buildpack-deps/bookworm in order to build for i386
-DOCKER_IMAGE=$ARCH/buildpack-deps:bookworm-curl
+DOCKER_IMAGE=buildpack-deps:bookworm-curl
 if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
 elif [ "$ARCH" = "i386" ]; then
@@ -28,7 +28,7 @@ elif [ "$ARCH" = "arm64v8" ]; then
 else
   echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
   echo "Please set the ARCH environment variable to one of these values."
-  echo "Example: ARCH=x86_64 ./docker-scripts/build-linux.sh"
+  echo "Example: ARCH=amd64 ./docker-scripts/build-linux.sh"
   exit 1
 fi
 echo "Building $OUPUT_ARCH target."
