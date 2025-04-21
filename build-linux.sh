@@ -17,7 +17,7 @@ fi
 if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
   IMAGE_ARCH="amd64"
-  DOCKER_IMAGE=buildpack-deps:bookworm-curl
+  DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "i386" ]; then
   OUTPUT_ARCH="ia32"
   IMAGE_ARCH="i386"
@@ -28,8 +28,8 @@ elif [ "$ARCH" = "arm32v7" ]; then
   DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm64v8" ]; then
   OUTPUT_ARCH="arm64"
-  IMAGE_ARCH="x86_64"
-  DOCKER_IMAGE=buildpack-deps:bookworm-curl
+  IMAGE_ARCH="arm64"
+  DOCKER_IMAGE=arm64v8/buildpack-deps:bookworm-curl
 else
   echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
   echo "Please set the ARCH environment variable to one of these values."
