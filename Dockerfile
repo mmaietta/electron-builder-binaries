@@ -26,7 +26,7 @@ RUN apt-get update && \
         tree \
         unzip \
         wget \
-        cmake \
+        # cmake \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -49,16 +49,16 @@ RUN git clone --depth 1 --branch v$ZSTD_VERSION https://github.com/facebook/zstd
     make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
 
 # osslsigncode (requires newer cmake 3.17+)
-RUN curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
-mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
-ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
 ARG OSSLSIGNCODE_VERSION=2.9
 RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
     unzip f.zip && rm f.zip && \ 
-    cd osslsigncode-$OSSLSIGNCODE_VERSION && \
+    curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
+    mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
+    ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
+RUN cd osslsigncode-$OSSLSIGNCODE_VERSION && \
     mkdir build && \
     cd build && \
-    /usr/local/bin/cmake -S .. && cmake --build .  && \ 
+    cmake -S .. && cmake --build .  && \ 
     cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
 
 # build scripts
