@@ -26,6 +26,7 @@ RUN apt-get update && \
         tree \
         unzip \
         wget \
+        cmake \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
