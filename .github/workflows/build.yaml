@@ -26,12 +26,12 @@ jobs:
       - name: Build amd64
         run: |
           ARCH=amd64 bash build-linux.sh
-      # - name: Build arm32v7
-      #   run: |
-      #     ARCH=arm32v7 bash build-linux.sh
-      # - name: Build ia32
-      #   run: |
-      #     ARCH=i386 bash build-linux.sh
+      - name: Build arm32v7
+        run: |
+          ARCH=arm32v7 bash build-linux.sh
+      - name: Build ia32
+        run: |
+          ARCH=i386 bash build-linux.sh
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
