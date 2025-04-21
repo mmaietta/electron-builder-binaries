@@ -11,20 +11,21 @@ mkdir -p $BASEDIR
 
 if [ -z "$ARCH" ]; then
   echo "Building default target."
-  ARCH="x86_64"
+  ARCH="amd64"
 fi
-DOCKER_IMAGE=22.04-curl
-if [ "$ARCH" = "x86_64" ]; then
+DOCKER_IMAGE=$ARCH/buildpack-deps:bookworm-curl
+if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
 elif [ "$ARCH" = "i386" ]; then
   OUTPUT_ARCH="ia32"
-  DOCKER_IMAGE=bookworm-curl
+  # DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
   OUTPUT_ARCH="arm32"
 elif [ "$ARCH" = "arm64" ]; then
   OUTPUT_ARCH="arm64"
+  # DOCKER_IMAGE=$ARCH/buildpack-deps:22.04-curl
 else
-  echo "Unknown architecture: $ARCH. Expected: x86_64, i386, arm32v7, or arm64."
+  echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64."
   echo "Please set the ARCH environment variable to one of these values."
   echo "Example: ARCH=x86_64 ./docker-scripts/build-linux.sh"
   exit 1

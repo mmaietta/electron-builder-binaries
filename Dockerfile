@@ -1,6 +1,6 @@
 ARG IMAGE_ARCH=x86_64
-ARG IMAGE=22.04-curl
-FROM --platform=linux/$IMAGE_ARCH $IMAGE_ARCH/buildpack-deps:$IMAGE
+ARG IMAGE=buildpack-deps:22.04-curl
+FROM --platform=linux/$IMAGE_ARCH $IMAGE
 
 # Install dependencies
 RUN apt-get update && \
@@ -17,7 +17,7 @@ RUN apt-get update && \
         libssl-dev \
         make \
         p7zip-full \
-        python2 \
+        # python2 \
         python3 \
         python3-pip \
         python3-setuptools \
@@ -32,11 +32,12 @@ RUN apt-get update && \
 WORKDIR /tmp/build-dir
 
 # prepare makensis and build
-ARG NSIS_VERSION=3.08
-RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-2.5.1.tar.gz | tar -xz -C /tmp/scons && \
+ARG NSIS_VERSION=3.11
+ARG SCONS_VERSION=4.9.1
+RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-$SCONS_VERSION.tar.gz | tar -xz -C /tmp/scons && \
     mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
     cd /tmp/nsis && \
-    python2 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
+    python3 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
 RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
 
 # zstd and mksquashfs
