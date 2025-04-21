@@ -1,6 +1,6 @@
 ARG IMAGE_ARCH=amd64
 ARG IMAGE=buildpack-deps:22.04-curl
-FROM --platform=linux/x86_64 $IMAGE
+FROM $IMAGE
 
 # Install dependencies
 RUN apt-get update && \

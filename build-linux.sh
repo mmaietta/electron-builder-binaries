@@ -22,11 +22,11 @@ elif [ "$ARCH" = "i386" ]; then
   # DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
   OUTPUT_ARCH="arm32"
-elif [ "$ARCH" = "arm64" ]; then
+elif [ "$ARCH" = "arm64v8" ]; then
   OUTPUT_ARCH="arm64"
   # DOCKER_IMAGE=$ARCH/buildpack-deps:22.04-curl
 else
-  echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64."
+  echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
   echo "Please set the ARCH environment variable to one of these values."
   echo "Example: ARCH=x86_64 ./docker-scripts/build-linux.sh"
   exit 1

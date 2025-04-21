@@ -20,15 +20,15 @@ jobs:
         with:
           fetch-depth: 2
           submodules: recursive
+      - name: Build arm64v8
+        run: |
+          ARCH=arm64v8 bash build-linux.sh
       - name: Build amd64
         run: |
           ARCH=amd64 bash build-linux.sh
       # - name: Build arm32v7
       #   run: |
       #     ARCH=arm32v7 bash build-linux.sh
-      - name: Build arm64
-        run: |
-          ARCH=arm64 bash build-linux.sh
       # - name: Build ia32
       #   run: |
       #     ARCH=i386 bash build-linux.sh
