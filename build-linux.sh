@@ -13,17 +13,15 @@ if [ -z "$ARCH" ]; then
   echo "Building default target."
   ARCH="x86_64"
 fi
+DOCKER_IMAGE=22.04-curl
 if [ "$ARCH" = "x86_64" ]; then
-  echo "Building x64 target."
   OUTPUT_ARCH="x64"
 elif [ "$ARCH" = "i386" ]; then
-  echo "Building ia32 target."
   OUTPUT_ARCH="ia32"
+  DOCKER_IMAGE=bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
-  echo "Building arm32 target."
   OUTPUT_ARCH="arm32"
 elif [ "$ARCH" = "arm64" ]; then
-  echo "Building arm64 target."
   OUTPUT_ARCH="arm64"
 else
   echo "Unknown architecture: $ARCH. Expected: x86_64, i386, arm32v7, or arm64."
@@ -31,6 +29,7 @@ else
   echo "Example: ARCH=x86_64 ./docker-scripts/build-linux.sh"
   exit 1
 fi
+echo "Building $OUPUT_ARCH target."
 
 # check if previous docker containers are still running based off of container lockfile
 cidFile="/tmp/linux-build-container-id"
@@ -49,8 +48,12 @@ f () {
     echo "$BASH_COMMAND"
     echo "on line ${BASH_LINENO[0]}"
 
-    unlink "$cidFile"
-    docker rm "$containerId"
+    if test -f "$cidFile"; then
+      echo "removing $cidFile"
+      containerId=$(cat "$cidFile")
+      unlink "$cidFile"
+      docker rm "$containerId"
+    fi
 
     exit $errorCode
 }
@@ -62,6 +65,7 @@ SQUASHFS_VERSION=4.5
 OSSLSIGNCODE_VERSION=2.9
 docker build \
   -f Dockerfile \
+  --build-arg IMAGE=$DOCKER_IMAGE \
   --build-arg IMAGE_ARCH=$ARCH \
   --build-arg NSIS_VERSION=$NSIS_VERSION \
   --build-arg ZSTD_VERSION=$ZSTD_VERSION \
