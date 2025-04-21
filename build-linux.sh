@@ -16,16 +16,20 @@ fi
 # need to use buildpack-deps/bookworm in order to build for i386
 if [ "$ARCH" = "amd64" ]; then
   OUTPUT_ARCH="x64"
-  DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
+  IMAGE_ARCH="x86_64"
+  DOCKER_IMAGE=buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "i386" ]; then
   OUTPUT_ARCH="ia32"
+  IMAGE_ARCH="i386"
   DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm32v7" ]; then
   OUTPUT_ARCH="arm32"
+  IMAGE_ARCH="arm32v7"
   DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "arm64v8" ]; then
   OUTPUT_ARCH="arm64"
-  DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
+  IMAGE_ARCH="x86_64"
+  DOCKER_IMAGE=buildpack-deps:bookworm-curl
 else
   echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
   echo "Please set the ARCH environment variable to one of these values."
@@ -69,7 +73,7 @@ OSSLSIGNCODE_VERSION=2.9
 docker build \
   -f Dockerfile \
   --build-arg IMAGE=$DOCKER_IMAGE \
-  --build-arg IMAGE_ARCH=$ARCH \
+  --build-arg IMAGE_ARCH=$IMAGE_ARCH \
   --build-arg NSIS_VERSION=$NSIS_VERSION \
   --build-arg ZSTD_VERSION=$ZSTD_VERSION \
   --build-arg SQUASHFS_VERSION=$SQUASHFS_VERSION \
