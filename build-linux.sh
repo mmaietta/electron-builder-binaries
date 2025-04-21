@@ -21,7 +21,7 @@ elif [ "$ARCH" = "i386" ]; then
   OUTPUT_ARCH="ia32"
 else
   echo "Unknown architecture: $ARCH. Expected: x86_64 or i386"
-  exit 1
+  OUTPUT_ARCH=$ARCH
 fi
 
 # check if previous docker containers are still running based off of container lockfile
@@ -72,18 +72,6 @@ APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
 mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/appimage/. $APPIMAGE_TOOLS_OUTPUT_DIR
 
-# nsis-linux and makensis
-NSIS_OUTPUT_DIR=$BASEDIR/nsis/linux
-# rm -rf $NSIS_OUTPUT_DIR
-mkdir -p $NSIS_OUTPUT_DIR
-docker cp "$containerId":/usr/src/app/nsis/. $NSIS_OUTPUT_DIR
-
-# nsis-resources (note: we still use some vendored resources committed in this repo)
-NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
-# rm -rf $NSIS_PLUGINS_OUTPUT_DIR
-cp -a $CWD/nsis-resources $BASEDIR
-docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
-
 # winCodeSign
 WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign/darwin
 # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
@@ -97,22 +85,33 @@ mkdir -p $OPENJPEG_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
 
 # osslsigncode
-OSSLSIGNCODE_OUTPUT_DIR=$BASEDIR/winCodeSign/linux/
-# rm -rf $OSSLSIGNCODE_OUTPUT_DIR
-mkdir -p $OSSLSIGNCODE_OUTPUT_DIR
-docker cp "$containerId":/usr/local/bin/osslsigncode $OSSLSIGNCODE_OUTPUT_DIR
+WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
+# rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
+mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR/linux/
+docker cp "$containerId":/usr/local/bin/osslsigncode $WIN_CODE_SIGN_OUTPUT_DIR/linux/
+# copy the other remaining winCodeSign files
+cp -a $CWD/winCodeSign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
+cp -a $CWD/winCodeSign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
+cp -a $CWD/winCodeSign/openssl-ia32 $WIN_CODE_SIGN_OUTPUT_DIR
+
+# nsis-resources (note: we still use some vendored resources committed in this repo)
+NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
+# rm -rf $NSIS_PLUGINS_OUTPUT_DIR
+cp -a $CWD/nsis-resources $BASEDIR
+docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
 
 # makensis
 MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux
 # rm -rf $MAKENSIS_LINUX_OUTPUT
 mkdir -p $MAKENSIS_LINUX_OUTPUT
-docker cp "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT
+# docker cp "$containerId":/usr/src/app/nsis/linux/. $MAKENSIS_LINUX_OUTPUT
+docker cp "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT/makensis
 
 # makensis Windows
 MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows
 # rm -rf $MAKENSIS_WINDOWS_OUTPUT
 mkdir -p $MAKENSIS_WINDOWS_OUTPUT
-docker cp "$containerId":/usr/src/app/nsis/win/. $MAKENSIS_WINDOWS_OUTPUT
+docker cp "$containerId":/usr/src/app/nsis/windows/. $MAKENSIS_WINDOWS_OUTPUT
 
 # Squirrel.Windows
 SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/Squirrel.Windows

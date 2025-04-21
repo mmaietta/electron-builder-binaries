@@ -3,9 +3,9 @@ set -ex
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 cd $BASEDIR
-DIR=$BASEDIR/nsis/win
+DIR=$BASEDIR/nsis/windows
 
-OUTPUT_DIR=/tmp/nsis-linux
+OUTPUT_DIR=/tmp/nsis-windows
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 

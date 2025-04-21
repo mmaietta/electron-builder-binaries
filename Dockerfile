@@ -59,11 +59,11 @@ COPY ./docker-scripts /usr/src/app/docker-scripts
 # build resources
 COPY ./nsis-lang-fixes /usr/src/app/nsis-lang-fixes
 
-RUN sh ./docker-scripts/nsis-linux.sh
+RUN sh ./docker-scripts/nsis-windows.sh
 RUN sh ./docker-scripts/nsis-plugins.sh
-RUN sh ./docker-scripts/winCodeSign-tools-mac-x64.sh
 RUN sh ./docker-scripts/wix-toolset-x64.sh
 RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
 RUN sh ./docker-scripts/squirrel-windows.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
 RUN sh ./docker-scripts/appImage-packages-ia32.sh
+RUN sh ./docker-scripts/winCodeSign-tools.sh
