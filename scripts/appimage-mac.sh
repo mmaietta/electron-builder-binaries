@@ -9,7 +9,7 @@ mkdir -p $OUT_DIR/darwin
 
 OUTPUT_DIR=/tmp/appimage-mac
 rm -rf $OUTPUT_DIR
-mkdir $OUTPUT_DIR
+mkdir -p $OUTPUT_DIR/darwin
 
 # Download the latest versions for desktop-file-validate and mksquashfs (macOS)
 brew install desktop-file-utils squashfs
