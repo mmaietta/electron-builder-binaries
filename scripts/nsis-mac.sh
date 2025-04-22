@@ -16,7 +16,7 @@ VERSION=3.11
 mkdir -p $OUTPUT_DIR/mac
 brew tap nsis-dev/makensis
 brew install makensis@$VERSION --with-large-strings --with-advanced-logging
-cp -a $(which makensis) $OUTPUT_DIR/makensis
+cp -aL $(which makensis) $OUTPUT_DIR/makensis
 
 echo $VERSION > $OUTPUT_DIR/VERSION
 
