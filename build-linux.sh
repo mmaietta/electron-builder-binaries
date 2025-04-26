@@ -10,8 +10,8 @@ BASEDIR=$CWD/out
 mkdir -p $BASEDIR
 
 if [ -z "$ARCH" ]; then
-  echo "Building default target."
   ARCH="amd64"
+  echo "Building default target."
 fi
 # need to use buildpack-deps/bookworm in order to build for i386
 if [ "$ARCH" = "amd64" ]; then
@@ -70,6 +70,7 @@ NSIS_VERSION=3.08
 ZSTD_VERSION=1.5.0
 SQUASHFS_VERSION=4.5
 OSSLSIGNCODE_VERSION=2.9
+FPM_VERSION=1.16.0
 docker buildx build \
   --load \
   -f Dockerfile \
@@ -79,6 +80,7 @@ docker buildx build \
   --build-arg ZSTD_VERSION=$ZSTD_VERSION \
   --build-arg SQUASHFS_VERSION=$SQUASHFS_VERSION \
   --build-arg OSSLSIGNCODE_VERSION=$OSSLSIGNCODE_VERSION \
+  --build-arg FPM_VERSION=$FPM_VERSION \
   -t binaries-builder:$ARCH \
   .
 docker run --cidfile="$cidFile" -v ${PWD}:/app binaries-builder:$ARCH
@@ -160,6 +162,12 @@ WIX_OUTPUT_DIR=$BASEDIR/wix
 # rm -rf $WIX_OUTPUT_DIR
 mkdir -p $WIX_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/wix/. $WIX_OUTPUT_DIR
+
+# fpm
+FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
+# rm -rf $FPM_OUTPUT_DIR
+mkdir -p $FPM_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/fpm/. $FPM_OUTPUT_DIR
 
 # cleanup
 docker rm "$containerId"

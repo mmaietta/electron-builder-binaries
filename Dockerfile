@@ -1,5 +1,5 @@
 ARG PLATFORM_ARCH=amd64
-ARG DOCKER_IMAGE_BASE=buildpack-deps:22.04-curl
+ARG DOCKER_IMAGE_BASE=buildpack-deps:bookworm-curl
 FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE
 
 # Install dependencies
@@ -27,6 +27,8 @@ RUN apt-get update && \
         unzip \
         wget \
         cmake \
+        ruby \
+        rpm \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
@@ -67,6 +69,9 @@ COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources
 COPY ./nsis-lang-fixes /usr/src/app/nsis-lang-fixes
+
+ARG FPM_VERSION=1.16.0
+RUN FPM_VERSION=$FPM_VERSION sh ./docker-scripts/fpm.sh
 
 RUN sh ./docker-scripts/nsis-windows.sh
 RUN sh ./docker-scripts/nsis-plugins.sh
