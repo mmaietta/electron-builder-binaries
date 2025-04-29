@@ -87,3 +87,15 @@ index 3dd42a86a5e26f59e8230902857d707582c661b3..6496e884d8bbef690971ba3b1974d4e2
      })
    })
  }
+diff --git a/index.js b/index.js
+index c91c0d30120d86919c644889dbe159ea9aa11a95..02148358677c78116462153d943849acf082a56c 100644
+--- a/index.js
++++ b/index.js
+@@ -105,6 +105,7 @@ function _Release (options, emitter, callback) {
+       repo: options.repo,
+       owner: options.owner
+     }).then(results => {
++      console.log("Release API response", results)
+       if (options.assets) {
+         const assets = options.assets.map(function (asset) {
+           if (typeof asset === 'object') {
