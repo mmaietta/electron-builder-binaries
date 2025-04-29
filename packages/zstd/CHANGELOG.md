@@ -1,5 +1,11 @@
 # zstd
 
+## 0.4.0
+
+### Minor Changes
+
+- [`884a0a3`](https://github.com/electron-userland/electron-builder-binaries/commit/884a0a34dad37691e2f4c751720ebe74f4be919c) Thanks [@mmaietta](https://github.com/mmaietta)! - test attestation digest logic
+
 ## 0.3.0
 
 ### Minor Changes
