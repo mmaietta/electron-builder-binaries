@@ -46,7 +46,7 @@ var releaseOptions = {
 };
 
 const isCi = !!process.env.CI;
-if (isCi) {
+if (!isCi) {
   console.log("CI not detected, blocking remote release. Only logging release config to console...");
 }
 
