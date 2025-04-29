@@ -1,5 +1,11 @@
 # zstd
 
+## 0.4.1
+
+### Patch Changes
+
+- [`ec8d228`](https://github.com/electron-userland/electron-builder-binaries/commit/ec8d22889993fe8b5c3cd619be5ecbaf06e6ef3a) Thanks [@mmaietta](https://github.com/mmaietta)! - oops
+
 ## 0.4.0
 
 ### Minor Changes
