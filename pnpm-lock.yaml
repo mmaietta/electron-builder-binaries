@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  gh-release@7.0.2:
+    hash: nwsh5dn6yjfcs3vge3e7z4xray
+    path: patches/gh-release@7.0.2.patch
+
 importers:
 
   .:
@@ -16,7 +21,7 @@ importers:
         version: 2.29.2
       gh-release:
         specifier: ^7.0.2
-        version: 7.0.2
+        version: 7.0.2(patch_hash=nwsh5dn6yjfcs3vge3e7z4xray)
 
   packages/AppImage: {}
 
@@ -1852,7 +1857,7 @@ snapshots:
       simple-get: 4.0.1
       util-extend: 1.0.3
 
-  gh-release@7.0.2:
+  gh-release@7.0.2(patch_hash=nwsh5dn6yjfcs3vge3e7z4xray):
     dependencies:
       '@octokit/rest': 19.0.13
       changelog-parser: 3.0.1
