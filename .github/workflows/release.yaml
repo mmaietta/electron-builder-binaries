@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create scoped releases
-      # iif: steps.changesets.outputs.published == 'true'
+        if: steps.changesets.outputs.published == 'true'
         run: |
           git reset --hard HEAD
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
