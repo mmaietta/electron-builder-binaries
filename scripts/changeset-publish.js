@@ -35,7 +35,7 @@ const packageMap = {
 
 const releaseOptions = {
   draft: false,
-  prerelease: true,
+  prerelease: false,
   yes: true
 };
 
