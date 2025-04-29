@@ -1,5 +1,11 @@
 # ran
 
+## 0.1.1
+
+### Patch Changes
+
+- [`690f6d7`](https://github.com/electron-userland/electron-builder-binaries/commit/690f6d72efd86a165c10790e17cab4c90dd11be9) Thanks [@mmaietta](https://github.com/mmaietta)! - test ran bump
+
 ## 0.1.0
 
 ### Minor Changes
