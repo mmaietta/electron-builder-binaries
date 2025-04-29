@@ -61,10 +61,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create scoped releases
-        if: steps.changesets.outputs.published == 'true'
+      # iif: steps.changesets.outputs.published == 'true'
         run: |
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PUBLISHED_PACKAGES: '[{"name":"appimage","version":"0.1.2"},{"name":"nsis","version":"0.1.2"},{"name":"nsis","version":"1.0.2"}]'
+          
+      
