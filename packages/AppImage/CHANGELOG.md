@@ -1,5 +1,11 @@
 # appimage
 
+## 0.2.1
+
+### Patch Changes
+
+- [`872d6fa`](https://github.com/electron-userland/electron-builder-binaries/commit/872d6fa660539ab823d78aa5ba4569b7a9eb4e08) Thanks [@mmaietta](https://github.com/mmaietta)! - bump appimage
+
 ## 0.2.0
 
 ### Minor Changes
