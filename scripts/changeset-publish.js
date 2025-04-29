@@ -45,8 +45,6 @@ async function run() {
     console.log("CI not detected, blocking remote release. Only logging release config to console...");
   }
 
-  let lastError;
-
   for (const release of releases) {
     const { name, version } = release;
     const artifactsToUpload = packageMap[name];
@@ -56,19 +54,18 @@ async function run() {
     const releaseName = `${name}@${version}`;
     const artifactPath = (artifact) => path.resolve(__dirname, "../artifacts", artifact);
 
-    const checksums = artifactsToUpload.map((artifact) => {
-      const checksum = execSync(`shasum -a 512 "${artifactPath(artifact)}" | xxd -r -p | base64`)
+    const checksums = artifactsToUpload.map((name) => {
+      const checksum512 = execSync(`shasum -a 512 "${artifactPath(name)}" | xxd -r -p | base64`)
         .toString()
         .trim();
-      return {
-        name: artifact,
-        checksum,
-        algorithm: "sha512",
-      };
+      const digest256 = execSync(`shasum -a 256 "${artifactPath(name)}" | xxd -r -p | base64`)
+        .toString()
+        .trim();
+      return { name, checksum512, digest256 };
     });
 
     const bodyText = checksums
-      .map(({ name, checksum }) => `\`${name}\`: \`${checksum}\``)
+      .map(({ name, checksum512 }) => `\`${name}\`: \`${checksum512}\``)
       .sort()
       .join("\n");
     const options = {
@@ -91,7 +88,7 @@ async function run() {
     }
 
     console.log(`Attesting artifacts for ${releaseName}...`);
-    const subjects = checksums.map(({ name, checksum, algorithm }) => ({ name, digest: { [algorithm]: checksum } }));
+    const subjects = checksums.map(({ name, digest256 }) => ({ name, digest: { sha256: digest256 } }));
     await attestProvenance({ token, subjects });
     console.log("Attestation successful for artifacts:", subjects);
 
