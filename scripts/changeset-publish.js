@@ -33,16 +33,10 @@ const packageMap = {
   "snap-template": ["snap-template-electron-4.0-1-amd64.tar.7z", "snap-template-electron-4.0-1-armhf.tar.7z", "snap-template-electron-4.0-2-amd64.tar.7z", "snap-template-electron-4.0.tar.7z"],
 };
 
-var releaseOptions = {
-  // tag_name: 'v1.0.0',
-  //   target_commitish: "master",
-  // name: 'v1.0.0',
-  // body: '* init\n',
+const releaseOptions = {
   draft: false,
   prerelease: true,
-  // repo: 'electron-builder-binaries',
-  // owner: 'electron-userland',,
-  // endpoint: 'https://api.github.com' // for GitHub enterprise, use http(s)://hostname/api/v3
+  yes: true
 };
 
 const isCi = !!process.env.CI;
@@ -91,11 +85,11 @@ for (const release of releases) {
   console.log(`Uploading artifacts for ${releaseName}...`);
   ghRelease({ ...options, auth: { token } }, (err) => {
     if (err) {
-      console.error(`Error uploading artifacts for ${name}:`, err);
+      console.error(`Error uploading artifacts for ${releaseName}:`, err);
       lastError = err
       return
     }
-    console.log(`Artifacts for ${name} uploaded successfully.`);
+    console.log(`Artifacts for ${releaseName} uploaded successfully.`);
   });
 }
 
