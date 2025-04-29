@@ -91,16 +91,9 @@ async function run() {
     }
 
     console.log(`Attesting artifacts for ${releaseName}...`);
-    const attestation = await attestProvenance({
-      token,
-      subjects: checksums.map(({ name, checksum, algorithm }) => ({
-        name: artifactPath(name),
-        digest: {
-          [algorithm]: checksum,
-        },
-      })),
-    });
-    console.log("Attestation successful", attestation);
+    const subjects = checksums.map(({ name, checksum, algorithm }) => ({ name, digest: { [algorithm]: checksum } }));
+    await attestProvenance({ token, subjects });
+    console.log("Attestation successful for artifacts:", subjects);
 
     console.log(`Uploading artifacts for ${releaseName}...`);
     await new Promise((resolve, reject) =>
