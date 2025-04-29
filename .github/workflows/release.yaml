@@ -9,6 +9,7 @@ permissions:
   contents: write # to create release (changesets/action)
   pull-requests: write # to create pull request (changesets/action)
   attestations: write # to create attestation during publish step (@actions/attest)
+  id-token: write # to create OIDC token for attestation
 
 jobs:
   build-artifacts:
