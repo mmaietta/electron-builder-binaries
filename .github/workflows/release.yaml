@@ -5,9 +5,7 @@ on:
     branches:
       - master
 
-permissions:
-  contents: write # to create release (changesets/action)
-  pull-requests: write # to create pull request (changesets/action)
+permissions: write-all
 
 jobs:
   build-artifacts:
@@ -22,16 +20,6 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 1
-
-      - name: Fetch artifact
-        id: artifact-url
-        env:
-          ARTIFACT_URL: ${{ needs.build-artifacts.outputs.artifactUrl }}
-          ARTIFACT_ID: ${{ needs.build-artifacts.outputs.artifactId }}
-        run: |
-          echo "Artifact URL is: $ARTIFACT_URL"
-          echo "ARTIFACT_URL=$ARTIFACT_URL" >> $GITHUB_ENV
-          echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
 
       - name: Download artifact
         id: download-artifact

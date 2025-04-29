@@ -57,8 +57,6 @@ for (const release of releases) {
     throw new Error(`No artifacts found for ${name}`);
   }
   const releaseName = `${name}@${version}`;
-  console.log(`Uploaded artifacts for ${releaseName}...`);
-
   const artifactPath = (artifact) => path.resolve(__dirname, "../artifacts", artifact);
 
   const checksums = artifactsToUpload
@@ -88,6 +86,7 @@ for (const release of releases) {
     console.error("GITHUB_TOKEN environment variable is not set.");
     process.exit(1);
   }
+  console.log(`Uploading artifacts for ${releaseName}...`);
   ghRelease({ ...options, auth: { token } }, (err) => {
     if (err) {
       console.error(`Error uploading artifacts for ${name}:`, err);
