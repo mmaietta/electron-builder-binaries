@@ -1,5 +1,11 @@
 # zstd
 
+## 0.2.0
+
+### Minor Changes
+
+- [`36c8b43`](https://github.com/electron-userland/electron-builder-binaries/commit/36c8b43d8eaf3fa2f4562e72cd20664759b272ea) Thanks [@mmaietta](https://github.com/mmaietta)! - test zstd bump for releases page
+
 ## 0.1.0
 
 ### Minor Changes
