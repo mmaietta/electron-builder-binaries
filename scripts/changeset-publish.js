@@ -92,13 +92,13 @@ async function run() {
 
     console.log(`Attesting artifacts for ${releaseName}...`);
     const attestation = await attestProvenance({
+      token,
       subjects: checksums.map(({ name, checksum, algorithm }) => ({
         name: artifactPath(name),
         digest: {
           [algorithm]: checksum,
         },
       })),
-      token: ghToken,
     });
     console.log("Attestation successful", attestation);
 
