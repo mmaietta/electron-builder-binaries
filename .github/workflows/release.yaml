@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write # to create release (changesets/action)
   pull-requests: write # to create pull request (changesets/action)
+  attestations: write # to create attestation during publish step (@actions/attest)
 
 jobs:
   build-artifacts:
@@ -61,13 +62,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create scoped releases
-        if: steps.changesets.outputs.published == 'true'
+      # iif: steps.changesets.outputs.published == 'true'
         run: |
           git reset --hard HEAD
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PUBLISHED_PACKAGES: '[{"name":"appimage","version":"1.3.2"},{"name":"nsis","version":"1.3.2"}]'
 
       

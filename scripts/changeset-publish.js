@@ -1,5 +1,5 @@
 const path = require("path");
-const fs = require("fs");
+const { attestProvenance } = require("@actions/attest");
 const { execSync } = require("child_process");
 var ghRelease = require("gh-release");
 
@@ -14,86 +14,110 @@ if (!publishedPackages) {
   process.exit(1);
 }
 
-const releases = JSON.parse(publishedPackages);
+async function run() {
+  const releases = JSON.parse(publishedPackages);
 
-console.log("Release candidates:", releases);
+  console.log("Release candidates:", releases);
 
-const packageMap = {
-  appimage: ["appimage-13.0.1.7z"],
-  nsis: ["nsis-3.0.5.0.7z"],
-  "nsis-resources": ["nsis-resources-3.4.1.7z"],
-  ran: ["ran-0.1.3.7z"],
-  "squirrel.windows": ["squirrel.windows-1.9.0.7z"],
-  "win-codesign": ["win-codesign-2.6.0.7z"],
-  wine: ["wine-4.0.1-mac.7z"],
-  wix: ["wix-4.0.0.5512.2.7z"],
-  zstd: ["zstd-v1.5.5-linux-x64.7z", "zstd-v1.5.5-mac.7z", "zstd-v1.5.5-win-ia32.7z", "zstd-v1.5.5-win-x64.7z"],
-  fpm: ["fpm-1.9.3-2.3.1-linux-x86_64.7z", "fpm-1.9.3-2.3.1-linux-x86.7z", "fpm-1.9.3-20150715-2.2.2-mac.7z"],
-  "linux-tools": ["linux-tools-mac-10.12.4.7z"],
-  "snap-template": ["snap-template-electron-4.0-1-amd64.tar.7z", "snap-template-electron-4.0-1-armhf.tar.7z", "snap-template-electron-4.0-2-amd64.tar.7z", "snap-template-electron-4.0.tar.7z"],
-};
+  const packageMap = {
+    appimage: ["appimage-13.0.1.7z"],
+    nsis: ["nsis-3.0.5.0.7z"],
+    "nsis-resources": ["nsis-resources-3.4.1.7z"],
+    ran: ["ran-0.1.3.7z"],
+    "squirrel.windows": ["squirrel.windows-1.9.0.7z"],
+    "win-codesign": ["win-codesign-2.6.0.7z"],
+    wine: ["wine-4.0.1-mac.7z"],
+    wix: ["wix-4.0.0.5512.2.7z"],
+    zstd: ["zstd-v1.5.5-linux-x64.7z", "zstd-v1.5.5-mac.7z", "zstd-v1.5.5-win-ia32.7z", "zstd-v1.5.5-win-x64.7z"],
+    fpm: ["fpm-1.9.3-2.3.1-linux-x86_64.7z", "fpm-1.9.3-2.3.1-linux-x86.7z", "fpm-1.9.3-20150715-2.2.2-mac.7z"],
+    "linux-tools": ["linux-tools-mac-10.12.4.7z"],
+    "snap-template": ["snap-template-electron-4.0-1-amd64.tar.7z", "snap-template-electron-4.0-1-armhf.tar.7z", "snap-template-electron-4.0-2-amd64.tar.7z", "snap-template-electron-4.0.tar.7z"],
+  };
 
-const releaseOptions = {
-  draft: false,
-  prerelease: false,
-  yes: true
-};
+  const releaseOptions = {
+    draft: false,
+    prerelease: false,
+    yes: true,
+  };
 
-const isCi = !!process.env.CI;
-if (!isCi) {
-  console.log("CI not detected, blocking remote release. Only logging release config to console...");
-}
-
-let lastError;
-
-for (const release of releases) {
-  const { name, version } = release;
-  const artifactsToUpload = packageMap[name];
-  if (!artifactsToUpload) {
-    throw new Error(`No artifacts found for ${name}`);
+  const isCi = !!process.env.CI;
+  if (!isCi) {
+    console.log("CI not detected, blocking remote release. Only logging release config to console...");
   }
-  const releaseName = `${name}@${version}`;
-  const artifactPath = (artifact) => path.resolve(__dirname, "../artifacts", artifact);
 
-  const checksums = artifactsToUpload
-    .map((artifact) => {
+  let lastError;
+
+  for (const release of releases) {
+    const { name, version } = release;
+    const artifactsToUpload = packageMap[name];
+    if (!artifactsToUpload) {
+      throw new Error(`No artifacts found for ${name}`);
+    }
+    const releaseName = `${name}@${version}`;
+    const artifactPath = (artifact) => path.resolve(__dirname, "../artifacts", artifact);
+
+    const checksums = artifactsToUpload.map((artifact) => {
       const checksum = execSync(`shasum -a 512 "${artifactPath(artifact)}" | xxd -r -p | base64`)
         .toString()
         .trim();
-      return `${artifact} - ${checksum}`;
-    })
-    .sort();
+      return {
+        name: artifact,
+        checksum,
+        algorithm: "sha512",
+      };
+    });
 
-  const options = {
-    ...releaseOptions,
-    name: releaseName,
-    tag_name: releaseName,
-    body: `*sha512 checksums*\n\n${checksums.join("\n")}`,
-    assets: artifactsToUpload.map(artifact => path.join("artifacts", artifact)),
-  };
+    const bodyText = checksums
+      .map(({ name, checksum }) => `\`${name}\`: \`${checksum}\``)
+      .sort()
+      .join("\n");
+    const options = {
+      ...releaseOptions,
+      name: releaseName,
+      tag_name: releaseName,
+      body: `*sha512 checksums*\n\n${bodyText}`,
+      assets: artifactsToUpload.map((artifact) => path.join("artifacts", artifact)),
+    };
 
-  if (!isCi) {
-    console.log("\n\nRelease options:", options);
-    continue;
+    if (!isCi) {
+      console.log("\n\nRelease options:", options);
+      continue;
+    }
+    // If CI, validate token is present
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+      console.error("GITHUB_TOKEN environment variable is not set.");
+      process.exit(1);
+    }
+
+    console.log(`Attesting artifacts for ${releaseName}...`);
+    const attestation = await attestProvenance({
+      subjects: checksums.map(({ name, checksum, algorithm }) => ({
+        name: artifactPath(name),
+        digest: {
+          [algorithm]: checksum,
+        },
+      })),
+      token: ghToken,
+    });
+    console.log("Attestation successful", attestation);
+
+    console.log(`Uploading artifacts for ${releaseName}...`);
+    await new Promise((resolve, reject) =>
+      ghRelease({ ...options, auth: { token } }, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        console.log(`Artifacts for ${releaseName} uploaded successfully.`);
+        resolve();
+      })
+    );
   }
-  // If CI, validate token is present
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    console.error("GITHUB_TOKEN environment variable is not set.");
+
+  if (lastError) {
+    console.error(`Error uploading artifacts. Logging last error (others were already output in logs):\n\n`, lastError);
     process.exit(1);
   }
-  console.log(`Uploading artifacts for ${releaseName}...`);
-  ghRelease({ ...options, auth: { token } }, (err) => {
-    if (err) {
-      console.error(`Error uploading artifacts for ${releaseName}:`, err);
-      lastError = err
-      return
-    }
-    console.log(`Artifacts for ${releaseName} uploaded successfully.`);
-  });
 }
 
-if (lastError) {
-  console.error(`Error uploading artifacts. Logging last error (others were already output in logs):\n\n`, lastError);
-  process.exit(1);
-}
+run();
