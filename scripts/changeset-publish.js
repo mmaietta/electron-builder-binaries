@@ -58,7 +58,7 @@ async function run() {
       const checksum512 = execSync(`shasum -a 512 "${artifactPath(name)}" | xxd -r -p | base64`)
         .toString()
         .trim();
-      const digest256 = execSync(`shasum -a 256 "${artifactPath(name)}" |  | cut -d ' ' -f 1`)
+      const digest256 = execSync(`shasum -a 256 "${artifactPath(name)}" | cut -d ' ' -f 1`)
         .toString()
         .trim();
       return { name, checksum512, digest256 };
