@@ -1,5 +1,11 @@
 # snap-template
 
+## 0.1.0
+
+### Minor Changes
+
+- [`184c104`](https://github.com/electron-userland/electron-builder-binaries/commit/184c1042da36468d3b320dad1cdc2dfe3f3057b5) Thanks [@mmaietta](https://github.com/mmaietta)! - minor bump all
+
 ## 0.0.3
 
 ### Patch Changes
