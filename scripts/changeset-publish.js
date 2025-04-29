@@ -106,11 +106,6 @@ async function run() {
       })
     );
   }
-
-  if (lastError) {
-    console.error(`Error uploading artifacts. Logging last error (others were already output in logs):\n\n`, lastError);
-    process.exit(1);
-  }
 }
 
 run();
