@@ -1,5 +1,0 @@
----
-"appimage": patch
----
-
-bump appimage
