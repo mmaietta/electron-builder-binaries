@@ -50,6 +50,8 @@ if (!isCi) {
   console.log("CI not detected, blocking remote release. Only logging release config to console...");
 }
 
+let lastError;
+
 for (const release of releases) {
   const { name, version } = release;
   const artifactsToUpload = packageMap[name];
@@ -90,8 +92,14 @@ for (const release of releases) {
   ghRelease({ ...options, auth: { token } }, (err) => {
     if (err) {
       console.error(`Error uploading artifacts for ${name}:`, err);
-      process.exit(1);
+      lastError = err
+      return
     }
     console.log(`Artifacts for ${name} uploaded successfully.`);
   });
+}
+
+if (lastError) {
+  console.error(`Error uploading artifacts. Logging last error (others were already output in logs):\n\n`, lastError);
+  process.exit(1);
 }
