@@ -129,13 +129,14 @@ ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "imfA3LtT6umMM0BuQ29MgO3CJ9uleN5zRBi3sXzcTbMOeYZ6SQeN7eKr3kXZikKnVOIwbH+DDO43wkiR/qTdkg=="
 
 # fpm
-# no checksums exist https://github.com/electron-userland/electron-builder-binaries/releases?q=fpm&expanded=true
-for FOLDER_NAME in "2.3.1-linux-x86_64" "2.3.1-linux-x86" "20150715-2.2.2-mac"
-do
-    NAME="fpm"
-    VERSION="1.9.3"
-    downloadArtifact "$NAME-$VERSION" "$FOLDER_NAME"
-done
+NAME="fpm"
+VERSION="1.9.3"
+ARCHIVE_NAME="$NAME-$VERSION-2.3.1-linux-x86_64"
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "fcKdXPJSso3xFs5JyIJHG1TfHIRTGDP0xhSBGZl7pPZlz4/TJ4rD/q3wtO/uaBBYeX0qFFQAFjgu1uJ6HLHghA=="
+ARCHIVE_NAME="$NAME-$VERSION-2.3.1-linux-x86"
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "OnzvBdsHE5djcXcAT87rwbnZwS789ZAd2ehuIO42JWtBAHNzXKxV4o/24XFX5No4DJWGO2YSGQttW+zn7d/4rQ=="
+ARCHIVE_NAME="$NAME-$VERSION-20150715-2.2.2-mac"
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "oXfq+0H2SbdrbMik07mYloAZ8uHrmf6IJk+Q3P1kwywuZnKTXSaaeZUJNlWoVpRDWNu537YxxpBQWuTcF+6xfw=="
 
 sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
 echo "Artifacts compressed and checksums generated in $ARTIFACTS_DIR"
