@@ -31,8 +31,9 @@ downloadArtifact()
     RELEASE_NAME=$1
     ARCHIVE_NAME="$2.7z"
     CHECKSUM=$3
-    curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
-    hashArtifact "$ARCHIVE_NAME" "$CHECKSUM"
+    OUTPUT_NAME="${4:-$2}.7z"
+    curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$OUTPUT_NAME"
+    hashArtifact "$OUTPUT_NAME" "$CHECKSUM"
 }
 
 compressArtifact()
@@ -72,7 +73,7 @@ downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "cTeQgtymnETCMGZa89l5A790zw4otq
 NAME="winCodeSign"
 VERSION="2.6.0"
 ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA=="
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA==" "win-codesign-$VERSION"
 
 # wine-4.0.1-mac
 NAME="wine"
@@ -102,7 +103,7 @@ hashArtifact "$ARCHIVE_NAME" "PYhiQQ5KE4ezraLE7TOT2aFPGkBNjHLRN7C8qAPaC6VckHU3H+
 NAME="Squirrel.Windows"
 VERSION=1.9.0
 ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "zJHk4CMATM7jHJ2ojRH1n3LkOnaIezDk5FAzJmlSEQSiEdRuB4GGLCegLDtsRCakfHIVfKh3ysJHLjynPkXwhQ=="
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "zJHk4CMATM7jHJ2ojRH1n3LkOnaIezDk5FAzJmlSEQSiEdRuB4GGLCegLDtsRCakfHIVfKh3ysJHLjynPkXwhQ==" "squirrel.windows-$VERSION"
 
 # nsis-resources
 NAME="nsis-resources"
