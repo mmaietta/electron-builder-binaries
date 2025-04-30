@@ -65,9 +65,9 @@ downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJ
 
 # nsis
 NAME="nsis"
-VERSION="3.0.5.0"
+VERSION="3.0.4.1"
 ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "cTeQgtymnETCMGZa89l5A790zw4otqFThfQbm52AbhUtPUD2yp2lmmu/T9Hd6fG/rDej0o6X6OTupxZB3n8HbA=="
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "VKMiizYdmNdJOWpRGz4trl4lD++BvYP2irAXpMilheUP0pc93iKlWAoP843Vlraj8YG19CVn0j+dCo/hURz9+Q=="
 
 # winCodeSign
 NAME="winCodeSign"

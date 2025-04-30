@@ -21,7 +21,7 @@ async function run() {
 
   const packageMap = {
     appimage: ["appimage-13.0.1.7z"],
-    nsis: ["nsis-3.0.5.0.7z"],
+    nsis: ["nsis-3.0.4.1.7z"],
     "nsis-resources": ["nsis-resources-3.4.1.7z"],
     ran: ["ran-0.1.3.7z"],
     "squirrel.windows": ["squirrel.windows-1.9.0.7z"],
