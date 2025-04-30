@@ -1,5 +1,11 @@
 # nsis
 
+## 2.0.0
+
+### Major Changes
+
+- [`4f317f4`](https://github.com/electron-userland/electron-builder-binaries/commit/4f317f4f7ba863b28046ca83ab99a4fdf841ca29) Thanks [@mmaietta](https://github.com/mmaietta)! - downgrade to 3.0.4.1
+
 ## 1.0.1
 
 ### Patch Changes
