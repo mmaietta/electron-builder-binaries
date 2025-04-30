@@ -72,7 +72,7 @@ async function run() {
       ...releaseOptions,
       name: releaseName,
       tag_name: releaseName,
-      body: `*sha512 checksums*\n\n${bodyText}`,
+      body: `*checksums*\n\n${bodyText}`,
       assets: artifactsToUpload.map((artifact) => path.join("artifacts", artifact)),
     };
 
