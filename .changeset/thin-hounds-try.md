@@ -1,5 +1,0 @@
----
-"win-codesign": patch
----
-
-test
