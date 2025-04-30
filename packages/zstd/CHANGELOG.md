@@ -1,5 +1,11 @@
 # zstd
 
+## 1.0.0
+
+### Major Changes
+
+- [`0789ff5`](https://github.com/electron-userland/electron-builder-binaries/commit/0789ff5fc0fddba7207935cc71459b4a697d28df) Thanks [@mmaietta](https://github.com/mmaietta)! - first release of artifacts with checksum validation in "compress" script
+
 ## 0.4.1
 
 ### Patch Changes
