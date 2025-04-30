@@ -22,6 +22,9 @@ releases.forEach((release) => {
   console.log(`Committing artifacts for ${name}...`);
   artifactsToUpload.forEach((artifact) => {
     const artifactPath = path.resolve(__dirname, "../artifacts", artifact);
+    if (!fs.existsSync(artifactPath)) {
+      throw new Error(`Artifact not found: ${artifactPath}. Please check the package<=>file map in 'changeset-packagemap.js'`);
+    }
     // --force because the folder is ignored by git to prevent accidental commits
     execSync(`git add --force ${artifactPath}`);
   });
