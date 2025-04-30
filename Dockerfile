@@ -68,7 +68,7 @@ WORKDIR /usr/src/app
 COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources
-COPY ./nsis-lang-fixes /usr/src/app/nsis-lang-fixes
+COPY ./packages/nsis-lang-fixes /usr/src/app/nsis-lang-fixes
 
 ARG FPM_VERSION=1.16.0
 RUN FPM_VERSION=$FPM_VERSION sh ./docker-scripts/fpm.sh
