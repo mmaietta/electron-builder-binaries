@@ -6,6 +6,12 @@ on:
       master
   pull_request:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_call:
+    # Map the workflow outputs to job outputs
+    outputs:
+      artifactUrl:
+        description: "The url of the compressed artifacts"
+        value: ${{ jobs.compress-assets.outputs.artifactUrl }}
 
 permissions:
   contents: read
@@ -83,27 +89,6 @@ jobs:
           if-no-files-found: error
           path: |
             out
-  build-mac:
-    runs-on: macos-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 2
-          submodules: recursive
-      - name: Build
-        run: |
-          rm -rf out
-          bash build-mac.sh
-          ls -R out
-      - name: Archive artifacts
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
-        with:
-          name: mac-artifacts
-          if-no-files-found: error
-          path: |
-            out
   build-windows:
     runs-on: windows-latest
     timeout-minutes: 15
@@ -144,6 +129,29 @@ jobs:
           if-no-files-found: error
           path: |
             out
+
+   build-mac:
+      runs-on: macos-latest
+      timeout-minutes: 15
+      steps:
+        - name: Checkout code repository
+          uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+          with:
+            fetch-depth: 2
+            submodules: recursive
+        - name: Build
+          run: |
+            rm -rf out
+            bash build-mac.sh
+            ls -R out
+        - name: Archive artifacts
+          uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+          with:
+            name: mac-artifacts
+            if-no-files-found: error
+            path: |
+              out
+
   combine-artifacts:
     runs-on: ubuntu-latest
     needs: [
@@ -153,6 +161,10 @@ jobs:
       build-mac,
       build-windows
     ]
+    timeout-minutes: 15
+    outputs:
+      artifactUrl: ${{ steps.artifact-url.outputs.ARTIFACT_URL }}
+      artifactId: ${{ steps.artifact-url.outputs.ARTIFACT_ID }}
     steps:
       - name: Install `tree`
         run: |
@@ -161,18 +173,23 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4.2.1
         with:
-          path: out
+          path: artifacts
           merge-multiple: true
       - name: Tree the out directory
         run: |
-          tree out
-      - name: Create zip file
+          tree ./artifacts
+      - name: Compress Artifacts
         run: |
-          zip -r out.zip out
-      - name: Archive artifacts
+          sh ./compress-artifacts.sh
+      - name: Upload Artifacts
+        id: upload-artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
-          name: all-artifacts
-          if-no-files-found: error
-          path: |
-            out.zip
+          path: artifacts
+          name: artifacts
+      - name: Extract artifact url
+        id: artifact-url
+        run: |
+          echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
+          echo "ARTIFACT_URL=${{ steps.upload-artifacts.outputs.artifact-url }}" >> $GITHUB_ENV
+          echo "ARTIFACT_ID=${{ steps.upload-artifacts.outputs.artifact-id }}" >> $GITHUB_ENV

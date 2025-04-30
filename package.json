@@ -1,11 +1,24 @@
 {
+  "name": "electron-builder-binaries",
+  "description": "Binaries specifically curated for Electron Builder",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/electron-userland/electron-builder-binaries"
+  },
   "private": true,
   "scripts": {
-    "build:linux": "rimraf out && sh build-linux.sh",
-    "build:mac": "rimraf out && sh build-mac.sh",
-    "build:win": "rimraf out && sh build-windows.sh"
+    "ci:version": "pnpm i && node scripts/changeset-version.js && changeset version",
+    "ci:publish": "changeset tag"
   },
   "devDependencies": {
-    "rimraf": "^6.0.1"
+    "@actions/attest": "^1.6.0",
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.2",
+    "gh-release": "^7.0.2"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "gh-release@7.0.2": "patches/gh-release@7.0.2.patch"
+    }
   }
 }
