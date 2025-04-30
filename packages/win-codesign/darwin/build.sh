@@ -1,7 +1,9 @@
-brew install libgsf
-brew install osslsigncode
+#!/usr/bin/env bash
+set -e
 
-BASEDIR=$(cd "$(dirname "$0")/../.." && pwd)
+brew install libgsf osslsigncode
+
+BASEDIR=$(cd "$(dirname "$0")/../../.." && pwd)
 cd $BASEDIR
 OUTPUT_DIR=$BASEDIR/out/winCodeSign/darwin
 rm -rf $OUTPUT_DIR
