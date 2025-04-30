@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 CWD=$(cd "$(dirname "$0")" && pwd)
 cd $CWD
@@ -36,7 +36,7 @@ else
   echo "Example: ARCH=amd64 ./docker-scripts/build-linux.sh"
   exit 1
 fi
-echo "Building $OUPUT_ARCH target."
+echo "Building $OUTPUT_ARCH target."
 
 # check if previous docker containers are still running based off of container lockfile
 cidFile="/tmp/linux-build-container-id"
@@ -108,11 +108,11 @@ APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
 mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/appimage/. $APPIMAGE_TOOLS_OUTPUT_DIR
 
-# winCodeSign
-WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign/darwin
+# win-codesign
+WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign/darwin
 # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
-docker cp "$containerId":/usr/src/app/winCodeSign/darwin/. $WIN_CODE_SIGN_OUTPUT_DIR
+docker cp "$containerId":/usr/src/app/win-codesign/darwin/. $WIN_CODE_SIGN_OUTPUT_DIR
 
 # openjpeg
 OPENJPEG_OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
@@ -121,20 +121,20 @@ mkdir -p $OPENJPEG_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
 
 # osslsigncode
-WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/winCodeSign
+WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign
 # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
 mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR/linux/
 docker cp "$containerId":/usr/local/bin/osslsigncode $WIN_CODE_SIGN_OUTPUT_DIR/linux/
 echo $OSSLSIGNCODE_VERSION > $WIN_CODE_SIGN_OUTPUT_DIR/linux/VERSION
-# copy the other remaining winCodeSign files
-cp -a $CWD/winCodeSign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
-cp -a $CWD/winCodeSign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
-cp -a $CWD/winCodeSign/openssl-ia32 $WIN_CODE_SIGN_OUTPUT_DIR
+# copy the other remaining win-codesign files
+cp -a $CWD/packages/win-codesign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
+cp -a $CWD/packages/win-codesign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
+cp -a $CWD/packages/win-codesign/openssl-ia32 $WIN_CODE_SIGN_OUTPUT_DIR
 
 # nsis-resources (note: we still use some vendored resources committed in this repo)
 NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
 # rm -rf $NSIS_PLUGINS_OUTPUT_DIR
-cp -a $CWD/nsis-resources $BASEDIR
+cp -a $CWD/packages/nsis-resources $BASEDIR
 docker cp "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
 
 # makensis
@@ -152,7 +152,7 @@ mkdir -p $MAKENSIS_WINDOWS_OUTPUT
 docker cp "$containerId":/usr/src/app/nsis/windows/. $MAKENSIS_WINDOWS_OUTPUT
 
 # Squirrel.Windows
-SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/Squirrel.Windows
+SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/squirrel.windows
 # rm -rf $SQUIRREL_WINDOWS_OUTPUT_DIR
 mkdir -p $SQUIRREL_WINDOWS_OUTPUT_DIR
 docker cp "$containerId":/usr/src/app/Squirrel.Windows/. $SQUIRREL_WINDOWS_OUTPUT_DIR

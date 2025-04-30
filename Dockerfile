@@ -68,7 +68,7 @@ WORKDIR /usr/src/app
 COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources
-COPY ./packages/nsis-lang-fixes /usr/src/app/nsis-lang-fixes
+COPY ./packages/nsis-lang-fixes /usr/src/app/packages/nsis-lang-fixes
 
 ARG FPM_VERSION=1.16.0
 RUN FPM_VERSION=$FPM_VERSION sh ./docker-scripts/fpm.sh
@@ -80,4 +80,4 @@ RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
 RUN sh ./docker-scripts/squirrel-windows.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
 RUN sh ./docker-scripts/appImage-packages-ia32.sh
-RUN sh ./docker-scripts/winCodeSign-tools.sh
+RUN sh ./docker-scripts/win-codesign-tools.sh
