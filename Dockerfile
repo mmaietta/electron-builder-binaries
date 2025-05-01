@@ -81,4 +81,4 @@ RUN sh ./docker-scripts/win-codesign-tools.sh
 
 COPY ./packages/fpm /usr/src/app/packages/fpm
 ARG FPM_VERSION=1.16.0
-RUN FPM_VERSION=$FPM_VERSION sh ./packages/fpm/fpm.sh
+RUN FPM_VERSION=$FPM_VERSION OUTPUT_SUBDIR=fpm sh ./packages/fpm/fpm.sh
