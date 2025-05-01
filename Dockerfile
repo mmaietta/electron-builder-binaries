@@ -70,9 +70,6 @@ COPY ./docker-scripts /usr/src/app/docker-scripts
 # build resources
 COPY ./packages/nsis-lang-fixes /usr/src/app/packages/nsis-lang-fixes
 
-ARG FPM_VERSION=1.16.0
-RUN FPM_VERSION=$FPM_VERSION sh ./docker-scripts/fpm.sh
-
 RUN sh ./docker-scripts/nsis-windows.sh
 RUN sh ./docker-scripts/nsis-plugins.sh
 RUN sh ./docker-scripts/wix-toolset-x64.sh
@@ -81,3 +78,7 @@ RUN sh ./docker-scripts/squirrel-windows.sh
 RUN sh ./docker-scripts/appImage-packages-x64.sh
 RUN sh ./docker-scripts/appImage-packages-ia32.sh
 RUN sh ./docker-scripts/win-codesign-tools.sh
+
+COPY ./packages/fpm /usr/src/app/packages/fpm
+ARG FPM_VERSION=1.16.0
+RUN FPM_VERSION=$FPM_VERSION sh ./packages/fpm/fpm.sh
