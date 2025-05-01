@@ -169,6 +169,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y tree
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Download artifacts
         uses: actions/download-artifact@v4.2.1
         with:
@@ -179,7 +181,7 @@ jobs:
           tree ./artifacts
       - name: Compress Artifacts
         run: |
-          sh ./compress-artifacts.sh
+          sh ./scripts/compress-artifacts.sh
       - name: Upload Artifacts
         id: upload-artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
