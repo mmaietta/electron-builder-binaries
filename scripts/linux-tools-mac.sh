@@ -30,7 +30,7 @@ declare -a CELLAR_PACKAGES=(
 
 declare -a BIN_PACKAGES=(
     brew
-    gapplication
+    # gapplication
     gdbus
     gdbus-codegen
     gio
@@ -75,7 +75,7 @@ declare -a OPT_PACKAGES=(
     pcre1
 )
 
-ls -R $BREW_LOCATION
+# ls -R $BREW_LOCATION
 
 # copy relevant files for linux-tools to function. DO NOT COPY THE ENTIRE CELLAR
 # because it will be too large and will contain files that are not needed.
