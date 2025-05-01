@@ -47,7 +47,7 @@ if test -f "$cidFile"; then
   docker rm "$containerId"
 fi
 
-# cleanup docker container (if--build-argxists) on error
+# cleanup docker container on error
 f () {
     errorCode=$? # save the exit code as the first thing done in the trap function
     echo "error $errorCode"

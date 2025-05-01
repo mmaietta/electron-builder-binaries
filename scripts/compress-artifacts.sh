@@ -5,6 +5,8 @@ set -e
 # This script is super verbose, but it's meant to be an interim step as we convert the release process to be fully automated by Github Actions
 
 BASE_DIR=$(cd "$(dirname "$0")/.." && pwd)
+BUILD_OUT_DIR=$BASE_DIR/out
+PACKAGE_PATH=$BASE_DIR/packages
 ARTIFACTS_DIR=$BASE_DIR/artifacts
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$ARTIFACTS_DIR"
@@ -21,9 +23,10 @@ hashArtifact()
         echo "Expected: $EXPECTED"
         echo "Actual: $CHECKSUM"
         exit 1
+    elif
+        echo "Checksum for $ARCHIVE_NAME matches expected checksum"
     fi
     echo "$ARCHIVE_NAME: $CHECKSUM" >> "$ARTIFACTS_DIR/checksums.txt"
-    echo "Checksum for $ARCHIVE_NAME matches expected checksum"
 }
 
 downloadArtifact()
@@ -38,10 +41,9 @@ downloadArtifact()
 
 compressArtifact()
 {
-    NAME=$1
-    VERSION=$2
-    ARCHIVE_NAME="$NAME-$VERSION.7z"
-    $BASE_DIR/7za a -mx=9 -mfb=64 "$ARTIFACTS_DIR/$ARCHIVE_NAME" "$BASE_DIR/packages/$NAME"/*
+    ARCHIVE_NAME="$1.7z"
+    PACKAGE_PATH=$2
+    $BASE_DIR/7za a -mx=9 -mfb=64 "$ARTIFACTS_DIR/$ARCHIVE_NAME" "$BASE_DIR/out/$PACKAGE_PATH"/*
     hashArtifact "$ARCHIVE_NAME"
 }
 
@@ -130,14 +132,13 @@ ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "imfA3LtT6umMM0BuQ29MgO3CJ9uleN5zRBi3sXzcTbMOeYZ6SQeN7eKr3kXZikKnVOIwbH+DDO43wkiR/qTdkg=="
 
 # fpm
+source "$PACKAGE_PATH/fpm/version.sh"
 NAME="fpm"
-VERSION="1.9.3"
-ARCHIVE_NAME="$NAME-$VERSION-2.3.1-linux-x86_64"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "fcKdXPJSso3xFs5JyIJHG1TfHIRTGDP0xhSBGZl7pPZlz4/TJ4rD/q3wtO/uaBBYeX0qFFQAFjgu1uJ6HLHghA=="
-ARCHIVE_NAME="$NAME-$VERSION-2.3.1-linux-x86"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "OnzvBdsHE5djcXcAT87rwbnZwS789ZAd2ehuIO42JWtBAHNzXKxV4o/24XFX5No4DJWGO2YSGQttW+zn7d/4rQ=="
-ARCHIVE_NAME="$NAME-$VERSION-20150715-2.2.2-mac"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "oXfq+0H2SbdrbMik07mYloAZ8uHrmf6IJk+Q3P1kwywuZnKTXSaaeZUJNlWoVpRDWNu537YxxpBQWuTcF+6xfw=="
+VERSION=$FPM_VERSION
+for DIR in linux-x64 linux-ia32 linux-arm64 linux-arm32 mac; do
+    ARCHIVE_NAME="$NAME-$VERSION-$ARCH"
+    compressArtifact "$ARCHIVE_NAME" "$BUILD_OUT_DIR/fpm/$DIR"
+done
 
 sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
 echo "Artifacts compressed and checksums generated in $ARTIFACTS_DIR"

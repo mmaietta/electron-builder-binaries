@@ -80,5 +80,4 @@ RUN sh ./docker-scripts/appImage-packages-ia32.sh
 RUN sh ./docker-scripts/win-codesign-tools.sh
 
 COPY ./packages/fpm /usr/src/app/packages/fpm
-ARG FPM_VERSION=1.16.0
-RUN FPM_VERSION=$FPM_VERSION OUTPUT_SUBDIR=fpm sh ./packages/fpm/fpm.sh
+RUN OUTPUT_SUBDIR=fpm bash ./packages/fpm/fpm.sh

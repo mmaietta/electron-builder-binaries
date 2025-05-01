@@ -11,8 +11,9 @@ TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
 
-RUBY_VERSION=3.4.0
-FPM_VERSION=1.16.0
+# --------------------------------------------------------
+
+source $BASEDIR/packages/fpm/version.sh # exports RUBY_VERSION & FPM_VERSION
 echo "RUBY_VERSION: $RUBY_VERSION"
 echo "FPM_VERSION: $FPM_VERSION"
 
@@ -26,8 +27,6 @@ echo "\"ruby\" \"$RUBY_VERSION\"" >> $BASEDIR/Gemfile
 echo "gem \"fpm\", \"$FPM_VERSION\"" >> $BASEDIR/Gemfile
 
 bundle install --without=development --path=$TMP_DIR/
-
-# gem install fpm --version $FPM_VERSION --install-dir $TMP_DIR --no-document --quiet
 
 cp -a $TMP_DIR/* $OUTPUT_DIR
 rm -rf $OUTPUT_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
