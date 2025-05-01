@@ -152,7 +152,7 @@ jobs:
             out
 
   combine-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: [
       build-linux-arm64v8,
       build-linux-amd64-ia32,
