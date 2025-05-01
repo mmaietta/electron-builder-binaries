@@ -11,7 +11,7 @@ on:
     outputs:
       artifactUrl:
         description: "The url of the compressed artifacts"
-        value: ${{ jobs.compress-assets.outputs.artifactUrl }}
+        value: ${{ jobs.combine-assets.outputs.artifactUrl }}
 
 permissions:
   contents: read
