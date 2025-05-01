@@ -70,7 +70,6 @@ NSIS_VERSION=3.08
 ZSTD_VERSION=1.5.0
 SQUASHFS_VERSION=4.5
 OSSLSIGNCODE_VERSION=2.9
-FPM_VERSION=1.16.0
 docker buildx build \
   --load \
   -f Dockerfile \
@@ -80,7 +79,6 @@ docker buildx build \
   --build-arg ZSTD_VERSION=$ZSTD_VERSION \
   --build-arg SQUASHFS_VERSION=$SQUASHFS_VERSION \
   --build-arg OSSLSIGNCODE_VERSION=$OSSLSIGNCODE_VERSION \
-  --build-arg FPM_VERSION=$FPM_VERSION \
   -t binaries-builder:$ARCH \
   .
 docker run --cidfile="$cidFile" -v ${PWD}:/app binaries-builder:$ARCH

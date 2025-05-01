@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-FPM_VERSION=1.16.0 OUTPUT_SUBDIR=out/fpm/mac sh ./packages/fpm/fpm.sh
+OUTPUT_SUBDIR=out/fpm/mac sh ./packages/fpm/fpm.sh
 sh ./scripts/linux-tools-mac.sh
 sh ./scripts/nsis-mac.sh
 sh ./scripts/zstd-win-mac.sh
