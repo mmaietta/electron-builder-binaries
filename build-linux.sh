@@ -165,7 +165,7 @@ docker cp -a "$containerId":/usr/src/app/wix/. $WIX_OUTPUT_DIR
 FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
 # rm -rf $FPM_OUTPUT_DIR
 mkdir -p $FPM_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/fpm/. $FPM_OUTPUT_DIR
+docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
 
 # cleanup
 docker rm "$containerId"
