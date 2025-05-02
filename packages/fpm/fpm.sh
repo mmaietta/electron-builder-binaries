@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-BASEDIR=$(cd "$(dirname "$0")/../.." && pwd)
-cd $BASEDIR
+BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/../.." && pwd)
+source $BASEDIR/scripts/utils.sh
+
 OUTPUT_DIR=$BASEDIR/${OUTPUT_SUBDIR:-"out/fpm"}
 rm -rf $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
@@ -28,13 +29,11 @@ echo "gem \"fpm\", \"$FPM_VERSION\"" >> $BASEDIR/Gemfile
 
 bundle install --without=development --path=$TMP_DIR/
 
-cp -a $TMP_DIR/* $OUTPUT_DIR
-rm -rf $OUTPUT_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
-echo $FPM_VERSION > $OUTPUT_DIR/VERSION
+rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
+echo "Fpm: $FPM_VERSION\nRuby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
 
 # create symlink to fpm relative to the output directory so that it correctly copies out of the docker image
-cd $OUTPUT_DIR
-ls -al ./ruby/$RUBY_VERSION/bin
+cd $TMP_DIR
 ln -s ./ruby/$RUBY_VERSION/bin/fpm fpm
 
-echo "FPM copied to $OUTPUT_DIR"
+compressArtifact fpm $TMP_DIR
