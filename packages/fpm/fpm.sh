@@ -34,8 +34,7 @@ echo $FPM_VERSION > $OUTPUT_DIR/VERSION
 
 # create symlink to fpm relative to the output directory so that it correctly copies out of the docker image
 cd $OUTPUT_DIR
+ls -al ./ruby/$RUBY_VERSION/bin
 ln -s ./ruby/$RUBY_VERSION/bin/fpm fpm
 
-echo "FPM installed to $OUTPUT_DIR"
-# verify symlink and installation
-echo "FPM version: $(./fpm --version)"
+echo "FPM copied to $OUTPUT_DIR"

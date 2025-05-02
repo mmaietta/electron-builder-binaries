@@ -23,7 +23,7 @@ hashArtifact()
         echo "Expected: $EXPECTED"
         echo "Actual: $CHECKSUM"
         exit 1
-    elif
+    else
         echo "Checksum for $ARCHIVE_NAME matches expected checksum"
     fi
     echo "$ARCHIVE_NAME: $CHECKSUM" >> "$ARTIFACTS_DIR/checksums.txt"
