@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-OUTPUT_SUBDIR=out/fpm/darwin sh ./packages/fpm/fpm.sh
+sh ./packages/fpm/fpm.sh
 sh ./scripts/linux-tools-mac.sh
 sh ./scripts/nsis-mac.sh
 sh ./scripts/zstd-win-mac.sh

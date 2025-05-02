@@ -4,10 +4,6 @@ set -e
 BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/../.." && pwd)
 source $BASEDIR/scripts/utils.sh
 
-OUTPUT_DIR=$BASEDIR/${OUTPUT_SUBDIR:-"out/fpm"}
-rm -rf $OUTPUT_DIR
-mkdir -p $OUTPUT_DIR
-
 TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
@@ -36,4 +32,4 @@ echo "Fpm: $FPM_VERSION\nRuby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
 cd $TMP_DIR
 ln -s ./ruby/$RUBY_VERSION/bin/fpm fpm
 
-compressArtifact fpm $TMP_DIR
+compressArtifact darwin/fpm $TMP_DIR

@@ -42,9 +42,9 @@ downloadArtifact()
 
 compressArtifact()
 {
-    ARCHIVE_NAME="$1.7z"
+    ARCHIVE_PATH="$1.7z"
     PACKAGE_PATH=$2
-    DESTINATION="$BUILD_OUT_DIR/$ARCHIVE_NAME"
+    DESTINATION="$BUILD_OUT_DIR/$ARCHIVE_PATH"
     rm -f "$DESTINATION"
     7za a -mx=9 -mfb=64 "$DESTINATION" "$PACKAGE_PATH"/*
     echo "$1 compressed to $DESTINATION"
