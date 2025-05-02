@@ -1,2 +1,2 @@
-export RUBY_VERSION=3.4.0
+export RUBY_VERSION=3.1.0
 export FPM_VERSION=1.16.0
