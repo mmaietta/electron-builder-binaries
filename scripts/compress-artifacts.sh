@@ -135,8 +135,8 @@ downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "imfA3LtT6umMM0BuQ29MgO3CJ9uleN
 source "$PACKAGE_PATH/fpm/version.sh"
 NAME="fpm"
 VERSION=$FPM_VERSION
-for DIR in linux-x64 linux-ia32 linux-arm64 linux-arm32 mac; do
-    ARCHIVE_NAME="$NAME-$VERSION-$ARCH"
+for DIR in linux-x64 linux-ia32 linux-arm64 linux-arm32 darwin; do
+    ARCHIVE_NAME="$NAME-$VERSION-$DIR"
     compressArtifact "$ARCHIVE_NAME" "$BUILD_OUT_DIR/fpm/$DIR"
 done
 
