@@ -137,7 +137,7 @@ NAME="fpm"
 VERSION=$FPM_VERSION
 for DIR in linux-x64 linux-ia32 linux-arm64 linux-arm32 darwin; do
     ARCHIVE_NAME="$NAME-$VERSION-$DIR"
-    compressArtifact "$ARCHIVE_NAME" "$BUILD_OUT_DIR/fpm/$DIR"
+    compressArtifact "$ARCHIVE_NAME" "fpm/$DIR"
 done
 
 sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
