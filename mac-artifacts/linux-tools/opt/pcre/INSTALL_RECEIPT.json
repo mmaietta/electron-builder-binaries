@@ -1,0 +1,51 @@
+{
+  "homebrew_version": "4.1.11-17-g24de357",
+  "used_options": [
+
+  ],
+  "unused_options": [
+
+  ],
+  "built_as_bottle": true,
+  "poured_from_bottle": true,
+  "loaded_from_api": true,
+  "installed_as_dependency": false,
+  "installed_on_request": true,
+  "changed_files": [
+    "bin/pcre-config",
+    "lib/pkgconfig/libpcre.pc",
+    "lib/pkgconfig/libpcre16.pc",
+    "lib/pkgconfig/libpcre32.pc",
+    "lib/pkgconfig/libpcrecpp.pc",
+    "lib/pkgconfig/libpcreposix.pc"
+  ],
+  "time": 1746300976,
+  "source_modified_time": 1623773637,
+  "compiler": "clang",
+  "aliases": [
+    "pcre1"
+  ],
+  "runtime_dependencies": [
+
+  ],
+  "source": {
+    "spec": "stable",
+    "versions": {
+      "stable": "8.45",
+      "head": null,
+      "version_scheme": 0
+    },
+    "path": "/Users/runner/Library/Caches/Homebrew/api/formula.jws.json",
+    "tap_git_head": "d5ed7c4a090b0e3e9fcd0560435fb3a5d9a8a6e7",
+    "tap": "homebrew/core"
+  },
+  "arch": "arm64",
+  "built_on": {
+    "os": "Macintosh",
+    "os_version": "macOS 14",
+    "cpu_family": "dunno",
+    "xcode": "15.0",
+    "clt": "15.0.0.0.1.1694021235",
+    "preferred_perl": "5.34"
+  }
+}

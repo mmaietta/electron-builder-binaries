@@ -1,0 +1,182 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "spdxVersion": "SPDX-2.3",
+  "name": "SBOM-SPDX-glib-2.84.1",
+  "creationInfo": {
+    "created": "2025-04-28T04:09:08Z",
+    "creators": [
+      "Tool: https://github.com/Homebrew/brew@4.4.32"
+    ]
+  },
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://formulae.brew.sh/spdx/glib-2.84.1.json",
+  "documentDescribes": [
+    "SPDXRef-Archive-glib-src",
+    "SPDXRef-Package-SPDXRef-pcre2-10.45",
+    "SPDXRef-Package-SPDXRef-libunistring-1.3",
+    "SPDXRef-Package-SPDXRef-gettext-0.24",
+    "SPDXRef-Compiler",
+    "SPDXRef-Bottle-glib"
+  ],
+  "files": [
+
+  ],
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Archive-glib-src",
+      "name": "glib",
+      "versionInfo": "2.84.1",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "builtDate": "2025-04-03 14:38:51 UTC",
+      "licenseConcluded": "LGPL-2.1-or-later",
+      "downloadLocation": "https://download.gnome.org/sources/glib/2.84/glib-2.84.1.tar.xz",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2b4bc2ec49611a5fc35f86aca855f2ed0196e69e53092bab6bb73396bf30789a"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-SPDXRef-pcre2-10.45",
+      "name": "pcre2",
+      "versionInfo": "10.45",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "BSD-3-Clause",
+      "downloadLocation": "https://ghcr.io/v2/homebrew/core/pcre2/blobs/sha256:549a4a79676a6e2c58896cb46cf7d36a8c86f3696e61c43f07dca6660c32cd08",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "549a4a79676a6e2c58896cb46cf7d36a8c86f3696e61c43f07dca6660c32cd08"
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/pcre2@10.45",
+          "referenceType": "purl"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-SPDXRef-libunistring-1.3",
+      "name": "libunistring",
+      "versionInfo": "1.3",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "GPL-2.0-only OR LGPL-3.0-or-later",
+      "downloadLocation": "https://ghcr.io/v2/homebrew/core/libunistring/blobs/sha256:38e44e319bfe11ec892bc6451d86b687d990ea01b4810b5d8ad1f794d531d82f",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "38e44e319bfe11ec892bc6451d86b687d990ea01b4810b5d8ad1f794d531d82f"
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/libunistring@1.3",
+          "referenceType": "purl"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-SPDXRef-gettext-0.24",
+      "name": "gettext",
+      "versionInfo": "0.24",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "GPL-3.0-or-later",
+      "downloadLocation": "https://ghcr.io/v2/homebrew/core/gettext/blobs/sha256:123ddd7c859ada9372d2c79b4eb49b63dd900dc8f6f22d4d9420816ba078986d",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "123ddd7c859ada9372d2c79b4eb49b63dd900dc8f6f22d4d9420816ba078986d"
+        }
+      ],
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/gettext@0.24",
+          "referenceType": "purl"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Compiler",
+      "name": "clang",
+      "versionInfo": "16.0",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "downloadLocation": "NOASSERTION",
+      "checksums": [
+
+      ],
+      "externalRefs": [
+
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Bottle-glib",
+      "name": "glib",
+      "versionInfo": "2.84.1",
+      "filesAnalyzed": false,
+      "licenseDeclared": "NOASSERTION",
+      "builtDate": "2025-04-03 14:38:51 UTC",
+      "licenseConcluded": "LGPL-2.1-or-later",
+      "downloadLocation": "https://ghcr.io/v2/homebrew/core/glib/blobs/sha256:8a68416c9b7540371f6d53d3514cf606ee86d972cd43f08fd658228fc8e44b03",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceLocator": "pkg:brew/homebrew/core/glib@2.84.1",
+          "referenceType": "purl"
+        }
+      ],
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8a68416c9b7540371f6d53d3514cf606ee86d972cd43f08fd658228fc8e44b03"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-Package-SPDXRef-pcre2-10.45",
+      "relationshipType": "RUNTIME_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Bottle-glib"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-SPDXRef-libunistring-1.3",
+      "relationshipType": "RUNTIME_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Bottle-glib"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-SPDXRef-gettext-0.24",
+      "relationshipType": "RUNTIME_DEPENDENCY_OF",
+      "relatedSpdxElement": "SPDXRef-Bottle-glib"
+    },
+    {
+      "spdxElementId": "SPDXRef-File-glib",
+      "relationshipType": "PACKAGE_OF",
+      "relatedSpdxElement": "SPDXRef-Archive-glib-src"
+    },
+    {
+      "spdxElementId": "SPDXRef-Compiler",
+      "relationshipType": "BUILD_TOOL_OF",
+      "relatedSpdxElement": "SPDXRef-Package-glib-src"
+    }
+  ]
+}
