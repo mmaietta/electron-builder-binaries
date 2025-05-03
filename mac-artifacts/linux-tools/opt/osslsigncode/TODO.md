@@ -1,0 +1,5 @@
+- signature extraction/removal/verificaton on MSI/CAB files
+- clean up / untangle code
+- separate timestamping
+- remove mmap usage to increase portability
+- fix other stuff marked 'XXX'
