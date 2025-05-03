@@ -24,7 +24,8 @@ echo "\"ruby\" \"$RUBY_VERSION\"" >> $BASEDIR/Gemfile
 echo "gem \"fpm\", \"$FPM_VERSION\"" >> $BASEDIR/Gemfile
 
 bundle install --without=development --path=$TMP_DIR/
-
+rm -f $BASEDIR/Gemfile
+rm -f $BASEDIR/Gemfile.lock
 rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
 echo "Fpm: $FPM_VERSION\nRuby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
 
@@ -32,4 +33,4 @@ echo "Fpm: $FPM_VERSION\nRuby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
 cd $TMP_DIR
 ln -s ./ruby/$RUBY_VERSION/bin/fpm fpm
 
-compressArtifact darwin/fpm $TMP_DIR
+compressArtifact fpm.7z $TMP_DIR

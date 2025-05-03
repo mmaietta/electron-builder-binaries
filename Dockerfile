@@ -3,8 +3,6 @@ ARG DOCKER_IMAGE_BASE=buildpack-deps:bookworm-curl
 
 FROM crazymax/7zip:17.05 AS zipper
 RUN 7z --help
-RUN 7za --help
-RUN 7zr --help
 
 FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE
 
@@ -85,8 +83,8 @@ RUN sh ./docker-scripts/appImage-packages-x64.sh
 RUN sh ./docker-scripts/appImage-packages-ia32.sh
 RUN sh ./docker-scripts/win-codesign-tools.sh
 
-COPY --from=zipper /usr/local/bin/7* /usr/local/bin/
+COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
 
 COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
 COPY ./packages/fpm /usr/src/app/packages/fpm
-RUN OUTPUT_SUBDIR=fpm bash ./packages/fpm/fpm.sh
+RUN bash ./packages/fpm/fpm.sh
