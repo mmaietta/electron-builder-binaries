@@ -72,16 +72,16 @@ WORKDIR /usr/src/app
 COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources
-COPY ./packages/nsis-lang-fixes /usr/src/app/packages/nsis-lang-fixes
+# COPY ./packages/nsis-lang-fixes /usr/src/app/packages/nsis-lang-fixes
 
-RUN sh ./docker-scripts/nsis-windows.sh
-RUN sh ./docker-scripts/nsis-plugins.sh
-RUN sh ./docker-scripts/wix-toolset-x64.sh
-RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
-RUN sh ./docker-scripts/squirrel-windows.sh
-RUN sh ./docker-scripts/appImage-packages-x64.sh
-RUN sh ./docker-scripts/appImage-packages-ia32.sh
-RUN sh ./docker-scripts/win-codesign-tools.sh
+# RUN sh ./docker-scripts/nsis-windows.sh
+# RUN sh ./docker-scripts/nsis-plugins.sh
+# RUN sh ./docker-scripts/wix-toolset-x64.sh
+# RUN sh ./docker-scripts/appimage-openjpeg-x64.sh
+# RUN sh ./docker-scripts/squirrel-windows.sh
+# RUN sh ./docker-scripts/appImage-packages-x64.sh
+# RUN sh ./docker-scripts/appImage-packages-ia32.sh
+# RUN sh ./docker-scripts/win-codesign-tools.sh
 
 COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
 

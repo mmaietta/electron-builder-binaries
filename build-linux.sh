@@ -85,87 +85,87 @@ docker run --cidfile="$cidFile" -v ${PWD}:/app binaries-builder:$ARCH
 
 containerId=$(cat "$cidFile")
 
-# desktop-file-validate & mksquashfs
-APPIMAGE_OUTPUT_DIR=$BASEDIR/AppImage/linux-$OUTPUT_ARCH
-# rm -rf $APPIMAGE_OUTPUT_DIR
-mkdir -p $APPIMAGE_OUTPUT_DIR
-docker cp -a "$containerId":/usr/bin/desktop-file-validate $APPIMAGE_OUTPUT_DIR/desktop-file-validate
-docker cp -a "$containerId":/usr/local/bin/mksquashfs $APPIMAGE_OUTPUT_DIR/mksquashfs
-echo $SQUASHFS_VERSION > $APPIMAGE_OUTPUT_DIR/VERSION
-
-# zstd
-ZSTD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
-# rm -rf $ZSTD_OUTPUT_DIR
-mkdir -p $ZSTD_OUTPUT_DIR
-docker cp -a "$containerId":/usr/local/bin/zstd $ZSTD_OUTPUT_DIR/zstd
-echo $ZSTD_VERSION > $ZSTD_OUTPUT_DIR/VERSION
-
-# appimage-tools
-APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
-# rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
-mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/appimage/. $APPIMAGE_TOOLS_OUTPUT_DIR
-
-# win-codesign
-WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign/darwin
-# rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
-mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/win-codesign/darwin/. $WIN_CODE_SIGN_OUTPUT_DIR
-
-# openjpeg
-OPENJPEG_OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
-# rm -rf $OPENJPEG_OUTPUT_DIR
-mkdir -p $OPENJPEG_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
-
-# osslsigncode
-WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign
-# rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
-mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR/linux/
-docker cp -a "$containerId":/usr/local/bin/osslsigncode $WIN_CODE_SIGN_OUTPUT_DIR/linux/
-echo $OSSLSIGNCODE_VERSION > $WIN_CODE_SIGN_OUTPUT_DIR/linux/VERSION
-# copy the other remaining win-codesign files
-cp -a $CWD/packages/win-codesign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
-cp -a $CWD/packages/win-codesign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
-cp -a $CWD/packages/win-codesign/openssl-ia32 $WIN_CODE_SIGN_OUTPUT_DIR
-
-# nsis-resources (note: we still use some vendored resources committed in this repo)
-NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
-# rm -rf $NSIS_PLUGINS_OUTPUT_DIR
-cp -a $CWD/packages/nsis-resources $BASEDIR
-docker cp -a "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
-
-# makensis
-MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux
-# rm -rf $MAKENSIS_LINUX_OUTPUT
-mkdir -p $MAKENSIS_LINUX_OUTPUT
-# docker cp -a "$containerId":/usr/src/app/nsis/linux/. $MAKENSIS_LINUX_OUTPUT
-docker cp -a "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT/makensis
-echo $NSIS_VERSION > $MAKENSIS_LINUX_OUTPUT/VERSION
-
-# makensis Windows
-MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows
-# rm -rf $MAKENSIS_WINDOWS_OUTPUT
-mkdir -p $MAKENSIS_WINDOWS_OUTPUT
-docker cp -a "$containerId":/usr/src/app/nsis/windows/. $MAKENSIS_WINDOWS_OUTPUT
-
-# Squirrel.Windows
-SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/squirrel.windows
-# rm -rf $SQUIRREL_WINDOWS_OUTPUT_DIR
-mkdir -p $SQUIRREL_WINDOWS_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/Squirrel.Windows/. $SQUIRREL_WINDOWS_OUTPUT_DIR
-
-# wix
-WIX_OUTPUT_DIR=$BASEDIR/wix
-# rm -rf $WIX_OUTPUT_DIR
-mkdir -p $WIX_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/wix/. $WIX_OUTPUT_DIR
-
 # fpm
 FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
 # rm -rf $FPM_OUTPUT_DIR
 mkdir -p $FPM_OUTPUT_DIR
 docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
+
+# # desktop-file-validate & mksquashfs
+# APPIMAGE_OUTPUT_DIR=$BASEDIR/AppImage/linux-$OUTPUT_ARCH
+# # rm -rf $APPIMAGE_OUTPUT_DIR
+# mkdir -p $APPIMAGE_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/bin/desktop-file-validate $APPIMAGE_OUTPUT_DIR/desktop-file-validate
+# docker cp -a "$containerId":/usr/local/bin/mksquashfs $APPIMAGE_OUTPUT_DIR/mksquashfs
+# echo $SQUASHFS_VERSION > $APPIMAGE_OUTPUT_DIR/VERSION
+
+# # zstd
+# ZSTD_OUTPUT_DIR=$BASEDIR/zstd/linux-$OUTPUT_ARCH
+# # rm -rf $ZSTD_OUTPUT_DIR
+# mkdir -p $ZSTD_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/local/bin/zstd $ZSTD_OUTPUT_DIR/zstd
+# echo $ZSTD_VERSION > $ZSTD_OUTPUT_DIR/VERSION
+
+# # appimage-tools
+# APPIMAGE_TOOLS_OUTPUT_DIR=$BASEDIR/AppImage/lib/$OUTPUT_ARCH
+# # rm -rf $APPIMAGE_TOOLS_OUTPUT_DIR
+# mkdir -p $APPIMAGE_TOOLS_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/appimage/. $APPIMAGE_TOOLS_OUTPUT_DIR
+
+# # win-codesign
+# WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign/darwin
+# # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
+# mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/win-codesign/darwin/. $WIN_CODE_SIGN_OUTPUT_DIR
+
+# # openjpeg
+# OPENJPEG_OUTPUT_DIR=$BASEDIR/AppImage/linux-x64
+# # rm -rf $OPENJPEG_OUTPUT_DIR
+# mkdir -p $OPENJPEG_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/AppImage/linux-x64/. $OPENJPEG_OUTPUT_DIR
+
+# # osslsigncode
+# WIN_CODE_SIGN_OUTPUT_DIR=$BASEDIR/win-codesign
+# # rm -rf $WIN_CODE_SIGN_OUTPUT_DIR
+# mkdir -p $WIN_CODE_SIGN_OUTPUT_DIR/linux/
+# docker cp -a "$containerId":/usr/local/bin/osslsigncode $WIN_CODE_SIGN_OUTPUT_DIR/linux/
+# echo $OSSLSIGNCODE_VERSION > $WIN_CODE_SIGN_OUTPUT_DIR/linux/VERSION
+# # copy the other remaining win-codesign files
+# cp -a $CWD/packages/win-codesign/appxAssets $WIN_CODE_SIGN_OUTPUT_DIR
+# cp -a $CWD/packages/win-codesign/windows-6 $WIN_CODE_SIGN_OUTPUT_DIR
+# cp -a $CWD/packages/win-codesign/openssl-ia32 $WIN_CODE_SIGN_OUTPUT_DIR
+
+# # nsis-resources (note: we still use some vendored resources committed in this repo)
+# NSIS_PLUGINS_OUTPUT_DIR=$BASEDIR/nsis-resources/plugins
+# # rm -rf $NSIS_PLUGINS_OUTPUT_DIR
+# cp -a $CWD/packages/nsis-resources $BASEDIR
+# docker cp -a "$containerId":/usr/src/app/nsis-resources/plugins/. $NSIS_PLUGINS_OUTPUT_DIR
+
+# # makensis
+# MAKENSIS_LINUX_OUTPUT=$BASEDIR/nsis/linux
+# # rm -rf $MAKENSIS_LINUX_OUTPUT
+# mkdir -p $MAKENSIS_LINUX_OUTPUT
+# # docker cp -a "$containerId":/usr/src/app/nsis/linux/. $MAKENSIS_LINUX_OUTPUT
+# docker cp -a "$containerId":/usr/local/bin/makensis $MAKENSIS_LINUX_OUTPUT/makensis
+# echo $NSIS_VERSION > $MAKENSIS_LINUX_OUTPUT/VERSION
+
+# # makensis Windows
+# MAKENSIS_WINDOWS_OUTPUT=$BASEDIR/nsis/windows
+# # rm -rf $MAKENSIS_WINDOWS_OUTPUT
+# mkdir -p $MAKENSIS_WINDOWS_OUTPUT
+# docker cp -a "$containerId":/usr/src/app/nsis/windows/. $MAKENSIS_WINDOWS_OUTPUT
+
+# # Squirrel.Windows
+# SQUIRREL_WINDOWS_OUTPUT_DIR=$BASEDIR/squirrel.windows
+# # rm -rf $SQUIRREL_WINDOWS_OUTPUT_DIR
+# mkdir -p $SQUIRREL_WINDOWS_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/Squirrel.Windows/. $SQUIRREL_WINDOWS_OUTPUT_DIR
+
+# # wix
+# WIX_OUTPUT_DIR=$BASEDIR/wix
+# # rm -rf $WIX_OUTPUT_DIR
+# mkdir -p $WIX_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/wix/. $WIX_OUTPUT_DIR
 
 # cleanup
 docker rm "$containerId"
