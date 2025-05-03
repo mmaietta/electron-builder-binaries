@@ -19,8 +19,9 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         arch: [arm64v8, amd64, i386, arm32v7]
     steps:
@@ -38,6 +39,7 @@ jobs:
         with:
           name: build-linux-${{ matrix.arch }}
           if-no-files-found: error
+          retention-days: 5
           path: |
             out
   
@@ -64,13 +66,14 @@ jobs:
         shell: bash
         run: |
           rm -rf out
-          node scripts/appx.js
+          sh build-windows.sh
           ls -R out
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: windows-artifacts
           if-no-files-found: error
+          retention-days: 5
           path: |
             out
 
@@ -90,6 +93,7 @@ jobs:
         with:
           name: mac-artifacts
           if-no-files-found: error
+          retention-days: 5
           path: |
             out
 
@@ -113,11 +117,11 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
         with:
-          path: artifacts
+          path: out
           merge-multiple: true
       - name: Tree the out directory
         run: |
-          tree ./artifacts
+          tree ./out
       - name: Compress Artifacts
         run: |
           sh ./scripts/compress-artifacts.sh
