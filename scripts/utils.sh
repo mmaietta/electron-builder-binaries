@@ -48,5 +48,4 @@ compressArtifact()
     rm -f "$DESTINATION"
     7za a -mx=9 -mfb=64 "$DESTINATION" "$PACKAGE_PATH"/*
     echo "$1 compressed to $DESTINATION"
-    hashArtifact "$DESTINATION"
 }
