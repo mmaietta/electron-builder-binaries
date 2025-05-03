@@ -36,8 +36,8 @@ downloadArtifact()
     CHECKSUM=$3
     OUTPUT_PATH=$4
     OUTPUT_NAME="${5:-$2}.7z"
-    curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$OUTPUT_DIR/$OUTPUT_NAME"
-    hashArtifact "$OUTPUT_NAME" "$CHECKSUM"
+    curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$OUTPUT_PATH/$OUTPUT_NAME"
+    hashArtifact "$OUTPUT_PATH/$OUTPUT_NAME" "$CHECKSUM"
 }
 
 compressArtifact()
