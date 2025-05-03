@@ -48,24 +48,21 @@ RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scon
 RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
 
 # zstd and mksquashfs
-ARG ZSTD_VERSION=1.5.0
-ARG SQUASHFS_VERSION=4.5
-RUN git clone --depth 1 --branch v$ZSTD_VERSION https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. && \
-    git clone --depth 1 --branch $SQUASHFS_VERSION https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
-    make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
+# ARG ZSTD_VERSION=1.5.0
+# ARG SQUASHFS_VERSION=4.5
+# RUN git clone --depth 1 --branch v$ZSTD_VERSION https://github.com/facebook/zstd.git && cd zstd && make -j5 install && cd .. && \
+#     git clone --depth 1 --branch $SQUASHFS_VERSION https://github.com/plougher/squashfs-tools && cd squashfs-tools/squashfs-tools && \
+#     make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
 
-# osslsigncode (requires newer cmake 3.17+)
+# osslsigncode
 ARG OSSLSIGNCODE_VERSION=2.9
-RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
-    unzip f.zip && rm f.zip
-# RUN curl -L https://github.com/Kitware/CMake/releases/download/v4.0.1/cmake-4.0.1-linux-x86_64.sh -o f.sh  && \ 
-#     mkdir /opt/cmake && sh f.sh --skip-license --include-subdir --prefix=/opt/cmake && \ 
-#     ln -s /opt/cmake/cmake-4.0.1-linux-x86_64/bin/cmake /usr/local/bin/cmake
-RUN cd osslsigncode-$OSSLSIGNCODE_VERSION && \
-    mkdir build && \
-    cd build && \
-    cmake -S .. && cmake --build .  && \ 
-    cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
+# RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
+#     unzip f.zip && rm f.zip
+# RUN cd osslsigncode-$OSSLSIGNCODE_VERSION && \
+#     mkdir build && \
+#     cd build && \
+#     cmake -S .. && cmake --build .  && \ 
+#     cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
 
 # build scripts
 WORKDIR /usr/src/app
