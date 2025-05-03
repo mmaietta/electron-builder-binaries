@@ -7,7 +7,6 @@ BUILD_OUT_DIR=$ROOT_DIR/out
 mkdir -p "$BUILD_OUT_DIR"
 ARTIFACTS_DIR=$ROOT_DIR/artifacts
 mkdir -p "$ARTIFACTS_DIR"
-touch $ARTIFACTS_DIR/checksums.txt
 
 hashArtifact()
 {
@@ -26,7 +25,8 @@ hashArtifact()
     elif [ ! "$2" ];then
         echo "Checksum for $ARCHIVE_NAME matches expected checksum"
     fi
-    echo "$ARCHIVE_NAME: $CHECKSUM" >> "$ARCHIVE_PATH-checksums.txt"
+    touch "$ARCHIVE_PATH.checksum.txt"
+    echo "$ARCHIVE_NAME: $CHECKSUM" >> "$ARCHIVE_PATH.checksum.txt"
 }
 
 downloadArtifact()
@@ -48,4 +48,5 @@ compressArtifact()
     rm -f "$DESTINATION"
     7za a -mx=9 -mfb=64 "$DESTINATION" "$PACKAGE_PATH"/*
     echo "$1 compressed to $DESTINATION"
+    hashArtifact "$DESTINATION"
 }
