@@ -1,5 +1,11 @@
 # fpm
 
+## 2.0.0
+
+### Major Changes
+
+- [`ddc918d`](https://github.com/electron-userland/electron-builder-binaries/commit/ddc918ddf310cf563807788036d7153f80e4af61) Thanks [@mmaietta](https://github.com/mmaietta)! - updating `fpm` to `1.16.0`
+
 ## 1.0.0
 
 ### Major Changes
