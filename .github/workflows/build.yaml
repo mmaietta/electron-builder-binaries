@@ -147,7 +147,7 @@ jobs:
           name: artifacts
           if-no-files-found: error
           retention-days: 5
-          path: artifacts
+          path: merged-artifacts
       - name: Extract artifact url
         id: artifact-url
         run: |
