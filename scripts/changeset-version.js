@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs");
 const { execSync } = require("child_process");
-const packageMap = require("./changeset-packagemap");
 
 // changeset status expects relative __dirname even if we set absolute output path
 const changesetJsonPath = "changeset-status.json";
@@ -15,10 +14,6 @@ console.log("Release candidates:", releases);
 
 releases.forEach((release) => {
   const { name } = release;
-  const artifactsToUpload = packageMap[name];
-  if (!artifactsToUpload) {
-    throw new Error(`No artifacts found for ${name}`);
-  }
   const artifactPath = path.resolve(__dirname, "../artifacts", name);
   if (!process.env.DRY_RUN) {
     execSync(`git add --force ${artifactPath}`);
