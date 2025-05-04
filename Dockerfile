@@ -39,13 +39,13 @@ RUN apt-get update && \
 WORKDIR /tmp/build-dir
 
 # prepare makensis and build
-ARG NSIS_VERSION=3.11
-ARG SCONS_VERSION=4.9.1
-RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-$SCONS_VERSION.tar.gz | tar -xz -C /tmp/scons && \
-    mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
-    cd /tmp/nsis && \
-    python3 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
-RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
+# ARG NSIS_VERSION=3.11
+# ARG SCONS_VERSION=4.9.1
+# RUN mkdir -p /tmp/scons && curl -L http://prdownloads.sourceforge.net/scons/scons-local-$SCONS_VERSION.tar.gz | tar -xz -C /tmp/scons && \
+#     mkdir -p /tmp/nsis && curl -L https://sourceforge.net/projects/nsis/files/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2/download | tar -xj -C /tmp/nsis --strip-components 1 && \
+#     cd /tmp/nsis && \
+#     python3 /tmp/scons/scons.py STRIP=0 SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all NSIS_CONFIG_CONST_DATA_PATH=no NSIS_CONFIG_LOG=yes NSIS_MAX_STRLEN=8192 makensis
+# RUN cp /tmp/nsis/build/urelease/makensis/makensis /usr/local/bin
 
 # zstd and mksquashfs
 # ARG ZSTD_VERSION=1.5.0
