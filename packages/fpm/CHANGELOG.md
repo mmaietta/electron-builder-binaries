@@ -1,5 +1,11 @@
 # fpm
 
+## 2.0.1
+
+### Patch Changes
+
+- [`f730ec0`](https://github.com/electron-userland/electron-builder-binaries/commit/f730ec081b0e5a394cb686e3a921c2efb3b2ac00) Thanks [@mmaietta](https://github.com/mmaietta)! - fix resolve deployment script
+
 ## 2.0.0
 
 ### Major Changes
