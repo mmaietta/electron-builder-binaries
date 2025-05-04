@@ -29,7 +29,8 @@ bundle install --without=development --path=$TMP_DIR/
 rm -f $BASEDIR/Gemfile
 rm -f $BASEDIR/Gemfile.lock
 rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
-echo "Fpm: $FPM_VERSION\nRuby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
+echo "Fpm: $FPM_VERSION" > $TMP_DIR/VERSION.txt
+echo "Ruby: $RUBY_VERSION" >> $TMP_DIR/VERSION.txt
 
 # create symlink to fpm relative to the output directory so that it correctly copies out of the docker image
 cd $TMP_DIR
