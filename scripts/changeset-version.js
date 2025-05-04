@@ -28,6 +28,8 @@ releases.forEach((release) => {
     if (!process.env.DRY_RUN) {
       execSync(`git add --force ${artifactPath}`);
       console.log(`Committed ${artifactPath}...`);
+    } else {
+      console.log(`DRY_RUN: Verified ${artifactPath}...`);
     }
   });
 });

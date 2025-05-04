@@ -11,7 +11,10 @@ on:
     outputs:
       artifactUrl:
         description: "The url of the compressed artifacts"
-        value: ${{ jobs.combine-assets.outputs.artifactUrl }}
+        value: ${{ jobs.combine-artifacts.outputs.artifactUrl }}
+      artifactId:
+        description: "The Id of the compressed artifacts"
+        value: ${{ jobs.combine-artifacts.outputs.artifactId }}
 
 permissions:
   contents: read
@@ -32,7 +35,9 @@ jobs:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Build ${{ matrix.arch }}
+        shell: bash
         run: |
+          rm -rf out artifacts
           ARCH=${{ matrix.arch }} bash build-linux.sh
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -65,7 +70,7 @@ jobs:
       - name: Copy specific Windows Kits assets (makeappx, signtool, etc.)
         shell: bash
         run: |
-          rm -rf out
+          rm -rf out artifacts
           sh build-windows.sh
           ls -R out
       - name: Archive artifacts
@@ -85,7 +90,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Build
         run: |
-          rm -rf out
+          rm -rf out artifacts
           bash build-mac.sh
           ls -R out
       - name: Archive artifacts
@@ -106,8 +111,8 @@ jobs:
     ]
     timeout-minutes: 15
     outputs:
-      artifactUrl: ${{ steps.artifact-url.outputs.ARTIFACT_URL }}
-      artifactId: ${{ steps.artifact-url.outputs.ARTIFACT_ID }}
+      artifactUrl: ${{ steps.upload-artifacts.outputs.artifact-url }}
+      artifactId: ${{ steps.upload-artifacts.outputs.artifact-id }}
     steps:
       - name: Install `tree`
         run: |
@@ -145,5 +150,3 @@ jobs:
         id: artifact-url
         run: |
           echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
-          echo "ARTIFACT_URL=${{ steps.upload-artifacts.outputs.artifact-url }}" >> $GITHUB_ENV
-          echo "ARTIFACT_ID=${{ steps.upload-artifacts.outputs.artifact-id }}" >> $GITHUB_ENV
