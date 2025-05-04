@@ -74,7 +74,7 @@ async function run() {
       name: releaseName,
       tag_name: releaseName,
       body: `*checksums*\n\n${bodyText}`,
-      assets: artifactsToUpload.map((artifact) => path.join("artifacts", artifact)),
+      assets: artifactsToUpload.map((artifact) => path.join("artifacts", name, artifact)),
     };
 
     if (!isCi) {
