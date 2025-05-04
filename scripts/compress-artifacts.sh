@@ -38,8 +38,9 @@ for DIR in linux-x64 linux-ia32 linux-arm64 linux-arm32 darwin; do
     source "$PACKAGE_PATH/fpm/version.sh"
     NAME="fpm"
     ARCHIVE_NAME="$NAME-$FPM_VERSION-ruby$RUBY_VERSION-$DIR.7z"
-    DESTINATION="$ARTIFACTS_DIR/$ARCHIVE_NAME"
-    cp "$BUILD_OUT_DIR/fpm/$DIR/$NAME.7z" "$DESTINATION"
+    DESTINATION="$ARTIFACTS_DIR/$NAME"
+    mkdir -p "$DESTINATION"
+    cp "$BUILD_OUT_DIR/fpm/$DIR/$NAME.7z" "$DESTINATION/$ARCHIVE_NAME"
     echo "$ARCHIVE_NAME ($DIR) copied to $DESTINATION"
 done
 
