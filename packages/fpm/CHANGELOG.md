@@ -1,5 +1,11 @@
 # fpm
 
+## 2.0.2
+
+### Patch Changes
+
+- [`3339864`](https://github.com/electron-userland/electron-builder-binaries/commit/333986401ab407484cd9a769aead06828107fd05) Thanks [@mmaietta](https://github.com/mmaietta)! - test
+
 ## 2.0.1
 
 ### Patch Changes
