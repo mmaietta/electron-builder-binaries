@@ -9,7 +9,7 @@ SELFDIR="`cd \"$SELFDIR\" && pwd`"
 export BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"
 unset BUNDLE_IGNORE_CONFIG
 
-DIR="$(cd "$(dirname "$0")/lib/ruby"; pwd)"
+DIR="$SELFDIR/lib/ruby"
 export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
 RUBYLIB="$DIR/share"
 

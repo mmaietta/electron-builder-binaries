@@ -14,26 +14,26 @@ if [ -z "$ARCH" ]; then
   echo "Building default target."
 fi
 # need to use buildpack-deps/bookworm in order to build for i386
-if [ "$ARCH" = "amd64" ]; then
+if [ "$ARCH" = "x64" ]; then
   OUTPUT_ARCH="x64"
   PLATFORM_ARCH="amd64"
   DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
-elif [ "$ARCH" = "i386" ]; then
+elif [ "$ARCH" = "ia32" ]; then
   OUTPUT_ARCH="ia32"
   PLATFORM_ARCH="i386"
   DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
-elif [ "$ARCH" = "arm32v7" ]; then
+elif [ "$ARCH" = "arm32" ]; then
   OUTPUT_ARCH="arm32"
   PLATFORM_ARCH="armhf"
   DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
-elif [ "$ARCH" = "arm64v8" ]; then
+elif [ "$ARCH" = "arm64" ]; then
   OUTPUT_ARCH="arm64"
   PLATFORM_ARCH="arm64"
   DOCKER_IMAGE=arm64v8/buildpack-deps:bookworm-curl
 else
-  echo "Unknown architecture: $ARCH. Expected: amd64, i386, arm32v7, or arm64v8."
+  echo "Unknown architecture: $ARCH. Expected: x64, ia32, arm32, or arm64."
   echo "Please set the ARCH environment variable to one of these values."
-  echo "Example: ARCH=amd64 ./docker-scripts/build-linux.sh"
+  echo "Example: ARCH=x64 ./docker-scripts/build-linux.sh"
   exit 1
 fi
 echo "Building $OUTPUT_ARCH target."
@@ -81,7 +81,7 @@ docker buildx build \
   --build-arg OSSLSIGNCODE_VERSION=$OSSLSIGNCODE_VERSION \
   -t binaries-builder:$ARCH \
   .
-docker run --cidfile="$cidFile" -v ${PWD}:/app binaries-builder:$ARCH
+docker run --cidfile="$cidFile" binaries-builder:$ARCH
 
 containerId=$(cat "$cidFile")
 
