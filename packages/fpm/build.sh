@@ -148,7 +148,7 @@ cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_
 
 mkdir -p $TMP_DIR/lib/vendor/lib/fpm
 cp -a $BASEDIR/packages/fpm/vendor/.bundle $TMP_DIR/lib/vendor/
-cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile,Gemfile.lock,fpm.gemspec} $TMP_DIR/lib/vendor/
+cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $TMP_DIR/lib/vendor/lib/fpm/version.rb
 
 export GEM_HOME
