@@ -1,6 +1,6 @@
 {
     "name": "fpm",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "dependencies": {
         "fpm": "github:jordansissel/fpm#v1.16.0"
     }
