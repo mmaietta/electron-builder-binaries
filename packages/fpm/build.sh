@@ -35,6 +35,7 @@ echo "Ruby: $RUBY_VERSION" >>$TMP_DIR/VERSION.txt
 
 # copy ruby interpreter and libraries
 RUBY_BIN="$(which ruby)"
+GEM_HOME="/tmp/.ruby_bundle_gems"
 if [ "$(uname)" = "Darwin" ]; then
     # # MacOS
     # cp -a $(otool -L $RUBY_EXEC | grep -E 'libssl|libcrypto|libruby' | awk '{print $1}') $INTERPRETER/bin/
@@ -85,6 +86,14 @@ if [ "$(uname)" = "Darwin" ]; then
         done
     done
     cd ../../..
+
+    mkdir -p "$BUNDLE_DIR/ruby/bin.real"
+    GEMS="bundle bundler gem irb rake ruby"
+    for bin in $GEMS; do
+        echo "  [COPY] $bin"
+        cp -av "$(which $bin)" "$BUNDLE_DIR/ruby/bin.real/"
+        cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/ruby/bin.real/"
+    done
 else
     # Linux
     RUBY_BIN="$(which ruby)"
@@ -142,7 +151,8 @@ cp -a $BASEDIR/packages/fpm/vendor/.bundle $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $TMP_DIR/lib/vendor/lib/fpm/version.rb
 
-gem install bundler --no-document --quiet || sudo gem install bundler --no-document --quiet
+export GEM_HOME
+gem install bundle bundler --no-document --quiet || sudo gem install bundler --no-document --quiet
 cd $TMP_DIR/lib/vendor
 bundle install
 rm -rf "$TMP_DIR/lib/vendor/**/cache"
@@ -168,6 +178,8 @@ exec "$LIB_DIR/ruby/bin/ruby" -rbundler/setup "$LIB_DIR/app/bin/fpm" "$@"
 EOL
 chmod +x $ENTRY_SCRIPT
 
+mkdir -p $BUNDLE_DIR/bin
+mkdir -p $BUNDLE_DIR/bin.real
 for bin in gem irb rake; do
     ENTRY_SCRIPT=$BUNDLE_DIR/bin/$bin
     echo "  [COPY] $bin -> $ENTRY_SCRIPT"
@@ -181,15 +193,15 @@ echo "  [COPY] ruby_environment -> $ENTRY_SCRIPT"
 cat $BASEDIR/packages/fpm/vendor/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
-ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
-echo "  [COPY] restore_environment.rb -> $ENTRY_SCRIPT"
-cp $BASEDIR/packages/fpm/vendor/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
-chmod +x $ENTRY_SCRIPT
-
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  [COPY] ruby entrypoint -> $ENTRY_SCRIPT"
 cat $BASEDIR/packages/fpm/vendor/entrypoint.sh > $ENTRY_SCRIPT
 echo "exec "\$ROOT/bin.real/ruby" "\$@"" >> $ENTRY_SCRIPT
+chmod +x $ENTRY_SCRIPT
+
+ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
+echo "  [COPY] restore_environment.rb -> $ENTRY_SCRIPT"
+cp $BASEDIR/packages/fpm/vendor/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
 chmod +x $ENTRY_SCRIPT
 
 GEM_DIR=$(ruby -e 'puts Gem.dir')
@@ -198,8 +210,9 @@ SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 mkdir -p $TMP_DIR/lib/ruby/lib/ruby/gems $TMP_DIR/lib/ruby/lib/ruby/site_ruby $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
 cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
+# chown -R $(whoami) $TMP_DIR/lib/ruby/lib/ruby
 cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
 cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
-cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
+cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
 
 compressArtifact $OUTPUT_FILE $TMP_DIR
