@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-bash ./packages/fpm/fpm.sh fpm/darwin/fpm.7z
+bash ./packages/fpm/build.sh fpm/darwin/fpm.7z
 # sh ./scripts/linux-tools-mac.sh
 # sh ./scripts/nsis-mac.sh
 # sh ./scripts/zstd-win-mac.sh

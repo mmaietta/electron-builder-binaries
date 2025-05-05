@@ -28,7 +28,11 @@ importers:
 
   packages/AppImage: {}
 
-  packages/fpm: {}
+  packages/fpm:
+    dependencies:
+      fpm:
+        specifier: github:jordansissel/fpm#v1.16.0
+        version: fpm#v1.16.0@https://codeload.github.com/jordansissel/fpm/tar.gz/08dc21b8f1f09af0a975dad144f8b6ffb535ffd7
 
   packages/linux-tools: {}
 
@@ -654,6 +658,10 @@ packages:
   foreground-child@3.3.1:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
+
+  fpm#v1.16.0@https://codeload.github.com/jordansissel/fpm/tar.gz/08dc21b8f1f09af0a975dad144f8b6ffb535ffd7:
+    resolution: {tarball: https://codeload.github.com/jordansissel/fpm/tar.gz/08dc21b8f1f09af0a975dad144f8b6ffb535ffd7}
+    version: 0.0.0
 
   fs-extra@7.0.1:
     resolution: {integrity: sha512-YJDaCJZEnBmcbw13fvdAM9AwNOJwOzrE4pqMqBq5nFiEqXUqHwlK4B+3pUw6JNvfSPtX05xFHtYy/1ni01eGCw==}
@@ -2348,6 +2356,8 @@ snapshots:
     dependencies:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
+
+  fpm#v1.16.0@https://codeload.github.com/jordansissel/fpm/tar.gz/08dc21b8f1f09af0a975dad144f8b6ffb535ffd7: {}
 
   fs-extra@7.0.1:
     dependencies:

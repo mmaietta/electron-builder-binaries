@@ -88,6 +88,9 @@ jobs:
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Install toolset with brew
+        run: |
+          brew install ruby
       - name: Build
         run: |
           rm -rf out artifacts

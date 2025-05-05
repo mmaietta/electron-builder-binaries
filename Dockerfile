@@ -31,7 +31,7 @@ RUN apt-get update && \
         unzip \
         wget \
         cmake \
-        ruby \
+        ruby-full \
         rpm \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
@@ -83,5 +83,7 @@ COPY ./docker-scripts /usr/src/app/docker-scripts
 COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
 
 COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
+# node modules needed for docker to access pnpm dependency submodule
+COPY ./node_modules /usr/src/app/node_modules
 COPY ./packages/fpm /usr/src/app/packages/fpm
-RUN bash ./packages/fpm/fpm.sh
+RUN bash ./packages/fpm/build.sh
