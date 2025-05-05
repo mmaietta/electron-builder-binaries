@@ -73,19 +73,19 @@ if [ "$(uname)" = "Darwin" ]; then
 
     # === PATCH BINARY PATHS ===
     echo "[+] Patching Ruby binary install names..."
-    cd "$BUNDLE_DIR/ruby/bin"
-    for bin in ruby irb gem; do
-        [[ -x "$bin" ]] || continue
-        otool -L "$bin" | grep -v ":" | awk '{print $1}' | while read lib; do
-            if [[ "$lib" == @* || "$lib" == /usr/* || "$lib" == /System/* ]]; then
-                continue
-            fi
-            libname=$(basename "$lib")
-            echo "  [REWRITE] $lib -> @loader_path/../lib/$libname"
-            install_name_tool -change "$lib" "@loader_path/../lib/$libname" "$bin"
-        done
-    done
-    cd ../../..
+    # cd "$BUNDLE_DIR/ruby/bin"
+    # for bin in ruby irb gem; do
+    #     [[ -x "$bin" ]] || continue
+    #     otool -L "$bin" | grep -v ":" | awk '{print $1}' | while read lib; do
+    #         if [[ "$lib" == @* || "$lib" == /usr/* || "$lib" == /System/* ]]; then
+    #             continue
+    #         fi
+    #         libname=$(basename "$lib")
+    #         echo "  [REWRITE] $lib -> @loader_path/../lib/$libname"
+    #         install_name_tool -change "$lib" "@loader_path/../lib/$libname" "$bin"
+    #     done
+    # done
+    # cd ../../..
 
     mkdir -p "$BUNDLE_DIR/ruby/bin.real"
     GEMS="bundle bundler gem irb rake ruby"
