@@ -27,12 +27,14 @@ RUN apt-get update && \
         python3-setuptools \
         python3-wheel \
         tar \
-        tree \
         unzip \
         wget \
         cmake \
         ruby-full \
         rpm \
+        tree \
+        patchelf \
+        file \
         zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 

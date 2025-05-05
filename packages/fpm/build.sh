@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
 OUTPUT_FILE=${1:-fpm.7z}
 
@@ -118,6 +118,9 @@ else
         cp -av "$(which $bin)" "$BUNDLE_DIR/bin.real/"
         cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/bin.real/"
     done
+    echo "[+] Patching RPATH to use bundled lib/"
+    patchelf --set-rpath  '$ORIGIN/../lib' "$BUNDLE_DIR/bin.real/$(basename $RUBY_REAL_BIN)"
+
     # === COPY SHARED LIBRARIES ===
     echo "[+] Copying dynamic libraries..."
     ldd "$RUBY_REAL_BIN" | awk '{print $3}' | grep -v '^(' | while read lib; do
@@ -126,19 +129,21 @@ else
             continue
         fi
         echo "  [COPY] $lib"
-        cp -af "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
+        cp -a "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
+        realLib="$(readlink -f "$lib")"
+        cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
         # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
     done
 
     # === COPY RUBY STD LIB ===
-    STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
-    SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
-    VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
+    # STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
+    # SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
+    # VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 
-    echo "[+] Copying standard libraries..."
-    cp -a "$STD_LIB_DIR" "$BUNDLE_DIR/share/"
-    cp -a "$SITE_LIB_DIR" "$BUNDLE_DIR/share/" || true
-    cp -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/share/" || true
+    # echo "[+] Copying standard libraries..."
+    # cp -a "$STD_LIB_DIR" "$BUNDLE_DIR/share/"
+    # cp -a "$SITE_LIB_DIR" "$BUNDLE_DIR/share/" || true
+    # cp -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/share/" || true
 fi
 
 # copy vendor files directly from the npm package
@@ -159,7 +164,6 @@ rm -rf "$TMP_DIR/lib/vendor/**/cache"
 
 # create entry scripts
 ENTRY_SCRIPT=$TMP_DIR/fpm
-# cp -a $BASEDIR/packages/fpm/fpm $TMP_DIR/fpm
 cat >$ENTRY_SCRIPT <<'EOL'
 #!/bin/bash
 set -e
@@ -178,12 +182,11 @@ exec "$LIB_DIR/ruby/bin/ruby" -rbundler/setup "$LIB_DIR/app/bin/fpm" "$@"
 EOL
 chmod +x $ENTRY_SCRIPT
 
-mkdir -p $BUNDLE_DIR/bin
-mkdir -p $BUNDLE_DIR/bin.real
+mkdir -p $BUNDLE_DIR/bin $BUNDLE_DIR/bin.real
 for bin in gem irb rake; do
-    ENTRY_SCRIPT=$BUNDLE_DIR/bin/$bin
+    ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
     echo "  [COPY] $bin -> $ENTRY_SCRIPT"
-    cat $BASEDIR/packages/fpm/vendor/entrypoint.sh > $ENTRY_SCRIPT
+    cp "$BASEDIR/packages/fpm/vendor/entrypoint.sh" $ENTRY_SCRIPT
     echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >> $ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
@@ -210,7 +213,6 @@ SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 mkdir -p $TMP_DIR/lib/ruby/lib/ruby/gems $TMP_DIR/lib/ruby/lib/ruby/site_ruby $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
 cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
-# chown -R $(whoami) $TMP_DIR/lib/ruby/lib/ruby
 cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
 cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
 cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
