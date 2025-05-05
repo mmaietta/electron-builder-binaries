@@ -79,6 +79,7 @@ docker buildx build \
   --build-arg ZSTD_VERSION=$ZSTD_VERSION \
   --build-arg SQUASHFS_VERSION=$SQUASHFS_VERSION \
   --build-arg OSSLSIGNCODE_VERSION=$OSSLSIGNCODE_VERSION \
+  --progress=plain \
   -t binaries-builder:$ARCH \
   .
 docker run --cidfile="$cidFile" binaries-builder:$ARCH

@@ -99,50 +99,15 @@ else
 
     # === COPY RUBY BINARY ===
     echo "[+] Copying Ruby binary..."
-    BINARIES=$(dirname "$RUBY_REAL_BIN")
-    # cp -a "$BINARIES/gem" "$BUNDLE_DIR/bin/"
-    # cp -a "$BINARIES/rake" "$BUNDLE_DIR/bin/"
-    # cp -a "$BINARIES/irb" "$BUNDLE_DIR/bin/"
-    # cp -a "$BINARIES/$(basename $(readlink -f irb))" "$BUNDLE_DIR/bin/"
-    # cp -a "$BINARIES/ruby" "$BUNDLE_DIR/bin/"
-    # cp -a "$BINARIES/$(basename $RUBY_REAL_BIN)" "$BUNDLE_DIR/bin/"
-    # cd "$BUNDLE_DIR/bin"
-    # ln -s "$(basename $RUBY_REAL_BIN)" ruby # preserve symlink name
-    # ln -sf "ruby" "$BUNDLE_DIR/bin/$(basename $RUBY_BIN)" # preserve symlink name
-    GEM_COMMAND=$(gem install bundle bundler nokogiri puma rackup redcarpet redcloth thin unicorn --no-document --quiet)
+    GEM_COMMAND="gem install bundle bundler --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
-    # cp -a "$BINARIES/bundle" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/bundler" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/gem" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/irb" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/nokogiri" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/posix-spawn-benchmark" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/puma" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/pumactl" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/rackup" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/rake" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/redcarpet" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/redcloth" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/ruby" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/thin" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/unicorn" "$BUNDLE_DIR/bin.real/"
-    # cp -a "$BINARIES/unicorn_rails" "$BUNDLE_DIR/bin.real/"
 
-    GEMS="bundle bundler gem irb rake nokogiri posix-spawn-benchmark puma pumactl rackup redcarpet redcloth thin unicorn unicorn_rails"
+    echo "[+] Copying Ruby gems..."
+    GEMS="bundle bundler gem irb rake ruby"
     for bin in $GEMS; do
-        cp -a "$BINARIES/$bin" "$BUNDLE_DIR/bin.real/"
-    done
-    for bin in gem irb rake; do
-        ENTRY_SCRIPT=$BUNDLE_DIR/bin/$bin
-        cat >$ENTRY_SCRIPT <<\EOL
-#!/bin/bash
-set -e
-ROOT=`dirname "$0"`
-ROOT=`cd "\$ROOT/.." && pwd`
-eval "`\"\$ROOT/bin/ruby_environment\"`"
-exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/gem" "$@"
-EOL
-        chmod +x $ENTRY_SCRIPT
+        echo "  [COPY] $bin"
+        cp -av "$(which $bin)" "$BUNDLE_DIR/bin.real/"
+        cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/bin.real/"
     done
     # === COPY SHARED LIBRARIES ===
     echo "[+] Copying dynamic libraries..."
@@ -153,7 +118,7 @@ EOL
         fi
         echo "  [COPY] $lib"
         cp -af "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
-        # cp -f --parents "$lib" "$BUNDLE_DIR/lib/"
+        # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
     done
 
     # === COPY RUBY STD LIB ===
@@ -162,7 +127,7 @@ EOL
     VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 
     echo "[+] Copying standard libraries..."
-    cp -a "$STD_LIB_DIR" "$BUNDLE_DIR/share/" || true
+    cp -a "$STD_LIB_DIR" "$BUNDLE_DIR/share/"
     cp -a "$SITE_LIB_DIR" "$BUNDLE_DIR/share/" || true
     cp -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/share/" || true
 fi
@@ -172,9 +137,9 @@ GIT_REPO_DIR=$TMP_DIR/lib/app
 mkdir -p $GIT_REPO_DIR
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_DIR
 
-cp -a $BASEDIR/packages/fpm/vendor $TMP_DIR/lib/vendor
-cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $TMP_DIR/lib/vendor/
 mkdir -p $TMP_DIR/lib/vendor/lib/fpm
+cp -a $BASEDIR/packages/fpm/vendor/.bundle $TMP_DIR/lib/vendor/
+cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $TMP_DIR/lib/vendor/lib/fpm/version.rb
 
 gem install bundler --no-document --quiet || sudo gem install bundler --no-document --quiet
@@ -182,7 +147,7 @@ cd $TMP_DIR/lib/vendor
 bundle install
 rm -rf "$TMP_DIR/lib/vendor/**/cache"
 
-# create entry script
+# create entry scripts
 ENTRY_SCRIPT=$TMP_DIR/fpm
 # cp -a $BASEDIR/packages/fpm/fpm $TMP_DIR/fpm
 cat >$ENTRY_SCRIPT <<'EOL'
@@ -197,13 +162,44 @@ SELFDIR="`cd \"$SELFDIR\" && pwd`"
 export BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"
 unset BUNDLE_IGNORE_CONFIG
 
-DIR="$SELFDIR/lib"
-# export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-# RUBYLIB="$DIR/share"
-
 # Run the actual app using the bundled Ruby interpreter, with Bundler activated.
-LD_LIBRARY_PATH="$DIR/ruby/lib:$LD_LIBRARY_PATH" exec "$DIR/ruby/bin/ruby" -rbundler/setup "$DIR/app/bin/fpm" "$@"
+LIB_DIR="$SELFDIR/lib"
+exec "$LIB_DIR/ruby/bin/ruby" -rbundler/setup "$LIB_DIR/app/bin/fpm" "$@"
 EOL
 chmod +x $ENTRY_SCRIPT
+
+for bin in gem irb rake; do
+    ENTRY_SCRIPT=$BUNDLE_DIR/bin/$bin
+    echo "  [COPY] $bin -> $ENTRY_SCRIPT"
+    cat $BASEDIR/packages/fpm/vendor/entrypoint.sh > $ENTRY_SCRIPT
+    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >> $ENTRY_SCRIPT
+    chmod +x $ENTRY_SCRIPT
+done
+
+ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
+echo "  [COPY] ruby_environment -> $ENTRY_SCRIPT"
+cat $BASEDIR/packages/fpm/vendor/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
+chmod +x $ENTRY_SCRIPT
+
+ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
+echo "  [COPY] restore_environment.rb -> $ENTRY_SCRIPT"
+cp $BASEDIR/packages/fpm/vendor/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
+chmod +x $ENTRY_SCRIPT
+
+ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
+echo "  [COPY] ruby entrypoint -> $ENTRY_SCRIPT"
+cat $BASEDIR/packages/fpm/vendor/entrypoint.sh > $ENTRY_SCRIPT
+echo "exec "\$ROOT/bin.real/ruby" "\$@"" >> $ENTRY_SCRIPT
+chmod +x $ENTRY_SCRIPT
+
+GEM_DIR=$(ruby -e 'puts Gem.dir')
+STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
+SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
+VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
+mkdir -p $TMP_DIR/lib/ruby/lib/ruby/gems $TMP_DIR/lib/ruby/lib/ruby/site_ruby $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
+cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
+cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
+cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
+cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
 
 compressArtifact $OUTPUT_FILE $TMP_DIR
