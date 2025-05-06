@@ -129,22 +129,9 @@ else
 
     echo "[+] Patching RPATH to use bundled lib/"
     patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/ruby"
-
-    # === COPY SHARED LIBRARIES ===
-    # echo "[+] Copying dynamic libraries..."
-    # ldd "$RUBY_REAL_BIN" | awk '{print $3}' | grep -v '^(' | while read lib; do
-    #     if [[ ! "$lib" ]]; then
-    #         # skip empty lines
-    #         continue
-    #     fi
-    #     echo "  [COPY] $lib"
-    #     # usually they're symlinked, so just follow the symlink for simplicity of copying
-    #     cp -aL "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
-    #     # realLib="$(readlink -f "$lib")"
-    #     # cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
-    #     # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
-    # done
-
+    for bin in gem $GEMS; do
+        patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/$bin"
+    done
     # Find and copy all shared lib dependencies
     echo "[+] Collecting shared library dependencies..."
     ldd "$RUBY_REAL_BIN" | awk '/=>/ { print $3 }' | while read -r lib; do
@@ -153,21 +140,10 @@ else
             cp -u "$lib" "$LIB_DIR/"
         fi
     done
-
-    # Optional: include libruby*.so from LD_LIBRARY_PATH manually if missed
+    # Copy libruby*.so from LD_LIBRARY_PATH manually if missed
     if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
         find ${LD_LIBRARY_PATH//:/ } -name 'libruby-*.so*' -exec cp -u {} "$LIB_DIR/" \;
     fi
-
-    # === COPY RUBY STD LIB ===
-    # STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
-    # SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
-    # VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
-
-    # echo "[+] Copying standard libraries..."
-    # cp -a "$STD_LIB_DIR" "$BUNDLE_DIR/share/"
-    # cp -a "$SITE_LIB_DIR" "$BUNDLE_DIR/share/" || true
-    # cp -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/share/" || true
 fi
 
 # copy vendor files directly from the npm package
