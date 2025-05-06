@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 OUTPUT_FILE=${1:-fpm.7z}
 
@@ -46,7 +46,8 @@ if [ "$(uname)" = "Darwin" ]; then
     RUBY_REAL_BIN="$(greadlink -f "$RUBY_BIN" 2>/dev/null || realpath "$RUBY_BIN")"
     RUBY_PREFIX="$(readlink -f $(brew --prefix ruby))"
     BUNDLE_DIR=$TMP_DIR/lib
-
+    BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
+    
     echo "[+] Ruby binary found: $RUBY_REAL_BIN"
     echo "[+] Ruby prefix: $RUBY_PREFIX"
 
@@ -129,9 +130,7 @@ else
 
     echo "[+] Patching RPATH to use bundled lib/"
     patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/ruby"
-    for bin in gem $GEMS; do
-        patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/$bin"
-    done
+
     # Find and copy all shared lib dependencies
     echo "[+] Collecting shared library dependencies..."
     ldd "$RUBY_REAL_BIN" | awk '/=>/ { print $3 }' | while read -r lib; do
