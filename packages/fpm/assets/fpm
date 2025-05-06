@@ -9,9 +9,9 @@ SELFDIR="`cd \"$SELFDIR\" && pwd`"
 export BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"
 unset BUNDLE_IGNORE_CONFIG
 
-DIR="$SELFDIR/lib/ruby"
-export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
-RUBYLIB="$DIR/share"
+# DIR="$SELFDIR/lib/ruby"
+# export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+# RUBYLIB="$DIR/share"
 
 # Run the actual app using the bundled Ruby interpreter, with Bundler activated.
 exec "$SELFDIR/lib/ruby/bin/ruby" -rbundler/setup "$SELFDIR/lib/app/bin/fpm" "$@"

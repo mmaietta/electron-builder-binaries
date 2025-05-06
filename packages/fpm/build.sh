@@ -30,8 +30,8 @@ echo "FPM_VERSION: $FPM_VERSION"
 
 # --------------------------------------------------------
 # rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
-echo "Fpm: $FPM_VERSION" > $TMP_DIR/VERSION.txt
-echo "Ruby: $RUBY_VERSION" >> $TMP_DIR/VERSION.txt
+echo "Fpm: $FPM_VERSION" >$TMP_DIR/VERSION.txt
+echo "Ruby: $RUBY_VERSION" >>$TMP_DIR/VERSION.txt
 
 # copy ruby interpreter and libraries
 RUBY_BIN="$(which ruby)"
@@ -110,38 +110,54 @@ else
 
     # === CLEANUP ===
     rm -rf "$BUNDLE_DIR" "$ARCHIVE_PATH"
-    mkdir -p "$BUNDLE_DIR/bin" "$BUNDLE_DIR/bin.real" "$BUNDLE_DIR/lib" "$BUNDLE_DIR/share"
+    LIB_DIR="$BUNDLE_DIR/lib"
+    BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
+    mkdir -p "$BUNDLE_DIR/bin" "$BIN_REAL_DIR" "$LIB_DIR" "$BUNDLE_DIR/share"
 
     # === COPY RUBY BINARY ===
     echo "[+] Copying Ruby binary..."
-    cp -a "$RUBY_REAL_BIN" "$BUNDLE_DIR/bin.real/ruby"
-    
+    cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
+
     echo "[+] Copying Ruby gems..."
-    GEMS="bundle bundler irb puma rake redcarpet thin unicorn"
+    GEMS="bundle bundler irb" # puma rake redcarpet thin unicorn"
     GEM_COMMAND="gem install $GEMS --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
     for bin in gem $GEMS; do
-        echo "  [COPY] $bin"
-        cp -aL "$(which $bin)" "$BUNDLE_DIR/bin.real/$bin"
+        echo "  ↳ Copying $bin"
+        cp -aL "$(which $bin)" "$BIN_REAL_DIR/$bin"
     done
 
     echo "[+] Patching RPATH to use bundled lib/"
-    patchelf --set-rpath '$ORIGIN/../lib' "$BUNDLE_DIR/bin.real/ruby"
+    patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/ruby"
 
     # === COPY SHARED LIBRARIES ===
-    echo "[+] Copying dynamic libraries..."
-    ldd "$RUBY_REAL_BIN" | awk '{print $3}' | grep -v '^(' | while read lib; do
-        if [[ ! "$lib" ]]; then
-            # skip empty lines
-            continue
+    # echo "[+] Copying dynamic libraries..."
+    # ldd "$RUBY_REAL_BIN" | awk '{print $3}' | grep -v '^(' | while read lib; do
+    #     if [[ ! "$lib" ]]; then
+    #         # skip empty lines
+    #         continue
+    #     fi
+    #     echo "  [COPY] $lib"
+    #     # usually they're symlinked, so just follow the symlink for simplicity of copying
+    #     cp -aL "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
+    #     # realLib="$(readlink -f "$lib")"
+    #     # cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
+    #     # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
+    # done
+
+    # Find and copy all shared lib dependencies
+    echo "[+] Collecting shared library dependencies..."
+    ldd "$RUBY_REAL_BIN" | awk '/=>/ { print $3 }' | while read -r lib; do
+        if [[ -n "$lib" && -f "$lib" ]]; then
+            echo "  ↳ Copying $lib"
+            cp -u "$lib" "$LIB_DIR/"
         fi
-        echo "  [COPY] $lib"
-        # usually they're symlinked, so just follow the symlink for simplicity of copying
-        cp -aL "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
-        # realLib="$(readlink -f "$lib")"
-        # cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
-        # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
     done
+
+    # Optional: include libruby*.so from LD_LIBRARY_PATH manually if missed
+    if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+        find ${LD_LIBRARY_PATH//:/ } -name 'libruby-*.so*' -exec cp -u {} "$LIB_DIR/" \;
+    fi
 
     # === COPY RUBY STD LIB ===
     # STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
@@ -173,43 +189,28 @@ rm -rf "$VENDOR_DIR/**/cache"
 
 # create entry scripts
 ENTRY_SCRIPT=$TMP_DIR/fpm
-echo "  [WRITE] fpm entrypoint -> $ENTRY_SCRIPT"
-cat > $ENTRY_SCRIPT <<'EOL'
-#!/bin/bash
-set -e
-
-# Figure out where this script is located.
-SELFDIR="`dirname \"$0\"`"
-SELFDIR="`cd \"$SELFDIR\" && pwd`"
-
-# Tell Bundler where the Gemfile and gems are.
-export BUNDLE_GEMFILE="$SELFDIR/lib/vendor/Gemfile"
-unset BUNDLE_IGNORE_CONFIG
-
-# Run the actual app using the bundled Ruby interpreter, with Bundler activated.
-LIB_DIR="$SELFDIR/lib"
-exec "$LIB_DIR/ruby/bin/ruby" -rbundler/setup "$LIB_DIR/app/bin/fpm" "$@"
-EOL
+echo "  [COPY] fpm entrypoint -> $ENTRY_SCRIPT"
+cp "$BASEDIR/packages/fpm/assets/fpm" $ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
-mkdir -p $BUNDLE_DIR/bin $BUNDLE_DIR/bin.real
+mkdir -p $BUNDLE_DIR/bin $BIN_REAL_DIR
 for bin in gem irb rake; do
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
     echo "  [COPY] $bin -> $ENTRY_SCRIPT"
     cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >> $ENTRY_SCRIPT
+    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
 echo "  [COPY] ruby_environment -> $ENTRY_SCRIPT"
-cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
+cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" >$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  [COPY] ruby entrypoint -> $ENTRY_SCRIPT"
 cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-echo "exec "\$ROOT/bin.real/ruby" "\$@"" >> $ENTRY_SCRIPT
+echo "exec "\$ROOT/bin.real/ruby" "\$@"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
