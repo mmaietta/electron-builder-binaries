@@ -74,26 +74,31 @@ if [ "$(uname)" = "Darwin" ]; then
     # === PATCH BINARY PATHS ===
     echo "[+] Patching Ruby binary install names..."
     # cd "$BUNDLE_DIR/ruby/bin"
-    # for bin in ruby irb gem; do
-    #     [[ -x "$bin" ]] || continue
-    #     otool -L "$bin" | grep -v ":" | awk '{print $1}' | while read lib; do
-    #         if [[ "$lib" == @* || "$lib" == /usr/* || "$lib" == /System/* ]]; then
-    #             continue
-    #         fi
-    #         libname=$(basename "$lib")
-    #         echo "  [REWRITE] $lib -> @loader_path/../lib/$libname"
-    #         install_name_tool -change "$lib" "@loader_path/../lib/$libname" "$bin"
-    #     done
-    # done
+    for bin in ruby irb gem; do
+        [[ -x "$bin" ]] || continue
+        # otool -L "$bin" | grep -v ":" | awk '{print $1}' | while read lib; do
+        #     if [[ "$lib" == @* || "$lib" == /usr/* || "$lib" == /System/* ]]; then
+        #         continue
+        #     fi
+        #     libname=$(basename "$lib")
+        #     echo "  [REWRITE] $lib -> @loader_path/../lib/$libname"
+        #     install_name_tool -change "$lib" "@loader_path/../lib/$libname" "$bin"
+        # done
+        install_name_tool -add_rpath @executable_path/../lib $BUNDLE_DIR/ruby/bin.real/$bin
+    done
     # cd ../../..
 
     mkdir -p "$BUNDLE_DIR/ruby/bin.real"
     GEMS="bundle bundler gem irb rake ruby"
     for bin in $GEMS; do
         echo "  [COPY] $bin"
-        cp -av "$(which $bin)" "$BUNDLE_DIR/ruby/bin.real/"
-        cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/ruby/bin.real/"
+        cp -aL "$(which $bin)" "$BUNDLE_DIR/ruby/bin.real/"
+        # cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/ruby/bin.real/"
+        install_name_tool -add_rpath @executable_path/../lib $BUNDLE_DIR/ruby/bin.real/$bin
     done
+    # for bin in ruby irb gem; do
+        # install_name_tool -add_rpath @executable_path/../lib $BUNDLE_DIR/ruby/bin.real/$bin
+    # done
 else
     # Linux
     RUBY_BIN="$(which ruby)"
@@ -115,11 +120,11 @@ else
     GEMS="bundle bundler gem irb rake ruby"
     for bin in $GEMS; do
         echo "  [COPY] $bin"
-        cp -av "$(which $bin)" "$BUNDLE_DIR/bin.real/"
-        cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/bin.real/"
+        cp -aL "$(which $bin)" "$BUNDLE_DIR/bin.real/"
+        # cp -avf "$(readlink -f "$(which $bin)")" "$BUNDLE_DIR/bin.real/"
     done
     echo "[+] Patching RPATH to use bundled lib/"
-    patchelf --set-rpath  '$ORIGIN/../lib' "$BUNDLE_DIR/bin.real/$(basename $RUBY_REAL_BIN)"
+    patchelf --set-rpath '$ORIGIN/../lib' "$BUNDLE_DIR/bin.real/ruby"
 
     # === COPY SHARED LIBRARIES ===
     echo "[+] Copying dynamic libraries..."
@@ -129,9 +134,10 @@ else
             continue
         fi
         echo "  [COPY] $lib"
-        cp -a "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
-        realLib="$(readlink -f "$lib")"
-        cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
+        # usually they're symlinked, so just follow the symlink for simplicity of copying
+        cp -aL "$lib" "$BUNDLE_DIR/lib/$(basename $lib)"
+        # realLib="$(readlink -f "$lib")"
+        # cp -avf "$realLib" "$BUNDLE_DIR/lib/$(basename $realLib)"
         # cp --parents -L "$lib" "$BUNDLE_DIR/lib/"
     done
 
@@ -152,7 +158,7 @@ mkdir -p $GIT_REPO_DIR
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_DIR
 
 mkdir -p $TMP_DIR/lib/vendor/lib/fpm
-cp -a $BASEDIR/packages/fpm/vendor/.bundle $TMP_DIR/lib/vendor/
+cp -a $BASEDIR/packages/fpm/assets/.bundle $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $TMP_DIR/lib/vendor/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $TMP_DIR/lib/vendor/lib/fpm/version.rb
 
@@ -186,25 +192,25 @@ mkdir -p $BUNDLE_DIR/bin $BUNDLE_DIR/bin.real
 for bin in gem irb rake; do
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
     echo "  [COPY] $bin -> $ENTRY_SCRIPT"
-    cp "$BASEDIR/packages/fpm/vendor/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >> $ENTRY_SCRIPT
+    cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
+    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
 echo "  [COPY] ruby_environment -> $ENTRY_SCRIPT"
-cat $BASEDIR/packages/fpm/vendor/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
+cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" >$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  [COPY] ruby entrypoint -> $ENTRY_SCRIPT"
-cat $BASEDIR/packages/fpm/vendor/entrypoint.sh > $ENTRY_SCRIPT
-echo "exec "\$ROOT/bin.real/ruby" "\$@"" >> $ENTRY_SCRIPT
+cat $BASEDIR/packages/fpm/assets/entrypoint.sh >$ENTRY_SCRIPT
+echo "exec "\$ROOT/bin.real/ruby" "\$@"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
 echo "  [COPY] restore_environment.rb -> $ENTRY_SCRIPT"
-cp $BASEDIR/packages/fpm/vendor/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
+cp $BASEDIR/packages/fpm/assets/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
 chmod +x $ENTRY_SCRIPT
 
 GEM_DIR=$(ruby -e 'puts Gem.dir')
@@ -212,9 +218,13 @@ STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
 SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 mkdir -p $TMP_DIR/lib/ruby/lib/ruby/gems $TMP_DIR/lib/ruby/lib/ruby/site_ruby $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
+echo "  [COPY] $GEM_DIR -> $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION"
 cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
+echo "  [COPY] $STD_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby"
 cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
+echo "  [COPY] $SITE_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/site_ruby"
 cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
+echo "  [COPY] $VENDOR_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby"
 cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
 
 compressArtifact $OUTPUT_FILE $TMP_DIR
