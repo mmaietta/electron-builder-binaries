@@ -16,7 +16,7 @@ fi
 # need to use buildpack-deps/bookworm in order to build for i386
 if [ "$ARCH" = "x64" ]; then
   OUTPUT_ARCH="x64"
-  PLATFORM_ARCH="amd64"
+  PLATFORM_ARCH="x86_64"
   DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
 elif [ "$ARCH" = "ia32" ]; then
   OUTPUT_ARCH="ia32"
@@ -88,7 +88,7 @@ containerId=$(cat "$cidFile")
 
 # fpm
 FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
-# rm -rf $FPM_OUTPUT_DIR
+rm -rf $FPM_OUTPUT_DIR
 mkdir -p $FPM_OUTPUT_DIR
 docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
 
