@@ -1,41 +1,47 @@
 ARG PLATFORM_ARCH=amd64
 ARG DOCKER_IMAGE_BASE=buildpack-deps:bookworm-curl
 
-FROM crazymax/7zip:17.05 AS zipper
-RUN 7z --help
-
-FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE
+FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE AS build
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        bzip2 \
-        ca-certificates \
-        desktop-file-utils \
-        g++ \
-        gcc \
-        git \
-        libc-dev \
-        liblzma-dev \
-        liblzo2-dev \
-        libssl-dev \
-        make \
-        p7zip-full \
-        # python2 \
-        python3 \
-        python3-pip \
-        python3-setuptools \
-        python3-wheel \
-        tar \
-        unzip \
-        wget \
-        cmake \
-        ruby-full \
-        rpm \
-        tree \
-        patchelf \
-        file \
-        zlib1g-dev && \
+    # python2 \
+    # ruby-full \
+    autoconf \
+    bison \
+    build-essential \
+    bzip2 \
+    ca-certificates \
+    cmake \
+    curl \
+    desktop-file-utils \
+    file \
+    g++ \
+    gcc \
+    git \
+    libc-dev \
+    libffi-dev \
+    libgdbm-dev \
+    liblzma-dev \
+    liblzo2-dev \
+    libreadline-dev \
+    libssl-dev \
+    libyaml-dev \
+    make \
+    p7zip-full \
+    patchelf \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+    rpm \
+    tar \
+    tree \
+    unzip \
+    wget \
+    zlib1g-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp/build-dir
@@ -57,7 +63,7 @@ WORKDIR /tmp/build-dir
 #     make -j5 XZ_SUPPORT=1 LZO_SUPPORT=1 ZSTD_SUPPORT=1 GZIP_SUPPORT=0 COMP_DEFAULT=zstd install
 
 # osslsigncode
-ARG OSSLSIGNCODE_VERSION=2.9
+# ARG OSSLSIGNCODE_VERSION=2.9
 # RUN curl -L https://github.com/mtrojnar/osslsigncode/archive/refs/tags/$OSSLSIGNCODE_VERSION.zip -o f.zip && \ 
 #     unzip f.zip && rm f.zip
 # RUN cd osslsigncode-$OSSLSIGNCODE_VERSION && \
@@ -66,9 +72,62 @@ ARG OSSLSIGNCODE_VERSION=2.9
 #     cmake -S .. && cmake --build .  && \ 
 #     cp /tmp/build-dir/osslsigncode-$OSSLSIGNCODE_VERSION/build/osslsigncode /usr/local/bin/osslsigncode
 
+# Add multilib if building i386 on x86_64
+RUN if [ "$PLATFORM_ARCH" = "386" ]; then \
+    dpkg --add-architecture i386 && \
+    apt-get update && \
+    apt-get install -y gcc-multilib g++-multilib; \
+    fi
+
+# Install ruby
+# ARG RUBY_VERSION=3_1_4
+# WORKDIR /ruby
+# RUN git clone --depth 1 --branch v$RUBY_VERSION https://github.com/ruby/ruby.git src
+# WORKDIR /ruby/src
+# # Configure based on architecture
+# RUN autoconf && \
+#     cp -v /usr/share/misc/config.* ./ && \
+#     ARCH_FLAGS="" && \
+#     if [ "$TARGETARCH" = "386" ]; then \
+#     ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"; \
+#     fi && \
+#     eval ./configure \
+#     --prefix=/ruby/install \
+#     --disable-install-doc \
+#     --enable-shared \
+#     --disable-static \
+#     $ARCH_FLAGS && \
+#     make -j$(nproc) && \
+#     make install
+
+# # Patch rpath
+# RUN patchelf --set-rpath '$ORIGIN/../lib' /ruby/install/bin/ruby
+
+FROM crazymax/7zip:17.05 AS zipper
+
+FROM --platform=linux/$PLATFORM_ARCH ruby:3.3.8-slim-bookworm AS ruby
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    patchelf \
+    && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
+# node modules needed for docker to access pnpm dependency submodule
+COPY ./node_modules /usr/src/app/node_modules
+COPY ./packages/fpm /usr/src/app/packages/fpm
+WORKDIR /usr/src/app
+COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
+RUN bash ./packages/fpm/build.sh
+
+FROM buildpack-deps:bookworm-curl AS runtime
+COPY --from=ruby /usr/src/app/out/fpm.7z /usr/src/app/out/fpm.7z
+COPY --from=ruby /tmp/fpm /tmp/fpm
+COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
+
 # build scripts
 WORKDIR /usr/src/app
-COPY ./docker-scripts /usr/src/app/docker-scripts
+# COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources
 # COPY ./packages/nsis-lang-fixes /usr/src/app/packages/nsis-lang-fixes
@@ -82,10 +141,9 @@ COPY ./docker-scripts /usr/src/app/docker-scripts
 # RUN sh ./docker-scripts/appImage-packages-ia32.sh
 # RUN sh ./docker-scripts/win-codesign-tools.sh
 
-COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
 
-COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
-# node modules needed for docker to access pnpm dependency submodule
-COPY ./node_modules /usr/src/app/node_modules
-COPY ./packages/fpm /usr/src/app/packages/fpm
-RUN bash ./packages/fpm/build.sh
+# COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
+# # node modules needed for docker to access pnpm dependency submodule
+# COPY ./node_modules /usr/src/app/node_modules
+# COPY ./packages/fpm /usr/src/app/packages/fpm
+# RUN bash ./packages/fpm/build.sh

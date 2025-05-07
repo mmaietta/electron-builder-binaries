@@ -17,19 +17,19 @@ fi
 if [ "$ARCH" = "x64" ]; then
   OUTPUT_ARCH="x64"
   PLATFORM_ARCH="x86_64"
-  DOCKER_IMAGE=amd64/buildpack-deps:bookworm-curl
+  DOCKER_IMAGE=amd64/buildpack-deps:22.04-curl #bookworm-curl
 elif [ "$ARCH" = "ia32" ]; then
   OUTPUT_ARCH="ia32"
-  PLATFORM_ARCH="i386"
-  DOCKER_IMAGE=i386/buildpack-deps:bookworm-curl
+  PLATFORM_ARCH="386"
+  DOCKER_IMAGE=i386/buildpack-deps:22.04-curl #bookworm-curl
 elif [ "$ARCH" = "arm32" ]; then
   OUTPUT_ARCH="arm32"
   PLATFORM_ARCH="armhf"
-  DOCKER_IMAGE=arm32v7/buildpack-deps:bookworm-curl
+  DOCKER_IMAGE=arm32v7/buildpack-deps:22.04-curl #bookworm-curl
 elif [ "$ARCH" = "arm64" ]; then
   OUTPUT_ARCH="arm64"
   PLATFORM_ARCH="arm64"
-  DOCKER_IMAGE=arm64v8/buildpack-deps:bookworm-curl
+  DOCKER_IMAGE=arm64v8/buildpack-deps:22.04-curl #bookworm-curl
 else
   echo "Unknown architecture: $ARCH. Expected: x64, ia32, arm32, or arm64."
   echo "Please set the ARCH environment variable to one of these values."

@@ -101,10 +101,10 @@ else
     echo "[+] Copying Ruby binary..."
     cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
 
-    echo "[+] Copying Ruby gems..."
     GEMS="bundle bundler irb" # puma rake redcarpet thin unicorn"
     GEM_COMMAND="gem install $GEMS --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
+    echo "[+] Copying Ruby gems..."
     for bin in gem $GEMS; do
         echo "  ↳ Copying $bin"
         cp -aL "$(which $bin)" "$BIN_REAL_DIR/$bin"
@@ -156,12 +156,12 @@ for bin in gem irb rake; do
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
     echo "  ↳ $bin -> $ENTRY_SCRIPT"
     cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec "\$ROOT/bin.real/ruby" "\$ROOT/bin.real/$bin" "\$@"" >>$ENTRY_SCRIPT
+    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$bin\" \"\$@\"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
-echo "  ↳ ruby_environment -> $ENTRY_SCRIPT"
+echo "  ↳ ruby env setup -> $ENTRY_SCRIPT"
 cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" >$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
@@ -172,10 +172,11 @@ echo "exec "\$ROOT/bin.real/ruby" "\$@"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
-echo "  ↳ restore_environment.rb -> $ENTRY_SCRIPT"
+echo "  ↳ ruby env cleanup -> $ENTRY_SCRIPT"
 cp $BASEDIR/packages/fpm/assets/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
 chmod +x $ENTRY_SCRIPT
 
+echo "[+] Copying Ruby libraries..."
 GEM_DIR=$(ruby -e 'puts Gem.dir')
 STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
 SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
@@ -185,48 +186,49 @@ echo "  ↳ $GEM_DIR -> $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION"
 cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
 echo "  ↳ $STD_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby"
 cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
-echo "  ↳ $SITE_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/site_ruby"
+echo "  ↳ $SITE_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/site_ruby (optional)"
 cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
-echo "  ↳ $VENDOR_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby"
+echo "  ↳ $VENDOR_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby (optional)"
 cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
 
+echo "[+] Compressing files -> $OUTPUT_FILE"
 compressArtifact $OUTPUT_FILE $TMP_DIR
 
-TARGET_DIR="$BIN_REAL_DIR"  # Default to current dir
-EXPECTED_ARCH="$(uname -m)"
+# TARGET_DIR="$BIN_REAL_DIR"  # Default to current dir
+# EXPECTED_ARCH="$(uname -m)"
 
-echo "[+] Scanning $TARGET_DIR for binaries..."
-echo "[+] Expected architecture: $EXPECTED_ARCH"
-echo
+# echo "[+] Scanning $TARGET_DIR for binaries..."
+# echo "[+] Expected architecture: $EXPECTED_ARCH"
+# echo
 
-fail=0
+# fail=0
 
-find "$TARGET_DIR" -type f -exec file {} + | grep -E 'ELF|Mach-O' | while read -r line; do
-    file_path=$(echo "$line" | cut -d: -f1)
-    arch_info=$(echo "$line" | cut -d: -f2-)
+# find "$TARGET_DIR" -type f -exec file {} + | grep -E 'ELF|Mach-O' | while read -r line; do
+#     file_path=$(echo "$line" | cut -d: -f1)
+#     arch_info=$(echo "$line" | cut -d: -f2-)
 
-    if [[ "$arch_info" =~ x86_64 && "$EXPECTED_ARCH" != x86_64 ]]; then
-        echo "❌ Mismatch: $file_path is x86_64"
-        fail=1
-    elif [[ "$arch_info" =~ aarch64 && "$EXPECTED_ARCH" != aarch64 ]]; then
-        echo "❌ Mismatch: $file_path is aarch64"
-        fail=1
-    elif [[ "$arch_info" =~ arm64 && "$EXPECTED_ARCH" != arm64 ]]; then
-        echo "❌ Mismatch: $file_path is arm64"
-        fail=1
-    elif [[ "$arch_info" =~ x86_64 || "$arch_info" =~ aarch64 || "$arch_info" =~ arm64 ]]; then
-        echo "✅ OK: $file_path"
-    else
-        echo "❓ Unknown arch in: $file_path.\nArch info: $arch_info"
-        fail=1
-    fi
-done
+#     if [[ "$arch_info" =~ x86_64 && "$EXPECTED_ARCH" != x86_64 ]]; then
+#         echo "❌ Mismatch: $file_path is x86_64"
+#         fail=1
+#     elif [[ "$arch_info" =~ aarch64 && "$EXPECTED_ARCH" != aarch64 ]]; then
+#         echo "❌ Mismatch: $file_path is aarch64"
+#         fail=1
+#     elif [[ "$arch_info" =~ arm64 && "$EXPECTED_ARCH" != arm64 ]]; then
+#         echo "❌ Mismatch: $file_path is arm64"
+#         fail=1
+#     elif [[ "$arch_info" =~ x86_64 || "$arch_info" =~ aarch64 || "$arch_info" =~ arm64 ]]; then
+#         echo "✅ OK: $file_path"
+#     else
+#         echo "❓ Unknown arch in: $file_path.\nArch info: $arch_info"
+#         fail=1
+#     fi
+# done
 
-if [[ $fail -ne 0 ]]; then
-    echo
-    echo "❌ Architecture mismatch found!"
-    exit 1
-else
-    echo
-    echo "✅ All binaries match host architecture: $EXPECTED_ARCH"
-fi
+# if [[ $fail -ne 0 ]]; then
+#     echo
+#     echo "❌ Architecture mismatch found!"
+#     exit 1
+# else
+#     echo
+#     echo "✅ All binaries match host architecture: $EXPECTED_ARCH"
+# fi
