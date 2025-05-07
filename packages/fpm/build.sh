@@ -9,6 +9,7 @@ source $BASEDIR/scripts/utils.sh
 TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
+GEM_HOME=/tmp/ruby-gems
 
 # --------------------------------------------------------
 
@@ -29,7 +30,7 @@ if [ "$(uname)" = "Darwin" ]; then
     RUBY_PREFIX="$(readlink -f $(brew --prefix ruby))"
     BUNDLE_DIR=$TMP_DIR/lib
     BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
-    
+
     echo "[+] Ruby binary found: $RUBY_REAL_BIN"
     echo "[+] Ruby prefix: $RUBY_PREFIX"
 
@@ -101,6 +102,7 @@ else
     echo "[+] Copying Ruby binary..."
     cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
 
+    export GEM_HOME
     GEMS="bundle bundler irb" # puma rake redcarpet thin unicorn"
     GEM_COMMAND="gem install $GEMS --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
@@ -168,7 +170,7 @@ chmod +x $ENTRY_SCRIPT
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
 cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-echo "exec "\$ROOT/bin.real/ruby" "\$@"" >>$ENTRY_SCRIPT
+echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
@@ -193,6 +195,14 @@ cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
 
 echo "[+] Compressing files -> $OUTPUT_FILE"
 compressArtifact $OUTPUT_FILE $TMP_DIR
+
+echo "[+] Creating archive..."
+ARCHIVE_NAME="ruby_user_bundle.tar.gz"
+cd $BASEDIR
+tar -czf "$ARCHIVE_NAME" -C "$TMP_DIR/.." "$(basename $TMP_DIR)"
+pwd
+ls -al
+echo "[✓] Done. Archive: $ARCHIVE_NAME"
 
 # TARGET_DIR="$BIN_REAL_DIR"  # Default to current dir
 # EXPECTED_ARCH="$(uname -m)"

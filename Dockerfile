@@ -1,4 +1,4 @@
-ARG PLATFORM_ARCH=amd64
+ARG PLATFORM_ARCH=x86_64
 ARG DOCKER_IMAGE_BASE=buildpack-deps:bookworm-curl
 
 FROM --platform=linux/$PLATFORM_ARCH $DOCKER_IMAGE_BASE AS build
@@ -106,8 +106,8 @@ RUN if [ "$PLATFORM_ARCH" = "386" ]; then \
 FROM crazymax/7zip:17.05 AS zipper
 
 FROM --platform=linux/$PLATFORM_ARCH ruby:3.3.8-slim-bookworm AS ruby
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update -yqq && \
+    apt-get install -yqq --no-install-recommends \
     patchelf \
     && \
     rm -rf /var/lib/apt/lists/*
@@ -120,10 +120,17 @@ WORKDIR /usr/src/app
 COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
 RUN bash ./packages/fpm/build.sh
 
-FROM buildpack-deps:bookworm-curl AS runtime
-COPY --from=ruby /usr/src/app/out/fpm.7z /usr/src/app/out/fpm.7z
-COPY --from=ruby /tmp/fpm /tmp/fpm
+FROM --platform=linux/$PLATFORM_ARCH buildpack-deps:bookworm-curl AS runtime
+ENV DEBIAN_FRONTEND=noninteractive
+# Install dependencies
+RUN apt-get update -yqq && \
+    apt-get install file gdb patchelf tree -yqq \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
+COPY --from=ruby /usr/src/app/out/fpm.7z /usr/src/app/out/fpm.7z
+COPY --from=ruby /usr/src/app/ruby_user_bundle.tar.gz /usr/src/app/ruby_user_bundle.tar.gz
+COPY --from=ruby /tmp/fpm /tmp/fpm
 
 # build scripts
 WORKDIR /usr/src/app
