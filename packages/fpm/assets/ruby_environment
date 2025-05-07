@@ -21,9 +21,12 @@ echo RUBYOPT=\"-r$ROOT/lib/restore_environment\"
 for DIR in ""$ROOT"/lib/ruby/gems/*/deplibs/*/*"; do
 	echo LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:$DIR\"
 done
-echo GEM_HOME="$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION"
-echo GEM_PATH="$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION"
-echo RUBYLIB=\"$ROOT/lib/ruby/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION/gems/did_you_mean-1.0.0/lib:$ROOT/lib/ruby/site_ruby/RUBY_VERSION:$ROOT/lib/ruby/site_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/site_ruby:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/vendor_ruby:$ROOT/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/RUBY_VERSION/i686-linux\"
+echo GEM_HOME="$ROOT/lib/ruby/gems/RUBY_VERSION"
+echo GEM_PATH="$ROOT/lib/ruby/gems/RUBY_VERSION"
+echo RUBYLIB=\"$ROOT/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION/gems/did_you_mean-1.0.0/lib:$ROOT/lib/ruby/site_ruby/RUBY_VERSION:$ROOT/lib/ruby/site_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/site_ruby:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/vendor_ruby:$ROOT/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/RUBY_VERSION/i686-linux\"
+# echo GEM_HOME="$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION"
+# echo GEM_PATH="$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION"
+# echo RUBYLIB=\"$ROOT/lib/ruby/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/lib/ruby/gems/RUBY_VERSION/gems/did_you_mean-1.0.0/lib:$ROOT/lib/ruby/site_ruby/RUBY_VERSION:$ROOT/lib/ruby/site_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/site_ruby:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION:$ROOT/lib/ruby/vendor_ruby/RUBY_VERSION/i686-linux:$ROOT/lib/ruby/vendor_ruby:$ROOT/lib/ruby/RUBY_VERSION:$ROOT/lib/ruby/RUBY_VERSION/i686-linux\"
 
 # backup original environment variables for `restore_environment.rb`
 echo export ORIG_LD_LIBRARY_PATH

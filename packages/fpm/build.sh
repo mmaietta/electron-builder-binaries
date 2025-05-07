@@ -15,12 +15,10 @@ GEM_HOME=/tmp/ruby-gems
 
 source $BASEDIR/packages/fpm/version.sh # exports RUBY_VERSION & FPM_VERSION
 echo "RUBY_VERSION: $RUBY_VERSION"
-echo "FPM_VERSION: $FPM_VERSION"
 
 # --------------------------------------------------------
 # rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
-echo "Fpm: $FPM_VERSION" >$TMP_DIR/VERSION.txt
-echo "Ruby: $RUBY_VERSION" >>$TMP_DIR/VERSION.txt
+
 
 # copy ruby interpreter and libraries
 RUBY_BIN="$(which ruby)"
@@ -103,7 +101,7 @@ else
     cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
 
     export GEM_HOME
-    GEMS="bundle bundler irb" # puma rake redcarpet thin unicorn"
+    GEMS="bundle bundler irb rake" # puma rake redcarpet thin unicorn"
     GEM_COMMAND="gem install $GEMS --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
     echo "[+] Copying Ruby gems..."
@@ -121,6 +119,7 @@ else
         if [[ -n "$lib" && -f "$lib" ]]; then
             echo "  ↳ Copying $lib"
             cp -u "$lib" "$LIB_DIR/"
+            chmod 777 "$LIB_DIR/$(basename "$lib")"
         fi
     done
     # Copy libruby*.so from LD_LIBRARY_PATH manually if missed
@@ -141,7 +140,10 @@ cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $VENDOR_DIR/
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $VENDOR_DIR/lib/fpm/version.rb
 
 # export GEM_HOME
-gem install bundle bundler --no-document --quiet || sudo gem install bundler --no-document --quiet
+# GEMS_TO_INSTALL="bundler rake arr-pm:0.0.12 backports:3.25.1 cabin:0.9.0 \
+# clamp:1.3.2 pleaserun:0.0.32 rexml:3.4.1 stud:0.0.23 dotenv:3.1.8 \
+# insist:1.0.0 mustache:0.99.8"
+# gem install $GEMS_TO_INSTALL --no-document --quiet || sudo gem install $GEMS_TO_INSTALL --no-document --quiet
 cd "$VENDOR_DIR"
 bundle install
 rm -rf "$VENDOR_DIR/**/cache"
@@ -183,15 +185,22 @@ GEM_DIR=$(ruby -e 'puts Gem.dir')
 STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
 SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
-mkdir -p $TMP_DIR/lib/ruby/lib/ruby/gems $TMP_DIR/lib/ruby/lib/ruby/site_ruby $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby
-echo "  ↳ $GEM_DIR -> $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION"
-cp -a $GEM_DIR $TMP_DIR/lib/ruby/lib/ruby/gems/$RUBY_VERSION
-echo "  ↳ $STD_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby"
-cp -a $STD_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby
-echo "  ↳ $SITE_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/site_ruby (optional)"
-cp -a $SITE_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/site_ruby || true
-echo "  ↳ $VENDOR_LIB_DIR -> $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby (optional)"
-cp -a $VENDOR_LIB_DIR $TMP_DIR/lib/ruby/lib/ruby/vendor_ruby || true
+RUBY_LIB_DIR=$TMP_DIR/lib/ruby/lib/ruby
+mkdir -p $RUBY_LIB_DIR/gems $RUBY_LIB_DIR/site_ruby $RUBY_LIB_DIR/vendor_ruby
+echo "  ↳ $GEM_DIR -> $RUBY_LIB_DIR/gems/$RUBY_VERSION"
+cp -a $GEM_DIR $RUBY_LIB_DIR/gems/$RUBY_VERSION
+echo "  ↳ $STD_LIB_DIR -> $RUBY_LIB_DIR"
+cp -a $STD_LIB_DIR $RUBY_LIB_DIR
+echo "  ↳ $SITE_LIB_DIR -> $RUBY_LIB_DIR/site_ruby (optional)"
+cp -a $SITE_LIB_DIR $RUBY_LIB_DIR/site_ruby || true
+echo "  ↳ $VENDOR_LIB_DIR -> $RUBY_LIB_DIR/vendor_ruby (optional)"
+cp -a $VENDOR_LIB_DIR $RUBY_LIB_DIR/vendor_ruby || true
+
+echo "[+} Creating VERSION file..."
+RUBY_VERSION=$($TMP_DIR/lib/ruby/bin.real/ruby --version)
+FPM_VERSION=$($TMP_DIR/fpm --version)
+echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
+echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
 
 echo "[+] Compressing files -> $OUTPUT_FILE"
 compressArtifact $OUTPUT_FILE $TMP_DIR

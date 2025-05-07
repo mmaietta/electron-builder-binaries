@@ -105,7 +105,7 @@ RUN if [ "$PLATFORM_ARCH" = "386" ]; then \
 
 FROM crazymax/7zip:17.05 AS zipper
 
-FROM --platform=linux/$PLATFORM_ARCH ruby:3.3.8-slim-bookworm AS ruby
+FROM --platform=linux/$PLATFORM_ARCH ruby:3.4-slim AS ruby
 RUN apt-get update -yqq && \
     apt-get install -yqq --no-install-recommends \
     patchelf \
