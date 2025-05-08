@@ -109,6 +109,7 @@ FROM --platform=linux/$PLATFORM_ARCH ruby:3.4-slim AS ruby
 RUN apt-get update -yqq && \
     apt-get install -yqq --no-install-recommends \
     patchelf \
+    rsync \
     && \
     rm -rf /var/lib/apt/lists/*
 
@@ -117,23 +118,24 @@ COPY ./scripts/utils.sh /usr/src/app/scripts/utils.sh
 COPY ./node_modules /usr/src/app/node_modules
 COPY ./packages/fpm /usr/src/app/packages/fpm
 WORKDIR /usr/src/app
-COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
+COPY --from=zipper /usr/local/bin/7z* /tmp/zipper/
+ENV PATH="/tmp/zipper:${PATH}"
 RUN bash ./packages/fpm/build.sh
 
-FROM --platform=linux/$PLATFORM_ARCH buildpack-deps:bookworm-curl AS runtime
-ENV DEBIAN_FRONTEND=noninteractive
-# Install dependencies
-RUN apt-get update -yqq && \
-    apt-get install file gdb patchelf tree -yqq \
-    && rm -rf /var/lib/apt/lists/*
+# FROM --platform=linux/$PLATFORM_ARCH buildpack-deps:bookworm-curl AS runtime
+# ENV DEBIAN_FRONTEND=noninteractive
+# # Install dependencies
+# RUN apt-get update -yqq && \
+#     apt-get install file gdb patchelf tree -yqq \
+#     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
-COPY --from=ruby /usr/src/app/out/fpm.7z /usr/src/app/out/fpm.7z
-COPY --from=ruby /usr/src/app/ruby_user_bundle.tar.gz /usr/src/app/ruby_user_bundle.tar.gz
-COPY --from=ruby /tmp/fpm /tmp/fpm
+# COPY --from=zipper /usr/local/bin/7z* /usr/local/bin/
+# COPY --from=ruby /usr/src/app/out/fpm.7z /usr/src/app/out/fpm.7z
+# COPY --from=ruby /usr/src/app/ruby_user_bundle.tar.gz /usr/src/app/ruby_user_bundle.tar.gz
+# COPY --from=ruby /tmp/fpm /tmp/fpm
 
-# build scripts
-WORKDIR /usr/src/app
+# # build scripts
+# WORKDIR /usr/src/app
 # COPY ./docker-scripts /usr/src/app/docker-scripts
 
 # build resources

@@ -9,7 +9,7 @@ source $BASEDIR/scripts/utils.sh
 TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
-GEM_HOME=/tmp/ruby-gems
+# GEM_HOME=/tmp/ruby-gems
 
 # --------------------------------------------------------
 
@@ -18,15 +18,64 @@ echo "RUBY_VERSION: $RUBY_VERSION"
 
 # --------------------------------------------------------
 # rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
+BUNDLE_DIR=$TMP_DIR/lib/portable-ruby
 
+# === CLEANUP ===
+rm -rf "$BUNDLE_DIR"
+
+# copy vendor files directly from the npm package
+echo "[+] Copying fpm files..."
+GIT_REPO_DIR=$TMP_DIR/lib/app
+mkdir -p $GIT_REPO_DIR
+cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_DIR
+
+VENDOR_DIR=$TMP_DIR/lib/vendor
+mkdir -p $VENDOR_DIR/lib/fpm
+cp -a $BASEDIR/packages/fpm/assets/.bundle $VENDOR_DIR/
+cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $VENDOR_DIR/
+cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $VENDOR_DIR/lib/fpm/version.rb
+
+LIB_DIR="$BUNDLE_DIR/lib"
+BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
+mkdir -p "$BIN_REAL_DIR" "$LIB_DIR"
+
+echo "[+] Installing Ruby deps..."
+for gems in "bundler -v 2.6.7" "ostruct logger"; do
+    echo "  ↳ Installing $gems"
+    GEM_COMMAND="gem install $gems --no-document --quiet"
+    $GEM_COMMAND || sudo $GEM_COMMAND
+done
+(cd "$VENDOR_DIR" && bundle install --path=. --without development test)
+rm -rf "$VENDOR_DIR/**/cache"
 
 # copy ruby interpreter and libraries
 RUBY_BIN="$(which ruby)"
+RUBY_REAL_BIN="$(readlink -f "$RUBY_BIN")"
+echo "[+] Ruby binary: $RUBY_REAL_BIN"
+
+GEM_DIR=$(ruby -e 'puts Gem.dir')
+STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
+SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
+VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
+BIN_DIR=$(ruby -e 'puts RbConfig::CONFIG["bindir"]')
+
+echo "[+] Copying core Ruby dirs..."
+echo "  ↳ $GEM_DIR -> $BUNDLE_DIR/"
+rsync -a "$GEM_DIR" "$BUNDLE_DIR/"
+echo "  ↳ $STD_LIB_DIR -> $BUNDLE_DIR/"
+rsync -a "$STD_LIB_DIR" "$BUNDLE_DIR/"
+echo "  ↳ $SITE_LIB_DIR -> $BUNDLE_DIR/"
+rsync -a "$SITE_LIB_DIR" "$BUNDLE_DIR/"
+echo "  ↳ $VENDOR_LIB_DIR -> $BUNDLE_DIR/"
+rsync -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/"
+echo "  ↳ $BIN_DIR -> $BIN_REAL_DIR/"
+rsync -a "$BIN_DIR"/* "$BIN_REAL_DIR/"
+
 if [ "$(uname)" = "Darwin" ]; then
     # === CONFIG ===
     RUBY_REAL_BIN="$(greadlink -f "$RUBY_BIN" 2>/dev/null || realpath "$RUBY_BIN")"
     RUBY_PREFIX="$(readlink -f $(brew --prefix ruby))"
-    BUNDLE_DIR=$TMP_DIR/lib
+    BUNDLE_DIR=$TMP_DIR/portable-ruby
     BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
 
     echo "[+] Ruby binary found: $RUBY_REAL_BIN"
@@ -84,32 +133,12 @@ if [ "$(uname)" = "Darwin" ]; then
     # done
 else
     # Linux
-    RUBY_BIN="$(which ruby)"
-    RUBY_REAL_BIN="$(readlink -f "$RUBY_BIN")"
-    BUNDLE_DIR=$TMP_DIR/lib/ruby
 
-    echo "[+] Ruby binary: $RUBY_REAL_BIN"
+    # # === COPY RUBY BINARY ===
+    # echo "[+] Copying Ruby binary..."
+    # cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
 
-    # === CLEANUP ===
-    rm -rf "$BUNDLE_DIR"
-    LIB_DIR="$BUNDLE_DIR/lib"
-    BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
-    mkdir -p "$BUNDLE_DIR/bin" "$BIN_REAL_DIR" "$LIB_DIR" "$BUNDLE_DIR/share"
-
-    # === COPY RUBY BINARY ===
-    echo "[+] Copying Ruby binary..."
-    cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
-
-    # export GEM_HOME
-    # GEMS="bundle bundler irb rake" # puma rake redcarpet thin unicorn"
-    # GEM_COMMAND="gem install $GEMS --no-document --quiet"
-    # $GEM_COMMAND || sudo $GEM_COMMAND
-    # echo "[+] Copying Ruby gems..."
-    # for bin in gem $GEMS; do
-    #     echo "  ↳ Copying $bin"
-    #     cp -aL "$(which $bin)" "$BIN_REAL_DIR/$bin"
-    # done
-
+    ls -al $BIN_REAL_DIR
     echo "[+] Patching RPATH to use bundled lib/"
     patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/ruby"
 
@@ -128,30 +157,21 @@ else
     fi
 fi
 
-# copy vendor files directly from the npm package
-GIT_REPO_DIR=$TMP_DIR/lib/app
-mkdir -p $GIT_REPO_DIR
-cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_DIR
-
-VENDOR_DIR=$TMP_DIR/lib/vendor
-mkdir -p $VENDOR_DIR/lib/fpm
-cp -a $BASEDIR/packages/fpm/assets/.bundle $VENDOR_DIR/
-cp -a $BASEDIR/packages/fpm/node_modules/fpm/{Gemfile*,fpm.gemspec} $VENDOR_DIR/
-cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $VENDOR_DIR/lib/fpm/version.rb
-
-gem install bundler -v 2.6.7 --no-document --quiet
-(cd "$VENDOR_DIR" && bundle install --path=. --without development test)
-rm -rf "$VENDOR_DIR/**/cache"
-
 # create entry scripts
-echo "[+] Creating entrypoint/wrapper scripts"
+echo "[+] Creating entrypoint/wrapper scripts..."
 ENTRY_SCRIPT=$TMP_DIR/fpm
 echo "  ↳ fpm entrypoint -> $ENTRY_SCRIPT"
 cp "$BASEDIR/packages/fpm/assets/fpm" $ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 mkdir -p $BUNDLE_DIR/bin $BIN_REAL_DIR
-for bin in gem irb rake; do
+for file in "$BIN_REAL_DIR"/*; do
+    bin=$(basename "$file")
+    # Skip if not executable
+    if [[ ! -x "$file" ]]; then
+        echo "  [SKIP] $bin"
+        continue
+    fi
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
     echo "  ↳ $bin -> $ENTRY_SCRIPT"
     cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
@@ -159,10 +179,10 @@ for bin in gem irb rake; do
     chmod +x $ENTRY_SCRIPT
 done
 
-ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
-echo "  ↳ ruby env setup -> $ENTRY_SCRIPT"
-cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" >$ENTRY_SCRIPT
-chmod +x $ENTRY_SCRIPT
+# ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
+# echo "  ↳ ruby env setup -> $ENTRY_SCRIPT"
+# cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
+# chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
@@ -170,31 +190,45 @@ cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
 echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
-ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
-echo "  ↳ ruby env cleanup -> $ENTRY_SCRIPT"
-cp $BASEDIR/packages/fpm/assets/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
-chmod +x $ENTRY_SCRIPT
+# ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
+# echo "  ↳ ruby env cleanup -> $ENTRY_SCRIPT"
+# cp $BASEDIR/packages/fpm/assets/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
+# chmod +x $ENTRY_SCRIPT
 
-echo "[+] Copying Ruby libraries..."
-GEM_DIR=$(ruby -e 'puts Gem.dir')
-STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
-SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
-VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
-RUBY_LIB_DIR=$TMP_DIR/lib/ruby/lib/ruby
-mkdir -p $RUBY_LIB_DIR/gems $RUBY_LIB_DIR/site_ruby $RUBY_LIB_DIR/vendor_ruby
-echo "  ↳ $GEM_DIR -> $RUBY_LIB_DIR/gems/$RUBY_VERSION"
-cp -a $GEM_DIR $RUBY_LIB_DIR/gems/$RUBY_VERSION
-echo "  ↳ $STD_LIB_DIR -> $RUBY_LIB_DIR"
-cp -a $STD_LIB_DIR $RUBY_LIB_DIR
-echo "  ↳ $SITE_LIB_DIR -> $RUBY_LIB_DIR/site_ruby (optional)"
-cp -a $SITE_LIB_DIR $RUBY_LIB_DIR/site_ruby || true
-echo "  ↳ $VENDOR_LIB_DIR -> $RUBY_LIB_DIR/vendor_ruby (optional)"
-cp -a $VENDOR_LIB_DIR $RUBY_LIB_DIR/vendor_ruby || true
+# echo "[+] Copying Ruby libraries..."
+# GEM_DIR=$(ruby -e 'puts Gem.dir')
+# STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
+# SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
+# VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
+# RUBY_LIB_DIR=$TMP_DIR/lib/ruby/lib/ruby
+# mkdir -p $RUBY_LIB_DIR/gems $RUBY_LIB_DIR/site_ruby $RUBY_LIB_DIR/vendor_ruby
+# echo "  ↳ $GEM_DIR -> $RUBY_LIB_DIR/gems/$RUBY_VERSION"
+# cp -a $GEM_DIR $RUBY_LIB_DIR/gems/$RUBY_VERSION
+# echo "  ↳ $STD_LIB_DIR -> $RUBY_LIB_DIR"
+# cp -a $STD_LIB_DIR $RUBY_LIB_DIR
+# echo "  ↳ $SITE_LIB_DIR -> $RUBY_LIB_DIR/site_ruby (optional)"
+# cp -a $SITE_LIB_DIR $RUBY_LIB_DIR/site_ruby || true
+# echo "  ↳ $VENDOR_LIB_DIR -> $RUBY_LIB_DIR/vendor_ruby (optional)"
+# cp -a $VENDOR_LIB_DIR $RUBY_LIB_DIR/vendor_ruby || true
+# Get key paths
+
+# echo "Creating launcher..."
+# cat <<EOF >"$PORTABLE_DIR/run-portable-ruby.sh"
+# #!/bin/bash
+# export GEM_HOME="\$(pwd)/$(basename "$GEM_DIR")"
+# export GEM_PATH="\$GEM_HOME"
+# export PATH="\$(pwd)/bin:\$GEM_HOME/bin:\$PATH"
+# exec "\$(pwd)/bin/ruby" "\$@"
+# EOF
+
+# chmod +x "$PORTABLE_DIR/run-portable-ruby.sh"
+
+# echo "✅ Portable Ruby created at: $PORTABLE_DIR"
 
 echo "[+} Creating VERSION file..."
-RUBY_VERSION=$($TMP_DIR/lib/ruby/bin.real/ruby --version)
+# RUBY_VERSION=$($TMP_DIR/lib/ruby/bin.real/ruby --version)
 # FPM_VERSION=$($TMP_DIR/fpm --version)
-echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
+# echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
 # echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
 
 echo "[+] Compressing files -> $OUTPUT_FILE"

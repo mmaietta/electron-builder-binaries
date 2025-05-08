@@ -14,4 +14,4 @@ unset BUNDLE_IGNORE_CONFIG
 # RUBYLIB="$DIR/share"
 
 # Run the actual app using the bundled Ruby interpreter, with Bundler activated.
-exec "$SELFDIR/lib/ruby/bin/ruby" -rbundler/setup "$SELFDIR/lib/app/bin/fpm" "$@"
+exec "$SELFDIR/lib/portable-ruby/bin/ruby" -rbundler/setup "$SELFDIR/lib/app/bin/fpm" "$@"
