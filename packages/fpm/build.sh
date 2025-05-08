@@ -1,19 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUTPUT_FILE=${1:-fpm.7z}
-
 BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/../.." && pwd)
 source $BASEDIR/scripts/utils.sh
 
 TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
-
-# --------------------------------------------------------
-
-source $BASEDIR/packages/fpm/version.sh # exports RUBY_VERSION
-echo "RUBY_VERSION: $RUBY_VERSION"
 
 # --------------------------------------------------------
 
@@ -166,21 +159,22 @@ for FILE in "$BIN_REAL_DIR"/*; do
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$BIN"
     echo "  ↳ $BIN -> $ENTRY_SCRIPT"
     cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >>$ENTRY_SCRIPT
+    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >> $ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
 cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
+echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >> $ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 echo "[+} Creating VERSION file..."
 RUBY_VERSION=$($TMP_DIR/lib/portable-ruby/bin.real/ruby --version)
 FPM_VERSION=$($TMP_DIR/fpm --version)
-echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
+echo "$RUBY_VERSION" > $TMP_DIR/VERSION.txt
 echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
 
+OUTPUT_FILE=${1:-"fpm-$FPM_VERSION-ruby$(ruby  -e 'puts RUBY_VERSION').7z"}
 echo "[+] Compressing files -> $OUTPUT_FILE"
 compressArtifact $OUTPUT_FILE $TMP_DIR
