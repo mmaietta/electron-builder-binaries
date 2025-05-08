@@ -21,7 +21,7 @@ if [ "$ARCH" = "x64" ]; then
 elif [ "$ARCH" = "ia32" ]; then
   OUTPUT_ARCH="ia32"
   PLATFORM_ARCH="386"
-  DOCKER_IMAGE=i386/buildpack-deps:22.04-curl #bookworm-curl
+  DOCKER_IMAGE=386/buildpack-deps:22.04-curl #bookworm-curl
 elif [ "$ARCH" = "arm32" ]; then
   OUTPUT_ARCH="arm32"
   PLATFORM_ARCH="armhf"
@@ -90,7 +90,7 @@ containerId=$(cat "$cidFile")
 FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
 rm -rf $FPM_OUTPUT_DIR
 mkdir -p $FPM_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/ruby_user_bundle.tar.gz $FPM_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/ruby_user_bundle.tar.gz $FPM_OUTPUT_DIR
 docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
 docker cp -a "$containerId":/tmp/fpm $FPM_OUTPUT_DIR/fpm
 
