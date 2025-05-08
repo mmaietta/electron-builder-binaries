@@ -126,6 +126,7 @@ WORKDIR /tmp/build-dir
 
 # Set Ruby version
 ENV RUBY_VERSION=3.4.0
+# ENV RUBY_PREFIX=/opt/ruby
 
 # Build and install Ruby from source
 RUN curl -L https://cache.ruby-lang.org/pub/ruby/3.4/ruby-$RUBY_VERSION.tar.gz | tar xz && \
@@ -138,16 +139,24 @@ RUN curl -L https://cache.ruby-lang.org/pub/ruby/3.4/ruby-$RUBY_VERSION.tar.gz |
         ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"; \
     fi && \
     eval ./configure \
-    # --prefix=$RUBY_PATH \
+    # --prefix=$RUBY_PREFIX \
     --disable-install-doc \
-    --enable-shared \
-    --disable-static \
+    # --enable-shared \
+    # --disable-static \
     $ARCH_FLAGS \
     && \
     make -j"$(nproc)" && \
     make install && \
     cd .. && rm -rf ruby-$RUBY_VERSION
 ENV PATH="/opt/ruby/bin:$PATH"
+
+# RUN curl -L https://rubygems.org/rubygems/rubygems-3.5.6.tgz | tar xz && \
+#     cd rubygems-3.5.6 && \
+#     ruby setup.rb && \
+#     gem update --system && \
+# cd .. && rm -rf rubygems-3.5.6
+# RUN gem install bundler -v 2.6.2 --no-document --quiet
+# RUN gem install ostruct logger --no-document --quiet
 
 COPY --from=zipper /usr/local/bin/7z* /tmp/zipper/
 ENV PATH="/tmp/zipper:${PATH}"

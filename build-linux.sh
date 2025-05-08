@@ -91,7 +91,7 @@ FPM_OUTPUT_DIR=$BASEDIR/fpm/linux-$OUTPUT_ARCH
 rm -rf $FPM_OUTPUT_DIR
 mkdir -p $FPM_OUTPUT_DIR
 # docker cp -a "$containerId":/usr/src/app/ruby_user_bundle.tar.gz $FPM_OUTPUT_DIR
-docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
+# docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
 docker cp -a "$containerId":/tmp/fpm $FPM_OUTPUT_DIR/fpm
 
 # # desktop-file-validate & mksquashfs

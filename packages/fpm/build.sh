@@ -30,7 +30,7 @@ BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
 mkdir -p "$BIN_REAL_DIR" "$LIB_DIR"
 
 echo "[+] Installing Ruby deps..."
-for gems in "bundler -v 2.6.7" "ostruct logger"; do
+for gems in "bundler -v 2.6.2" "ostruct logger"; do
     echo "  ↳ Installing $gems"
     GEM_COMMAND="gem install $gems --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
@@ -49,7 +49,7 @@ SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 BIN_DIR=$(ruby -e 'puts RbConfig::CONFIG["bindir"]')
 
-echo "[+] Copying core Ruby directories..."
+echo "[+] Merging core Ruby directories for easier env access..."
 echo "  ↳ $GEM_DIR -> $BUNDLE_DIR/"
 rsync -a "$GEM_DIR" "$BUNDLE_DIR/"
 echo "  ↳ $STD_LIB_DIR -> $BUNDLE_DIR/"
@@ -145,7 +145,7 @@ fi
 echo "[+] Creating entrypoint/wrapper scripts..."
 ENTRY_SCRIPT=$TMP_DIR/fpm
 echo "  ↳ fpm entrypoint -> $ENTRY_SCRIPT"
-cp "$BASEDIR/packages/fpm/assets/fpm" $ENTRY_SCRIPT
+cat "$BASEDIR/packages/fpm/assets/fpm" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 mkdir -p $BUNDLE_DIR/bin $BIN_REAL_DIR
@@ -158,23 +158,24 @@ for FILE in "$BIN_REAL_DIR"/*; do
     fi
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$BIN"
     echo "  ↳ $BIN -> $ENTRY_SCRIPT"
-    cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >> $ENTRY_SCRIPT
+    cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
+    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
-cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >> $ENTRY_SCRIPT
+cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
+echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 echo "[+} Creating VERSION file..."
-RUBY_VERSION=$($TMP_DIR/lib/portable-ruby/bin.real/ruby --version)
-FPM_VERSION=$($TMP_DIR/fpm --version)
-echo "$RUBY_VERSION" > $TMP_DIR/VERSION.txt
-echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
+RUBY=$TMP_DIR/lib/portable-ruby/bin.real/ruby
+# RUBY_VERSION=$($RUBY --version)
+# FPM_VERSION=$($TMP_DIR/fpm --version)
+# echo "$RUBY_VERSION" > $TMP_DIR/VERSION.txt
+# echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
 
-OUTPUT_FILE=${1:-"fpm-$FPM_VERSION-ruby$(ruby  -e 'puts RUBY_VERSION').7z"}
-echo "[+] Compressing files -> $OUTPUT_FILE"
-compressArtifact $OUTPUT_FILE $TMP_DIR
+# OUTPUT_FILE=${1:-"fpm-$FPM_VERSION-ruby$($RUBY -e 'puts RUBY_VERSION').7z"}
+# echo "[+] Compressing files -> $OUTPUT_FILE"
+# compressArtifact $OUTPUT_FILE $TMP_DIR
