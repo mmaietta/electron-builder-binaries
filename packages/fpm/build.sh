@@ -9,22 +9,19 @@ source $BASEDIR/scripts/utils.sh
 TMP_DIR=/tmp/fpm
 rm -rf $TMP_DIR
 mkdir -p $TMP_DIR
-# GEM_HOME=/tmp/ruby-gems
 
 # --------------------------------------------------------
 
-source $BASEDIR/packages/fpm/version.sh # exports RUBY_VERSION & FPM_VERSION
+source $BASEDIR/packages/fpm/version.sh # exports RUBY_VERSION
 echo "RUBY_VERSION: $RUBY_VERSION"
 
 # --------------------------------------------------------
-# rm -rf $TMP_DIR/ruby/$RUBY_VERSION/{build_info,cache,doc,extensions,doc,plugins,specifications,tests}
-BUNDLE_DIR=$TMP_DIR/lib/portable-ruby
 
-# === CLEANUP ===
+BUNDLE_DIR=$TMP_DIR/lib/portable-ruby
 rm -rf "$BUNDLE_DIR"
 
 # copy vendor files directly from the npm package
-echo "[+] Copying fpm files..."
+echo "[+] Copying fpm files from pnpm install..."
 GIT_REPO_DIR=$TMP_DIR/lib/app
 mkdir -p $GIT_REPO_DIR
 cp -a $BASEDIR/packages/fpm/node_modules/fpm/{bin,lib,misc,templates} $GIT_REPO_DIR
@@ -45,13 +42,13 @@ for gems in "bundler -v 2.6.7" "ostruct logger"; do
     GEM_COMMAND="gem install $gems --no-document --quiet"
     $GEM_COMMAND || sudo $GEM_COMMAND
 done
+echo "[+] Installing fpm bundle..."
 (cd "$VENDOR_DIR" && bundle install --path=. --without development test)
 rm -rf "$VENDOR_DIR/**/cache"
 
 # copy ruby interpreter and libraries
 RUBY_BIN="$(which ruby)"
 RUBY_REAL_BIN="$(readlink -f "$RUBY_BIN")"
-echo "[+] Ruby binary: $RUBY_REAL_BIN"
 
 GEM_DIR=$(ruby -e 'puts Gem.dir')
 STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
@@ -59,7 +56,7 @@ SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
 VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
 BIN_DIR=$(ruby -e 'puts RbConfig::CONFIG["bindir"]')
 
-echo "[+] Copying core Ruby dirs..."
+echo "[+] Copying core Ruby directories..."
 echo "  ↳ $GEM_DIR -> $BUNDLE_DIR/"
 rsync -a "$GEM_DIR" "$BUNDLE_DIR/"
 echo "  ↳ $STD_LIB_DIR -> $BUNDLE_DIR/"
@@ -133,13 +130,7 @@ if [ "$(uname)" = "Darwin" ]; then
     # done
 else
     # Linux
-
-    # # === COPY RUBY BINARY ===
-    # echo "[+] Copying Ruby binary..."
-    # cp -a "$RUBY_REAL_BIN" "$BIN_REAL_DIR/ruby"
-
-    ls -al $BIN_REAL_DIR
-    echo "[+] Patching RPATH to use bundled lib/"
+    echo "[+] Patching RPATH to use bundled libraries..."
     patchelf --set-rpath '$ORIGIN/../lib' "$BIN_REAL_DIR/ruby"
 
     # Find and copy all shared lib dependencies
@@ -165,24 +156,19 @@ cp "$BASEDIR/packages/fpm/assets/fpm" $ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 mkdir -p $BUNDLE_DIR/bin $BIN_REAL_DIR
-for file in "$BIN_REAL_DIR"/*; do
-    bin=$(basename "$file")
+for FILE in "$BIN_REAL_DIR"/*; do
+    BIN=$(basename "$FILE")
     # Skip if not executable
-    if [[ ! -x "$file" ]]; then
-        echo "  [SKIP] $bin"
+    if [[ ! -x "$FILE" ]]; then
+        echo "  [SKIP] $BIN"
         continue
     fi
-    ENTRY_SCRIPT="$BUNDLE_DIR/bin/$bin"
-    echo "  ↳ $bin -> $ENTRY_SCRIPT"
+    ENTRY_SCRIPT="$BUNDLE_DIR/bin/$BIN"
+    echo "  ↳ $BIN -> $ENTRY_SCRIPT"
     cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
-    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$bin\" \"\$@\"" >>$ENTRY_SCRIPT
+    echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
-
-# ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby_environment
-# echo "  ↳ ruby env setup -> $ENTRY_SCRIPT"
-# cat $BASEDIR/packages/fpm/assets/ruby_environment | sed "s|RUBY_VERSION|$RUBY_VERSION|g" > $ENTRY_SCRIPT
-# chmod +x $ENTRY_SCRIPT
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
@@ -190,93 +176,11 @@ cp "$BASEDIR/packages/fpm/assets/entrypoint.sh" $ENTRY_SCRIPT
 echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
-# ENTRY_SCRIPT=$BUNDLE_DIR/lib/restore_environment.rb
-# echo "  ↳ ruby env cleanup -> $ENTRY_SCRIPT"
-# cp $BASEDIR/packages/fpm/assets/{restore_environment.rb,ca-bundle.crt} $BUNDLE_DIR/lib/
-# chmod +x $ENTRY_SCRIPT
-
-# echo "[+] Copying Ruby libraries..."
-# GEM_DIR=$(ruby -e 'puts Gem.dir')
-# STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
-# SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
-# VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
-# RUBY_LIB_DIR=$TMP_DIR/lib/ruby/lib/ruby
-# mkdir -p $RUBY_LIB_DIR/gems $RUBY_LIB_DIR/site_ruby $RUBY_LIB_DIR/vendor_ruby
-# echo "  ↳ $GEM_DIR -> $RUBY_LIB_DIR/gems/$RUBY_VERSION"
-# cp -a $GEM_DIR $RUBY_LIB_DIR/gems/$RUBY_VERSION
-# echo "  ↳ $STD_LIB_DIR -> $RUBY_LIB_DIR"
-# cp -a $STD_LIB_DIR $RUBY_LIB_DIR
-# echo "  ↳ $SITE_LIB_DIR -> $RUBY_LIB_DIR/site_ruby (optional)"
-# cp -a $SITE_LIB_DIR $RUBY_LIB_DIR/site_ruby || true
-# echo "  ↳ $VENDOR_LIB_DIR -> $RUBY_LIB_DIR/vendor_ruby (optional)"
-# cp -a $VENDOR_LIB_DIR $RUBY_LIB_DIR/vendor_ruby || true
-# Get key paths
-
-# echo "Creating launcher..."
-# cat <<EOF >"$PORTABLE_DIR/run-portable-ruby.sh"
-# #!/bin/bash
-# export GEM_HOME="\$(pwd)/$(basename "$GEM_DIR")"
-# export GEM_PATH="\$GEM_HOME"
-# export PATH="\$(pwd)/bin:\$GEM_HOME/bin:\$PATH"
-# exec "\$(pwd)/bin/ruby" "\$@"
-# EOF
-
-# chmod +x "$PORTABLE_DIR/run-portable-ruby.sh"
-
-# echo "✅ Portable Ruby created at: $PORTABLE_DIR"
-
 echo "[+} Creating VERSION file..."
-# RUBY_VERSION=$($TMP_DIR/lib/ruby/bin.real/ruby --version)
-# FPM_VERSION=$($TMP_DIR/fpm --version)
-# echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
-# echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
+RUBY_VERSION=$($TMP_DIR/lib/portable-ruby/bin.real/ruby --version)
+FPM_VERSION=$($TMP_DIR/fpm --version)
+echo "Ruby: $RUBY_VERSION" > $TMP_DIR/VERSION.txt
+echo "Fpm: $FPM_VERSION" >> $TMP_DIR/VERSION.txt
 
 echo "[+] Compressing files -> $OUTPUT_FILE"
 compressArtifact $OUTPUT_FILE $TMP_DIR
-
-# echo "[+] Creating archive..."
-# ARCHIVE_NAME="ruby_user_bundle.tar.gz"
-# cd $BASEDIR
-# tar -czf "$ARCHIVE_NAME" -C "$TMP_DIR/.." "$(basename $TMP_DIR)"
-# pwd
-# ls -al
-# echo "[✓] Done. Archive: $ARCHIVE_NAME"
-
-# TARGET_DIR="$BIN_REAL_DIR"  # Default to current dir
-# EXPECTED_ARCH="$(uname -m)"
-
-# echo "[+] Scanning $TARGET_DIR for binaries..."
-# echo "[+] Expected architecture: $EXPECTED_ARCH"
-# echo
-
-# fail=0
-
-# find "$TARGET_DIR" -type f -exec file {} + | grep -E 'ELF|Mach-O' | while read -r line; do
-#     file_path=$(echo "$line" | cut -d: -f1)
-#     arch_info=$(echo "$line" | cut -d: -f2-)
-
-#     if [[ "$arch_info" =~ x86_64 && "$EXPECTED_ARCH" != x86_64 ]]; then
-#         echo "❌ Mismatch: $file_path is x86_64"
-#         fail=1
-#     elif [[ "$arch_info" =~ aarch64 && "$EXPECTED_ARCH" != aarch64 ]]; then
-#         echo "❌ Mismatch: $file_path is aarch64"
-#         fail=1
-#     elif [[ "$arch_info" =~ arm64 && "$EXPECTED_ARCH" != arm64 ]]; then
-#         echo "❌ Mismatch: $file_path is arm64"
-#         fail=1
-#     elif [[ "$arch_info" =~ x86_64 || "$arch_info" =~ aarch64 || "$arch_info" =~ arm64 ]]; then
-#         echo "✅ OK: $file_path"
-#     else
-#         echo "❓ Unknown arch in: $file_path.\nArch info: $arch_info"
-#         fail=1
-#     fi
-# done
-
-# if [[ $fail -ne 0 ]]; then
-#     echo
-#     echo "❌ Architecture mismatch found!"
-#     exit 1
-# else
-#     echo
-#     echo "✅ All binaries match host architecture: $EXPECTED_ARCH"
-# fi
