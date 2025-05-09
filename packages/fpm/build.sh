@@ -27,14 +27,14 @@ cp -a $BASEDIR/packages/fpm/node_modules/fpm/lib/fpm/version.rb $VENDOR_DIR/lib/
 
 LIB_DIR="$BUNDLE_DIR/lib"
 BIN_REAL_DIR="$BUNDLE_DIR/bin.real"
-mkdir -p "$BIN_REAL_DIR" "$LIB_DIR"
+mkdir -p "$BIN_REAL_DIR" "$BUNDLE_DIR/gems" "$LIB_DIR/ruby/site_ruby" "$LIB_DIR/ruby/vendor_ruby" 
 
-echo "[+] Installing Ruby deps..."
-for gems in "bundler -v 2.6.2" "ostruct logger"; do
-    echo "  ↳ Installing $gems"
-    GEM_COMMAND="gem install $gems --no-document --quiet"
-    $GEM_COMMAND || sudo $GEM_COMMAND
-done
+# echo "[+] Installing Ruby deps..."
+# for gems in "bundler -v 2.6.2" "ostruct logger"; do
+#     echo "  ↳ Installing $gems"
+#     GEM_COMMAND="gem install $gems --no-document --quiet"
+#     $GEM_COMMAND || sudo $GEM_COMMAND
+# done
 echo "[+] Installing fpm bundle..."
 (cd "$VENDOR_DIR" && bundle install --path=. --without development test)
 rm -rf "$VENDOR_DIR/**/cache"
@@ -43,21 +43,24 @@ rm -rf "$VENDOR_DIR/**/cache"
 RUBY_BIN="$(which ruby)"
 RUBY_REAL_BIN="$(readlink -f "$RUBY_BIN")"
 
-GEM_DIR=$(ruby -e 'puts Gem.dir')
-STD_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["rubylibdir"]')
-SITE_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["sitelibdir"]')
-VENDOR_LIB_DIR=$(ruby -e 'puts RbConfig::CONFIG["vendorlibdir"]')
-BIN_DIR=$(ruby -e 'puts RbConfig::CONFIG["bindir"]')
-
-echo "[+] Merging core Ruby directories for easier env access..."
-echo "  ↳ $GEM_DIR -> $BUNDLE_DIR/"
-rsync -a "$GEM_DIR" "$BUNDLE_DIR/"
-echo "  ↳ $STD_LIB_DIR -> $BUNDLE_DIR/"
-rsync -a "$STD_LIB_DIR" "$BUNDLE_DIR/"
-echo "  ↳ $SITE_LIB_DIR -> $BUNDLE_DIR/"
-rsync -a "$SITE_LIB_DIR" "$BUNDLE_DIR/"
-echo "  ↳ $VENDOR_LIB_DIR -> $BUNDLE_DIR/"
-rsync -a "$VENDOR_LIB_DIR" "$BUNDLE_DIR/"
+GEM_DIR=$(ruby -rrbconfig -e 'puts Gem.dir')
+STD_LIB_DIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["rubylibdir"]')
+SITE_LIB_DIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["sitelibdir"]')
+VENDOR_LIB_DIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["vendorlibdir"]')
+BIN_DIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["bindir"]')
+RUBY_ARCHDIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["arch"]')
+# PREFIX_DIR=$(ruby -rrbconfig -e 'puts RbConfig::CONFIG["prefix"]')/ruby
+echo "[+] Copying core Ruby directories for easier env access..."
+echo "  ↳ $GEM_DIR -> $BUNDLE_DIR"
+rsync -a "$GEM_DIR" "$BUNDLE_DIR"
+# echo "  ↳ $STD_LIB_DIR -> $BUNDLE_DIR/"
+# rsync -a "$STD_LIB_DIR" "$BUNDLE_DIR/"
+echo "  ↳ $STD_LIB_DIR -> $LIB_DIR/ruby"
+rsync -a "$STD_LIB_DIR" "$LIB_DIR/ruby"
+echo "  ↳ $SITE_LIB_DIR -> $LIB_DIR/ruby/site_ruby"
+rsync -a "$SITE_LIB_DIR" "$LIB_DIR/ruby/site_ruby"
+echo "  ↳ $VENDOR_LIB_DIR -> $LIB_DIR/ruby/vendor_ruby"
+rsync -a "$VENDOR_LIB_DIR" "$LIB_DIR/ruby/vendor_ruby"
 echo "  ↳ $BIN_DIR -> $BIN_REAL_DIR/"
 rsync -a "$BIN_DIR"/* "$BIN_REAL_DIR/"
 
@@ -145,7 +148,7 @@ fi
 echo "[+] Creating entrypoint/wrapper scripts..."
 ENTRY_SCRIPT=$TMP_DIR/fpm
 echo "  ↳ fpm entrypoint -> $ENTRY_SCRIPT"
-cat "$BASEDIR/packages/fpm/assets/fpm" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
+cat "$BASEDIR/packages/fpm/assets/fpm" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" | sed "s|GEM_ARCH_DIR|$RUBY_ARCHDIR|g" >$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
 
 mkdir -p $BUNDLE_DIR/bin $BIN_REAL_DIR
@@ -158,16 +161,19 @@ for FILE in "$BIN_REAL_DIR"/*; do
     fi
     ENTRY_SCRIPT="$BUNDLE_DIR/bin/$BIN"
     echo "  ↳ $BIN -> $ENTRY_SCRIPT"
-    cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
+    cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" | sed "s|GEM_ARCH_DIR|$RUBY_ARCHDIR|g" >$ENTRY_SCRIPT
     echo "exec \"\$ROOT/bin.real/ruby\" \"\$ROOT/bin.real/$BIN\" \"\$@\"" >>$ENTRY_SCRIPT
     chmod +x $ENTRY_SCRIPT
 done
 
 ENTRY_SCRIPT=$BUNDLE_DIR/bin/ruby
 echo "  ↳ ruby entrypoint -> $ENTRY_SCRIPT"
-cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" >$ENTRY_SCRIPT
+cat "$BASEDIR/packages/fpm/assets/entrypoint.sh" | sed "s|GEM_DIR|$(basename "$GEM_DIR")|g" | sed "s|GEM_ARCH_DIR|$RUBY_ARCHDIR|g" >$ENTRY_SCRIPT
 echo "exec \"\$ROOT/bin.real/ruby\" \"\$@\"" >>$ENTRY_SCRIPT
 chmod +x $ENTRY_SCRIPT
+
+echo "[+] Copy rbconfig patch for running portable bundle"
+cp -a "$BASEDIR/packages/fpm/assets/patch-rbconfig.rb" "$BUNDLE_DIR/"
 
 echo "[+} Creating VERSION file..."
 RUBY=$TMP_DIR/lib/portable-ruby/bin.real/ruby

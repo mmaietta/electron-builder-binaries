@@ -141,8 +141,9 @@ RUN curl -L https://cache.ruby-lang.org/pub/ruby/3.4/ruby-$RUBY_VERSION.tar.gz |
     eval ./configure \
     # --prefix=$RUBY_PREFIX \
     --disable-install-doc \
-    # --enable-shared \
-    # --disable-static \
+    --enable-shared \
+    --disable-static \
+    --enable-load-relative \
     $ARCH_FLAGS \
     && \
     make -j"$(nproc)" && \
