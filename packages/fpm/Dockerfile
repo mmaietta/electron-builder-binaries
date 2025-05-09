@@ -1,29 +1,11 @@
-# syntax=docker/dockerfile:1.4
-
 ARG TARGETARCH=x86_64
 ARG RUBY_VERSION=3.1.4
+
 FROM --platform=linux/${TARGETARCH} buildpack-deps:22.04-curl AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-c"]
 
-# Install required build tools and dependencies
-# RUN apt-get update && apt-get install -y \
-#   gcc \
-#   g++ \
-#   autoconf \
-#   bison \
-#   git \
-#   libssl-dev \
-#   libreadline-dev \
-#   libyaml-dev \
-#   zlib1g-dev \
-#   libffi-dev \
-#   libgdbm-dev \
-#   file \
-#   patchelf \
-#   tar \
-#   && rm -rf /var/lib/apt/lists/*
-# SHELL ["/bin/bash", "-c"]
 # ---- Build stage ----
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -75,7 +57,7 @@ fi
 # Clone Ruby source
 ARG RUBY_VERSION
 WORKDIR /ruby
-RUN git clone --depth 1 --branch "v3_1_4" https://github.com/ruby/ruby.git src
+RUN git clone --depth 1 --branch v${RUBY_VERSION//./_} https://github.com/ruby/ruby.git src
 # RUN curl -L https://cache.ruby-lang.org/pub/ruby/3.4/ruby-$RUBY_VERSION.tar.gz | tar xz
 
 WORKDIR /ruby/src
@@ -113,10 +95,10 @@ ARG TARGETARCH
 #     EOF
 # RUN chmod +x /ruby/install/run_ruby.sh
 ENV PATH="$RUBY_PREFIX/bin:$PATH"
-RUN gem install --no-document fpm
+RUN gem install --no-document fpm bundler
 
 # Create compressed portable archive
-RUN tar -czvf /ruby-${RUBY_VERSION}-${TARGETARCH}.tar.gz -C $RUBY_PREFIX .
+RUN tar -czf /ruby-${RUBY_VERSION}-${TARGETARCH}.tar.gz -C $RUBY_PREFIX .
 
 # ---- Runtime stage ----
 FROM --platform=linux/${TARGETARCH} buildpack-deps:22.04-curl AS runtime
