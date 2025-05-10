@@ -13,21 +13,24 @@ if [ "$OS_TARGET" = "darwin" ]; then
     echo "Building for macOS"
     bash "$CWD/assets/compile-portable-ruby.sh"
 else
-    OPTIONS="x86_64, 386, arm32, arm64"
+    OPTIONS="x86_64, i386, arm32, arm64"
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
         echo "Architecture not specified. Options are: $OPTIONS."
         echo "Defaulting to x86_64."
         ARCH="x86_64"
     fi
-    # need to use buildpack-deps/bookworm in order to build for i386
     if [ "$ARCH" = "x86_64" ]; then
+        PLATFORMARCH=amd64
         DOCKER_IMAGE=amd64/buildpack-deps:22.04-curl
-    elif [ "$ARCH" = "386" ]; then
+    elif [ "$ARCH" = "i386" ]; then
+        PLATFORMARCH=amd64
         DOCKER_IMAGE=i386/buildpack-deps:22.04-curl
     elif [ "$ARCH" = "arm32" ]; then
+        PLATFORMARCH=armhf
         DOCKER_IMAGE=arm32v7/buildpack-deps:22.04-curl
     elif [ "$ARCH" = "arm64" ]; then
+        PLATFORMARCH=arm64
         DOCKER_IMAGE=arm64v8/buildpack-deps:22.04-curl
     else
         echo "Unknown architecture: $ARCH. Options supported: $OPTIONS."
@@ -71,6 +74,7 @@ else
         -f "$CWD/assets/Dockerfile" \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --build-arg TARGETARCH=$ARCH \
+        --build-arg PLATFORMARCH=$PLATFORMARCH \
         -t $DOCKER_TAG \
         $CWD
         # --progress=plain \ # Add to above for verbose output

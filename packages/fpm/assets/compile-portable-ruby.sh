@@ -84,8 +84,8 @@ else
     autoconf
     ./autogen.sh
     echo "  ↳ Running configure..."
-    if [ "$TARGETARCH" = "386" ]; then
-        echo "    ↳ Adding 32-bit architecture flags."
+    if [ "$TARGETARCH" = "i386" ]; then
+        echo "    ↳ Using 32-bit architecture flags."
         ./configure \
             --prefix="$RUBY_PREFIX" \
             --disable-install-doc \
@@ -135,6 +135,13 @@ export PATH="\$RUBY_DIR/bin:\$PATH"
 export GEM_HOME="\$RUBY_DIR/gems"
 export GEM_PATH="\$GEM_HOME"
 export RUBYLIB="\$RUBY_DIR/lib:\$RUBYLIB"
+if [ "\$(uname)" = "Darwin" ]; then
+    # Remove quarantine attribute on macOS
+    # This is necessary to avoid the "ruby is damaged and can't be opened" error when running the ruby interpreter for the first time
+    if grep -q "com.apple.quarantine" <<< "\$(xattr \$RUBY_DIR/bin/ruby)"; then
+        xattr -d com.apple.quarantine \$RUBY_DIR/bin/ruby
+    fi
+fi
 EOF
 chmod +x "$INSTALL_DIR/ruby.env"
 
