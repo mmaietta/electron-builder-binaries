@@ -18,7 +18,7 @@ RUN apt-get update -qq && apt-get install -yq \
     gcc g++ make autoconf bison git \
     libssl-dev libreadline-dev libyaml-dev \
     zlib1g-dev libffi-dev libgdbm-dev \
-    file patchelf tar ruby-dev
+    file patchelf tar ruby-dev valgrind
 
 # Enable i386 multilib toolchain if needed
 ARG TARGETARCH
@@ -26,7 +26,7 @@ RUN if [ "$TARGETARCH" = "386" ]; then \
     dpkg --add-architecture i386 && \
     apt-get update -qq && \
     apt-get install -yq \
-    gcc-multilib g++-multilib \
+    gcc-multilib g++-multilib valgrind:i386 \
     libc6-dev-i386 libgcc-11-dev:i386 libstdc++-11-dev:i386; \
     fi
 
@@ -37,5 +37,4 @@ ARG RUBY_VERSION
 RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
     export RUBY_VERSION=${RUBY_VERSION} && \
     export TARGETARCH=${TARGETARCH} && \
-    # Compile and if error, print the log
-    bash /tmp/assets/compile-portable-ruby.sh || cat /tmp/ruby-source/ruby-${RUBY_VERSION}/config.log || true
+    bash /tmp/assets/compile-portable-ruby.sh
