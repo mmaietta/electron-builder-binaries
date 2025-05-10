@@ -20,7 +20,7 @@ RUN apt-get update -qq && apt-get install -yq \
     libssl-dev libreadline-dev libyaml-dev \
     zlib1g-dev libffi-dev libgdbm-dev \
     file patchelf tar ruby-dev valgrind \
-    openssl
+    openssl libz-dev
 
 # Enable i386 multilib toolchain if needed
 ARG TARGETARCH
@@ -29,7 +29,8 @@ RUN if [ "$TARGETARCH" = "i386" ]; then \
     apt-get update -qq && \
     apt-get install -yq \
     gcc-multilib g++-multilib valgrind:i386 libssl-dev:i386 \
-    libc6-dev-i386 libgcc-11-dev:i386 libstdc++-11-dev:i386; \
+    libc6-dev-i386 libgcc-11-dev:i386 libstdc++-11-dev:i386 \
+    libz-dev:i386; \
     fi
 
 WORKDIR /tmp/assets

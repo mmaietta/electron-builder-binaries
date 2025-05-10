@@ -70,7 +70,8 @@ if [ "$(uname)" = "Darwin" ]; then
             echo "    ↳ Patching: $(basename "$f")"
             tail -n +2 "$f" >"$f.tmp"
             {
-                echo '#!/bin/bash'
+                echo '#!/bin/bash -e'
+                echo 'source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/ruby.env"'
                 echo 'exec "$(dirname "$0")/ruby" -x "$0" "$@"'
                 echo '#!/usr/bin/env ruby'
             } >"$f"
@@ -147,30 +148,13 @@ chmod +x "$INSTALL_DIR/ruby.env"
 
 echo "  ↳ fpm -> $INSTALL_DIR/fpm"
 cat <<EOF >"$INSTALL_DIR/fpm"
-#!/bin/bash
+#!/bin/bash -e
 # Portable Ruby environment setup
 source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)/ruby.env"
 
 exec "\$GEM_HOME/bin/fpm" "\$@"
 EOF
 chmod +x "$INSTALL_DIR/fpm"
-
-for executable in "$RUBY_PREFIX/bin"/*; do
-    if [[ -x "$executable" && ! -L "$executable" ]]; then
-        # Create a wrapper script for each executable
-        executable_name=$(basename "$executable")
-        echo "  ↳ $executable_name..."
-        ENTRY_SCRIPT="$INSTALL_DIR/$executable_name"
-        cat <<EOF >"$ENTRY_SCRIPT"
-#!/bin/bash
-# Portable Ruby environment setup
-source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)/ruby.env"
-
-exec "\$RUBY_DIR/bin/$executable_name" "\$@"
-EOF
-        chmod +x "$ENTRY_SCRIPT"
-    fi
-done
 
 # ===== Create VERSION file =====
 echo "[+] Creating VERSION file..."
