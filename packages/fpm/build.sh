@@ -13,12 +13,29 @@ if [ "$OS_TARGET" = "darwin" ]; then
     echo "Building for macOS"
     bash "$CWD/assets/compile-portable-ruby.sh"
 else
+    OPTIONS="x86_64, 386, arm32, arm64"
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
-        echo "Architecture not specified. Options are: x86_64, arm64, 386, armhf."
+        echo "Architecture not specified. Options are: $OPTIONS."
         echo "Defaulting to x86_64."
         ARCH="x86_64"
     fi
+    # need to use buildpack-deps/bookworm in order to build for i386
+    if [ "$ARCH" = "x86_64" ]; then
+        DOCKER_IMAGE=amd64/buildpack-deps:22.04-curl
+    elif [ "$ARCH" = "386" ]; then
+        DOCKER_IMAGE=i386/buildpack-deps:22.04-curl
+    elif [ "$ARCH" = "arm32" ]; then
+        DOCKER_IMAGE=arm32v7/buildpack-deps:22.04-curl
+    elif [ "$ARCH" = "arm64" ]; then
+        DOCKER_IMAGE=arm64v8/buildpack-deps:22.04-curl
+    else
+        echo "Unknown architecture: $ARCH. Options supported: $OPTIONS."
+        echo "Please set the ARCH environment variable to one of these values."
+        echo "Example: ARCH=x86_64 ./path/to/build.sh"
+        exit 1
+    fi
+
     echo "Building for architecture: $ARCH"
     cidFile="/tmp/linux-build-container-id-$ARCH"
     cleanup() {
@@ -27,8 +44,8 @@ else
             if docker ps -q --no-trunc | grep -q "$containerId"; then
                 echo "Stopping container $containerId."
                 docker rm "$containerId"
-                unlink "$cidFile"
             fi
+            unlink "$cidFile"
         fi
     }
     # check if previous docker containers are still running based off of container lockfile
@@ -43,7 +60,7 @@ else
         echo "on line ${BASH_LINENO[0]}"
 
         cleanup
-        
+
         exit $errorCode
     }
     trap f ERR

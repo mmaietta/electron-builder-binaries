@@ -81,21 +81,31 @@ if [ "$(uname)" = "Darwin" ]; then
     done
 else
     echo "  ↳ Compiling for Linux."
-    if [ "$TARGETARCH" = "386" ]; then
-        echo "    ↳ Adding 32-bit architecture flags."
-        export ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
-    fi
-    echo "  ↳ Running configure..."
     autoconf
     ./autogen.sh
-    ./configure \
-        --prefix="$RUBY_PREFIX" \
-        --disable-install-doc \
-        --enable-shared \
-        --disable-static \
-        --enable-load-relative \
-        --with-baseruby=$(which ruby) \
-        ${ARCH_FLAGS:-}
+    echo "  ↳ Running configure..."
+    if [ "$TARGETARCH" = "386" ]; then
+        echo "    ↳ Adding 32-bit architecture flags."
+        ./configure \
+            --prefix="$RUBY_PREFIX" \
+            --disable-install-doc \
+            --enable-shared \
+            --disable-static \
+            --enable-load-relative \
+            --with-baseruby=$(which ruby) \
+            --host=i386-linux-gnu \
+            CC="gcc -m32" \
+            CXX="g++ -m32" 1>/dev/null
+    else
+        ./configure \
+            --prefix="$RUBY_PREFIX" \
+            --disable-install-doc \
+            --enable-shared \
+            --disable-static \
+            --enable-load-relative \
+            --with-baseruby=$(which ruby) 1>/dev/null
+    fi
+
     echo "  ↳ Building Ruby..."
     make -j$(nproc) 1>/dev/null
     echo "  ↳ Installing Ruby..."
