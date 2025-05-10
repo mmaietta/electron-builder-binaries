@@ -10,12 +10,12 @@ mkdir -p $BASEDIR
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 if [ "$OS_TARGET" = "darwin" ]; then
-echo "Building for macOS"
+    echo "Building for macOS"
     bash assets/compile-portable-ruby.sh
 else
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
-        echo "Architecture not specified. Options are: x86_64, arm64, i386?, armhf."
+        echo "Architecture not specified. Options are: x86_64, arm64, 386, armhf."
         echo "Defaulting to x86_64."
         ARCH="x86_64"
     fi
@@ -45,7 +45,7 @@ else
         exit $errorCode
     }
     trap f ERR
-    
+
     DOCKER_TAG="fpm-builder:$ARCH"
     docker buildx build \
         --load \
@@ -59,10 +59,8 @@ else
 
     containerId=$(cat "$cidFile")
 
-    FPM_OUTPUT_DIR=$BASEDIR/out
+    FPM_OUTPUT_DIR=$CWD
     mkdir -p $FPM_OUTPUT_DIR
-    # docker cp -a "$containerId":/usr/src/app/ruby_user_bundle.tar.gz $FPM_OUTPUT_DIR
-    # docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
     docker cp -a "$containerId":/tmp/out $FPM_OUTPUT_DIR
 
     docker rm "$containerId"

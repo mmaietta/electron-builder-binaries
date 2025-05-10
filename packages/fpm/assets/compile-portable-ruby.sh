@@ -15,7 +15,6 @@ fi
 # ./out/OS_NAME-ARCHITECTURE/
 # darwin-arms64, darwin-x64, linux-arms64, etc...
 OUTPUT_DIR="$BASEDIR/out"
-rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # ===== Configuration =====
@@ -110,7 +109,7 @@ echo "  ↳ fpm -> $INSTALL_DIR/fpm"
 cat <<EOF >"$INSTALL_DIR/fpm"
 #!/bin/bash
 # Portable Ruby environment setup
-source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/ruby.env"
+source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}") && pwd)/ruby.env"
 
 exec "\$GEM_HOME/bin/fpm" "\$@"
 EOF
@@ -121,7 +120,7 @@ for executable in "$RUBY_PREFIX/bin"/*; do
         # Create a wrapper script for each executable
         executable_name=$(basename "$executable")
         echo "  ↳ $executable_name..."
-        ENTRY_SCRIPT="$INSTALL_DIR/ruby-install/$executable_name"
+        ENTRY_SCRIPT="$INSTALL_DIR/$executable_name"
         cat "$BASEDIR/assets/entrypoint-template.sh" | sed "s|EXECUTABLE|${executable_name}|g" >"$ENTRY_SCRIPT"
         chmod +x "$ENTRY_SCRIPT"
     fi
@@ -129,15 +128,15 @@ done
 
 # ===== Create VERSION file =====
 echo "[+] Creating VERSION file..."
-FPM_VERSION="" # $(fpm --version | cut -d' ' -f2)
-echo "ruby: $RUBY_VERSION" >$RUBY_PREFIX/VERSION.txt
-# echo "fpm: $FPM_VERSION" >> $RUBY_PREFIX/VERSION.txt
+FPM_VERSION="$($GEM_HOME/bin/fpm --version | cut -d' ' -f2)"
+echo "ruby: $RUBY_VERSION" >$INSTALL_DIR/VERSION.txt
+echo "fpm: $FPM_VERSION" >> $INSTALL_DIR/VERSION.txt
 
 echo "[+] Creating portable archive..."
 cd "$INSTALL_DIR"
 ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz"
 
-tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $RUBY_PREFIX .
+tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
 echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
 echo "  ↳ $OUTPUT_DIR/$ARCHIVE_NAME"
 

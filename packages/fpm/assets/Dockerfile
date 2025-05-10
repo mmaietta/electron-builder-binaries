@@ -1,7 +1,10 @@
 ARG TARGETARCH=x86_64
 ARG RUBY_VERSION=3.4.3
 
-FROM --platform=linux/${TARGETARCH} buildpack-deps:22.04-curl AS build
+# We need to use bookworm instead of 22.04 in order to be able to compile i386
+# TARGETARCH correpsonds to multi-arch image. Options can be found here:
+# https://hub.docker.com/layers/library/buildpack-deps/bookworm-curl/images/sha256-66af74907dbbf8b0b007f1364cfb5533d82b0914d637c5301d66debd326b5bf0
+FROM --platform=linux/${TARGETARCH} buildpack-deps:bookworm-curl AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -59,5 +62,3 @@ WORKDIR /tmp/assets
 RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
     export RUBY_VERSION=${RUBY_VERSION} && \
     bash /tmp/assets/compile-portable-ruby.sh
-
-# CMD ["echo 'FPM version: \$(fpm --version)' && echo 'Ruby version: \$(ruby -v)'"]

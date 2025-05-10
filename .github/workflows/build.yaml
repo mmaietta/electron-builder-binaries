@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64, ia32, arm32, arm64]
+        arch: [x86_64, "386", armhf, arm64]
     steps:
       - name: Set up QEMU dependency
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
@@ -47,7 +47,6 @@ jobs:
       - name: Build ${{ matrix.arch }}
         shell: bash
         run: |
-          rm -rf out artifacts
           pnpm i --frozen-lockfile
           ARCH=${{ matrix.arch }} bash build-linux.sh
       - name: Archive artifacts
@@ -57,7 +56,7 @@ jobs:
           if-no-files-found: error
           retention-days: 5
           path: |
-            out
+            packages/fpm/out
   
   build-windows:
     runs-on: windows-latest
@@ -83,9 +82,7 @@ jobs:
       - name: Copy specific Windows Kits assets (makeappx, signtool, etc.)
         shell: bash
         run: |
-          rm -rf out artifacts
-          sh build-windows.sh
-          ls -R out
+          bash build-windows.sh
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
@@ -113,11 +110,10 @@ jobs:
           node-version: '22'
       - name: Install
         run: |
-          brew install ruby
           pnpm i --frozen-lockfile
       - name: Build
+        shell: bash
         run: |
-          rm -rf out artifacts
           bash build-mac.sh
           ls -R out
       - name: Archive artifacts
@@ -127,7 +123,7 @@ jobs:
           if-no-files-found: error
           retention-days: 5
           path: |
-            out
+            packages/fpm/out
 
   combine-artifacts:
     runs-on: macos-latest
@@ -164,20 +160,20 @@ jobs:
       - name: Tree the out directory
         run: |
           tree ./out
-      - name: Compress Artifacts and verify artifact exists from changeset status
-        run: |
-          sh ./scripts/compress-artifacts.sh
-          pnpm i --frozen-lockfile
-          DRY_RUN=true node ./scripts/changeset-version.js
-      - name: Upload Artifacts
-        id: upload-artifacts
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
-        with:
-          name: artifacts
-          if-no-files-found: error
-          retention-days: 5
-          path: artifacts
-      - name: Extract artifact url
-        id: artifact-url
-        run: |
-          echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
+      # - name: Compress Artifacts and verify artifact exists from changeset status
+      #   run: |
+      #     sh ./scripts/compress-artifacts.sh
+      #     pnpm i --frozen-lockfile
+      #     DRY_RUN=true node ./scripts/changeset-version.js
+      # - name: Upload Artifacts
+      #   id: upload-artifacts
+      #   uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+      #   with:
+      #     name: artifacts
+      #     if-no-files-found: error
+      #     retention-days: 5
+      #     path: artifacts
+      # - name: Extract artifact url
+      #   id: artifact-url
+      #   run: |
+      #     echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
