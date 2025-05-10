@@ -116,17 +116,8 @@ else
     patchelf --set-rpath '$ORIGIN/../lib' $RUBY_PREFIX/bin/ruby
 fi
 
-# ===== Install gems =====
-echo "[+] Installing gems..."
-export PATH="$RUBY_PREFIX/bin:$PATH"
-mkdir -p "$RUBY_PREFIX/gems"
-export GEM_HOME="$RUBY_PREFIX/gems"
-export GEM_PATH="$RUBY_PREFIX/gems"
-gem install --no-document ${GEM_LIST[@]}
-
 # ===== Create wrapper scripts =====
-echo "[+] Creating environment scripts..."
-
+echo "[+] Creating environment script..."
 echo "  ↳ ruby.env -> $INSTALL_DIR/ruby.env"
 cat <<EOF >"$INSTALL_DIR/ruby.env"
 #!/bin/bash
@@ -146,20 +137,32 @@ fi
 EOF
 chmod +x "$INSTALL_DIR/ruby.env"
 
-echo "  ↳ fpm -> $INSTALL_DIR/fpm"
-cat <<EOF >"$INSTALL_DIR/fpm"
+# ===== Install gems =====
+echo "[+] Installing gems..."
+export PATH="$RUBY_PREFIX/bin:$PATH"
+mkdir -p "$RUBY_PREFIX/gems"
+export GEM_HOME="$RUBY_PREFIX/gems"
+export GEM_PATH="$RUBY_PREFIX/gems"
+gem install --no-document ${GEM_LIST[@]}
+
+echo "[+] Creating entrypoint scripts for installed gems..."
+for gem in "${GEM_LIST[@]}"; do
+    echo "  ↳ $gem -> $INSTALL_DIR/$gem"
+    cat <<EOF >"$INSTALL_DIR/$gem"
 #!/bin/bash -e
 # Portable Ruby environment setup
 source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)/ruby.env"
 
 exec "\$GEM_HOME/bin/fpm" "\$@"
 EOF
-chmod +x "$INSTALL_DIR/fpm"
+    chmod +x "$INSTALL_DIR/$gem"
+done
 
 # ===== Create VERSION file =====
 echo "[+] Creating VERSION file..."
-FPM_VERSION="$($GEM_HOME/bin/fpm --version | cut -d' ' -f2)"
-echo "ruby: $RUBY_VERSION" >$INSTALL_DIR/VERSION.txt
+FPM_VERSION="$($INSTALL_DIR/fpm --version | cut -d' ' -f2)"
+RUBY_VERSION_VERBOSE="$($RUBY_PREFIX/bin/ruby --version)"
+echo "$RUBY_VERSION_VERBOSE" >$INSTALL_DIR/VERSION.txt
 echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
 echo "[+] Creating portable archive..."
