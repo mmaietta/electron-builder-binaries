@@ -53,11 +53,11 @@ RUN if [ "$TARGETARCH" = "386" ]; then \
     fi
 
 ARG RUBY_VERSION
-COPY ./assets/compile-portable-ruby.sh /tmp/assets/compile-portable-ruby.sh
+COPY ./assets/ /tmp/assets/
 
 WORKDIR /tmp/assets
 RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
     export RUBY_VERSION=${RUBY_VERSION} && \
     bash /tmp/assets/compile-portable-ruby.sh
 
-CMD ["echo 'FPM version: \$(fpm --version)' && echo 'Ruby version: \$(ruby -v)'"]
+# CMD ["echo 'FPM version: \$(fpm --version)' && echo 'Ruby version: \$(ruby -v)'"]

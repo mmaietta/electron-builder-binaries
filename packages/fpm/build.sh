@@ -7,10 +7,18 @@ CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 BASEDIR=$CWD/out
 mkdir -p $BASEDIR
 
-if [ "$(uname)" = "Darwin" ]; then
+OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
+
+if [ "$OS_TARGET" = "darwin" ]; then
+echo "Building for macOS"
     bash assets/compile-portable-ruby.sh
 else
-    ## build for linux
+    echo "Building for Linux"
+    if [ -z "$ARCH" ]; then
+        echo "Architecture not specified. Options are: x86_64, arm64, i386?, armhf."
+        echo "Defaulting to x86_64."
+        ARCH="x86_64"
+    fi
     # check if previous docker containers are still running based off of container lockfile
     cidFile="/tmp/linux-build-container-id"
     if test -f "$cidFile"; then
@@ -44,18 +52,18 @@ else
         -f ./assets/Dockerfile \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --build-arg TARGETARCH=$ARCH \
+        --progress=plain \
         -t $DOCKER_TAG \
         .
     docker run --cidfile="$cidFile" $DOCKER_TAG
 
     containerId=$(cat "$cidFile")
 
-    FPM_OUTPUT_DIR=$BASEDIR/fpm/linux
-    rm -rf $FPM_OUTPUT_DIR
+    FPM_OUTPUT_DIR=$BASEDIR/out
     mkdir -p $FPM_OUTPUT_DIR
     # docker cp -a "$containerId":/usr/src/app/ruby_user_bundle.tar.gz $FPM_OUTPUT_DIR
     # docker cp -a "$containerId":/usr/src/app/out/fpm.7z $FPM_OUTPUT_DIR
-    docker cp -a "$containerId":/tmp/fpm $FPM_OUTPUT_DIR/fpm
+    docker cp -a "$containerId":/tmp/out $FPM_OUTPUT_DIR
 
     docker rm "$containerId"
     unlink "$cidFile"

@@ -4,13 +4,13 @@ set -euo pipefail
 
 BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 if [[ ${BASEDIR: -1} == "/" ]]; then
-  BASEDIR="."
+    BASEDIR="."
 fi
 echo "BASEDIR: $BASEDIR"
 # Check if the script is run from the correct directory
 if [[ ! -d "$BASEDIR/assets" ]]; then
-  echo "Please run this script from the fpm package directory."
-  exit 1
+    echo "Please run this script from the fpm package directory."
+    exit 1
 fi
 # ./out/OS_NAME-ARCHITECTURE/
 # darwin-arms64, darwin-x64, linux-arms64, etc...
@@ -22,8 +22,8 @@ mkdir -p "$OUTPUT_DIR"
 RUBY_VERSION=$RUBY_VERSION # 3.4.3
 # Check if RUBY_VERSION is set
 if [ -z "$RUBY_VERSION" ]; then
-  echo "RUBY_VERSION is not set. Please set it to the desired Ruby version."
-  exit 1
+    echo "RUBY_VERSION is not set. Please set it to the desired Ruby version."
+    exit 1
 fi
 SOURCE_DIR="/tmp/ruby-source"
 INSTALL_DIR="/tmp/portable-ruby"
@@ -48,16 +48,16 @@ if [ "$(uname)" = "Darwin" ]; then
     echo "[+] Installing dependencies..."
     xcode-select --install 2>/dev/null || true
     brew install -q autoconf automake libtool pkg-config openssl readline zlib
-    
+
     echo "  ↳ Compiling for MacOS."
 
     ./configure \
         --prefix="$RUBY_PREFIX" \
         --disable-install-doc \
-        --disable-install-rdoc \
         --with-openssl-dir="$(brew --prefix openssl)" \
         --with-readline-dir="$(brew --prefix readline)" \
         --with-zlib-dir="$(brew --prefix zlib)"
+    # --disable-install-rdoc \
     make -j"$(sysctl -n hw.ncpu)"
     make install
 else
@@ -69,13 +69,13 @@ else
     ./configure \
         --prefix="$RUBY_PREFIX" \
         --disable-install-doc \
-        --disable-install-rdoc \
         --enable-shared \
         --disable-static \
         --enable-load-relative \
-        --with-openssl-dir=/usr/include/openssl \
         --with-baseruby=$(which ruby) \
         ${ARCH_FLAGS:-}
+    # --with-openssl-dir=/usr/include/openssl \
+    # --disable-install-rdoc \
     make -j$(nproc)
     make install
 
@@ -112,7 +112,7 @@ cat <<EOF >"$INSTALL_DIR/fpm"
 # Portable Ruby environment setup
 source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/ruby.env"
 
-exec "\$RUBY_DIR/bin/EXECUTABLE" "\$@"
+exec "\$GEM_HOME/bin/fpm" "\$@"
 EOF
 chmod +x "$INSTALL_DIR/fpm"
 
@@ -129,9 +129,9 @@ done
 
 # ===== Create VERSION file =====
 echo "[+] Creating VERSION file..."
-FPM_VERSION=$(fpm --version | cut -d' ' -f2)
-echo "ruby: $RUBY_VERSION" > $RUBY_PREFIX/VERSION.txt
-echo "fpm: $FPM_VERSION" >> $RUBY_PREFIX/VERSION.txt
+FPM_VERSION="" # $(fpm --version | cut -d' ' -f2)
+echo "ruby: $RUBY_VERSION" >$RUBY_PREFIX/VERSION.txt
+# echo "fpm: $FPM_VERSION" >> $RUBY_PREFIX/VERSION.txt
 
 echo "[+] Creating portable archive..."
 cd "$INSTALL_DIR"
@@ -141,6 +141,6 @@ tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $RUBY_PREFIX .
 echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
 echo "  ↳ $OUTPUT_DIR/$ARCHIVE_NAME"
 
-# rm -rf "$SOURCE_DIR"
-# echo "✅ Cleaned up temporary files."
-# echo "✅ Done!"
+echo "[+] Cleaning up temporary files..."
+rm -rf "$SOURCE_DIR"
+echo "✅ Done!"
