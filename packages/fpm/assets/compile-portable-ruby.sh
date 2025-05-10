@@ -2,15 +2,29 @@
 
 set -euo pipefail
 
-BASEDIR=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
+BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
+if [[ ${BASEDIR: -1} == "/" ]]; then
+  BASEDIR="."
+fi
+echo "BASEDIR: $BASEDIR"
+# Check if the script is run from the correct directory
+if [[ ! -d "$BASEDIR/assets" ]]; then
+  echo "Please run this script from the fpm package directory."
+  exit 1
+fi
 # ./out/OS_NAME-ARCHITECTURE/
 # darwin-arms64, darwin-x64, linux-arms64, etc...
-OUTPUT_DIR="$BASEDIR/out/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+OUTPUT_DIR="$BASEDIR/out"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # ===== Configuration =====
-RUBY_VERSION="3.2.3"
+RUBY_VERSION=$RUBY_VERSION # 3.4.3
+# Check if RUBY_VERSION is set
+if [ -z "$RUBY_VERSION" ]; then
+  echo "RUBY_VERSION is not set. Please set it to the desired Ruby version."
+  exit 1
+fi
 SOURCE_DIR="/tmp/ruby-source"
 INSTALL_DIR="/tmp/portable-ruby"
 RUBY_PREFIX="$INSTALL_DIR/ruby-install"
@@ -46,7 +60,6 @@ if [ "$(uname)" = "Darwin" ]; then
         --with-zlib-dir="$(brew --prefix zlib)"
     make -j"$(sysctl -n hw.ncpu)"
     make install
-
 else
     echo "  ↳ Compiling for Linux."
     echo "  ↳ If for i386, please set env var ARCH_FLAGS=\"--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
@@ -122,9 +135,9 @@ echo "fpm: $FPM_VERSION" >> $RUBY_PREFIX/VERSION.txt
 
 echo "[+] Creating portable archive..."
 cd "$INSTALL_DIR"
-ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-darwin.tar.gz"
-# tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" ruby-install ruby.env ruby.sh
-tar -czf "$OUTPUT_DIR/fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}.tar.gz" -C $RUBY_PREFIX .
+ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz"
+
+tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $RUBY_PREFIX .
 echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
 echo "  ↳ $OUTPUT_DIR/$ARCHIVE_NAME"
 
