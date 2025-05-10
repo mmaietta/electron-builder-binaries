@@ -1,5 +1,23 @@
 # fpm
 
+## 2.0.2
+
+### Patch Changes
+
+- [`3339864`](https://github.com/electron-userland/electron-builder-binaries/commit/333986401ab407484cd9a769aead06828107fd05) Thanks [@mmaietta](https://github.com/mmaietta)! - test
+
+## 2.0.1
+
+### Patch Changes
+
+- [`f730ec0`](https://github.com/electron-userland/electron-builder-binaries/commit/f730ec081b0e5a394cb686e3a921c2efb3b2ac00) Thanks [@mmaietta](https://github.com/mmaietta)! - fix resolve deployment script
+
+## 2.0.0
+
+### Major Changes
+
+- [`ddc918d`](https://github.com/electron-userland/electron-builder-binaries/commit/ddc918ddf310cf563807788036d7153f80e4af61) Thanks [@mmaietta](https://github.com/mmaietta)! - updating `fpm` to `1.16.0`
+
 ## 1.0.0
 
 ### Major Changes
