@@ -28,7 +28,7 @@ RUN if [ "$TARGETARCH" = "386" ]; then \
     apt-get update -qq && \
     apt-get install -yq \
     gcc-multilib g++-multilib valgrind:i386 libssl-dev:i386 \
-    libc6-dev-i386 libgcc-11-dev:i386 libstdc++-11-dev:i386 \
+    libc6-dev:i386 libgcc-11-dev:i386 libstdc++-11-dev:i386 \
     libz-dev:i386 libyaml-dev:i386; \
     fi
 
