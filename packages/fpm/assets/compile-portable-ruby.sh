@@ -50,23 +50,42 @@ if [ "$(uname)" = "Darwin" ]; then
     brew install -q autoconf automake libtool pkg-config openssl readline zlib
 
     echo "  ↳ Compiling for MacOS."
-
+    echo "  ↳ Running configure..."
     ./configure \
         --prefix="$RUBY_PREFIX" \
         --disable-install-doc \
         --with-openssl-dir="$(brew --prefix openssl)" \
         --with-readline-dir="$(brew --prefix readline)" \
-        --with-zlib-dir="$(brew --prefix zlib)"
-    # --disable-install-rdoc \
-    make -j"$(sysctl -n hw.ncpu)"
-    make install
+        --with-zlib-dir="$(brew --prefix zlib)" \
+        1>/dev/null
+
+    echo "  ↳ Building Ruby..."
+    make -j"$(sysctl -n hw.ncpu)" 1>/dev/null
+    echo "  ↳ Installing Ruby..."
+    make install 1>/dev/null
+
+    echo "  ↳ Patching shebangs to use relative ruby interpreter..."
+    for f in "$RUBY_PREFIX/bin/"*; do
+        if head -n 1 "$f" | grep -qE '^#!.*ruby'; then
+            echo "    ↳ Patching: $(basename "$f")"
+            tail -n +2 "$f" >"$f.tmp"
+            {
+                echo '#!/bin/bash'
+                echo 'exec "$(dirname "$0")/ruby" -x "$0" "$@"'
+                echo '#!/usr/bin/env ruby'
+            } >"$f"
+            cat "$f.tmp" >>"$f"
+            rm "$f.tmp"
+            chmod +x "$f"
+        fi
+    done
 else
     echo "  ↳ Compiling for Linux."
     if [ "$TARGETARCH" = "386" ]; then
-        ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
-        echo "  ↳ Adding 32-bit architecture flags."
+        echo "    ↳ Adding 32-bit architecture flags."
+        export ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
     fi
-
+    echo "  ↳ Running configure..."
     autoconf
     ./autogen.sh
     ./configure \
@@ -77,11 +96,12 @@ else
         --enable-load-relative \
         --with-baseruby=$(which ruby) \
         ${ARCH_FLAGS:-}
-    # --with-openssl-dir=/usr/include/openssl \
-    # --disable-install-rdoc \
-    make -j$(nproc)
-    make install
+    echo "  ↳ Building Ruby..."
+    make -j$(nproc) 1>/dev/null
+    echo "  ↳ Installing Ruby..."
+    make install 1>/dev/null
 
+    echo "  ↳ Patching rpath to use relative library path..."
     patchelf --set-rpath '$ORIGIN/../lib' $RUBY_PREFIX/bin/ruby
 fi
 
@@ -149,6 +169,6 @@ tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
 echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
 echo "  ↳ $OUTPUT_DIR/$ARCHIVE_NAME"
 
-echo "[+] Cleaning up temporary files..."
+echo "[+] Cleaning up source code download..."
 rm -rf "$SOURCE_DIR"
 echo "✅ Done!"

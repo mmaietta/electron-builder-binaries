@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# !/usr/bin/env bash
 set -euo pipefail
 
 export RUBY_VERSION=3.4.3
@@ -11,7 +11,7 @@ OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 if [ "$OS_TARGET" = "darwin" ]; then
     echo "Building for macOS"
-    bash assets/compile-portable-ruby.sh
+    bash "$CWD/assets/compile-portable-ruby.sh"
 else
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
@@ -56,7 +56,8 @@ else
         --build-arg TARGETARCH=$ARCH \
         -t $DOCKER_TAG \
         $CWD
-        # --progress=plain \
+        # --progress=plain \ # Add to above for verbose output
+        # --no-cache \ # Add to above to force rebuild
     docker run --cidfile="$cidFile" $DOCKER_TAG
 
     containerId=$(cat "$cidFile")

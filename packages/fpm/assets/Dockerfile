@@ -49,16 +49,18 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Enable 32-bit cross compilation if needed
+ARG TARGETARCH
 RUN if [ "$TARGETARCH" = "386" ]; then \
     dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y gcc-multilib g++-multilib; \
+    apt-get install -y gcc-multilib g++-multilib && \
+    rm -rf /var/lib/apt/lists/*; \
     fi
 
-ARG RUBY_VERSION
+WORKDIR /tmp/assets
 COPY ./assets/ /tmp/assets/
 
-WORKDIR /tmp/assets
+ARG RUBY_VERSION
 RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
     export RUBY_VERSION=${RUBY_VERSION} && \
     export TARGETARCH=${TARGETARCH} && \
