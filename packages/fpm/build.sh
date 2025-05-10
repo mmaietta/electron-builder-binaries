@@ -19,14 +19,21 @@ else
         echo "Defaulting to x86_64."
         ARCH="x86_64"
     fi
+    echo "Building for architecture: $ARCH"
+    cidFile="/tmp/linux-build-container-id-$ARCH"
+    cleanup() {
+        if test -f "$cidFile"; then
+            containerId=$(cat "$cidFile")
+            if docker ps -q --no-trunc | grep -q "$containerId"; then
+                echo "Container $containerId is still running. Stopping it before running this script again."
+                docker rm "$containerId"
+                unlink "$cidFile"
+            fi
+        fi
+    }
     # check if previous docker containers are still running based off of container lockfile
-    cidFile="/tmp/linux-build-container-id"
-    if test -f "$cidFile"; then
-        echo "already running (removing $cidFile)"
-        containerId=$(cat "$cidFile")
-        unlink "$cidFile"
-        docker rm "$containerId"
-    fi
+    cleanup
+
     # cleanup docker container on error
     f() {
         errorCode=$? # save the exit code as the first thing done in the trap function
@@ -35,13 +42,8 @@ else
         echo "$BASH_COMMAND"
         echo "on line ${BASH_LINENO[0]}"
 
-        if test -f "$cidFile"; then
-            echo "removing $cidFile"
-            containerId=$(cat "$cidFile")
-            unlink "$cidFile"
-            docker rm "$containerId"
-        fi
-
+        cleanup
+        
         exit $errorCode
     }
     trap f ERR
@@ -52,9 +54,9 @@ else
         -f ./assets/Dockerfile \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --build-arg TARGETARCH=$ARCH \
-        --progress=plain \
         -t $DOCKER_TAG \
         .
+        # --progress=plain \
     docker run --cidfile="$cidFile" $DOCKER_TAG
 
     containerId=$(cat "$cidFile")

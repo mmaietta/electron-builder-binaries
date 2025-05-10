@@ -25,8 +25,9 @@ if [ -z "$RUBY_VERSION" ]; then
     exit 1
 fi
 SOURCE_DIR="/tmp/ruby-source"
-INSTALL_DIR="/tmp/portable-ruby"
-RUBY_PREFIX="$INSTALL_DIR/ruby-install"
+INSTALL_DIR="/tmp/ruby-install"
+RUBY_DIR_NAME="ruby-$RUBY_VERSION-portable"
+RUBY_PREFIX="$INSTALL_DIR/$RUBY_DIR_NAME"
 GEM_LIST=("fpm") # Add other gem names here
 
 # ===== Prepare folders =====
@@ -44,7 +45,7 @@ cd "ruby-${RUBY_VERSION}"
 # ===== Configure and compile Ruby =====
 echo "[+] Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
-    echo "[+] Installing dependencies..."
+    echo "  ↳ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
     brew install -q autoconf automake libtool pkg-config openssl readline zlib
 
@@ -61,7 +62,10 @@ if [ "$(uname)" = "Darwin" ]; then
     make install
 else
     echo "  ↳ Compiling for Linux."
-    echo "  ↳ If for i386, please set env var ARCH_FLAGS=\"--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
+    if [ "$TARGETARCH" = "386" ]; then
+        ARCH_FLAGS="--host=i386-linux-gnu CFLAGS='-m32' LDFLAGS='-m32'"
+        echo "  ↳ Adding 32-bit architecture flags."
+    fi
 
     autoconf
     ./autogen.sh
@@ -96,12 +100,11 @@ echo "  ↳ ruby.env -> $INSTALL_DIR/ruby.env"
 cat <<EOF >"$INSTALL_DIR/ruby.env"
 #!/bin/bash
 # Portable Ruby environment setup
-RUBY_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/ruby-install" && pwd)"
+RUBY_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/$RUBY_DIR_NAME" && pwd)"
 export PATH="\$RUBY_DIR/bin:\$PATH"
 export GEM_HOME="\$RUBY_DIR/gems"
 export GEM_PATH="\$GEM_HOME"
 export RUBYLIB="\$RUBY_DIR/lib:\$RUBYLIB"
-echo "Portable Ruby environment configured."
 EOF
 chmod +x "$INSTALL_DIR/ruby.env"
 
@@ -109,7 +112,7 @@ echo "  ↳ fpm -> $INSTALL_DIR/fpm"
 cat <<EOF >"$INSTALL_DIR/fpm"
 #!/bin/bash
 # Portable Ruby environment setup
-source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}") && pwd)/ruby.env"
+source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)/ruby.env"
 
 exec "\$GEM_HOME/bin/fpm" "\$@"
 EOF
@@ -121,7 +124,13 @@ for executable in "$RUBY_PREFIX/bin"/*; do
         executable_name=$(basename "$executable")
         echo "  ↳ $executable_name..."
         ENTRY_SCRIPT="$INSTALL_DIR/$executable_name"
-        cat "$BASEDIR/assets/entrypoint-template.sh" | sed "s|EXECUTABLE|${executable_name}|g" >"$ENTRY_SCRIPT"
+        cat <<EOF >"$ENTRY_SCRIPT"
+#!/bin/bash
+# Portable Ruby environment setup
+source "\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)/ruby.env"
+
+exec "\$RUBY_DIR/bin/$executable_name" "\$@"
+EOF
         chmod +x "$ENTRY_SCRIPT"
     fi
 done
@@ -130,7 +139,7 @@ done
 echo "[+] Creating VERSION file..."
 FPM_VERSION="$($GEM_HOME/bin/fpm --version | cut -d' ' -f2)"
 echo "ruby: $RUBY_VERSION" >$INSTALL_DIR/VERSION.txt
-echo "fpm: $FPM_VERSION" >> $INSTALL_DIR/VERSION.txt
+echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
 echo "[+] Creating portable archive..."
 cd "$INSTALL_DIR"

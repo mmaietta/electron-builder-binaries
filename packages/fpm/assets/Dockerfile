@@ -61,4 +61,5 @@ COPY ./assets/ /tmp/assets/
 WORKDIR /tmp/assets
 RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
     export RUBY_VERSION=${RUBY_VERSION} && \
+    export TARGETARCH=${TARGETARCH} && \
     bash /tmp/assets/compile-portable-ruby.sh
