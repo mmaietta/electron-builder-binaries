@@ -25,7 +25,7 @@ else
         if test -f "$cidFile"; then
             containerId=$(cat "$cidFile")
             if docker ps -q --no-trunc | grep -q "$containerId"; then
-                echo "Container $containerId is still running. Stopping it before running this script again."
+                echo "Stopping container $containerId."
                 docker rm "$containerId"
                 unlink "$cidFile"
             fi
@@ -51,11 +51,11 @@ else
     DOCKER_TAG="fpm-builder:$ARCH"
     docker buildx build \
         --load \
-        -f ./assets/Dockerfile \
+        -f "$CWD/assets/Dockerfile" \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --build-arg TARGETARCH=$ARCH \
         -t $DOCKER_TAG \
-        .
+        $CWD
         # --progress=plain \
     docker run --cidfile="$cidFile" $DOCKER_TAG
 
@@ -65,7 +65,6 @@ else
     mkdir -p $FPM_OUTPUT_DIR
     docker cp -a "$containerId":/tmp/out $FPM_OUTPUT_DIR
 
-    docker rm "$containerId"
-    unlink "$cidFile"
+    cleanup
 fi
 echo "Build completed successfully."
