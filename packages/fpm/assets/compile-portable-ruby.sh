@@ -123,15 +123,16 @@ cat <<EOF >"$INSTALL_DIR/ruby.env"
 #!/bin/bash
 # Portable Ruby environment setup
 RUBY_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/$RUBY_DIR_NAME" && pwd)"
-export PATH="\$RUBY_DIR/bin:\$PATH"
+RUBY_BIN="\$RUBY_DIR/bin"
+export PATH="\$RUBY_BIN:\$PATH"
 export GEM_HOME="\$RUBY_DIR/gems"
 export GEM_PATH="\$GEM_HOME"
 export RUBYLIB="\$RUBY_DIR/lib:\$RUBYLIB"
 if [ "\$(uname)" = "Darwin" ]; then
     # Remove quarantine attribute on macOS
     # This is necessary to avoid the "ruby is damaged and can't be opened" error when running the ruby interpreter for the first time
-    if grep -q "com.apple.quarantine" <<< "\$(xattr \$RUBY_DIR/bin/ruby)"; then
-        xattr -d com.apple.quarantine \$RUBY_DIR/bin/ruby
+    if grep -q "com.apple.quarantine" <<< "\$(xattr "\$RUBY_BIN/ruby")"; then
+        xattr -d com.apple.quarantine "\$RUBY_BIN/ruby"
     fi
 fi
 EOF
