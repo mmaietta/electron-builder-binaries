@@ -93,8 +93,12 @@ jobs:
             out
 
   build-mac:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.node }}
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [macos-13, macos-15] # macOS x64 and native arm64 runners
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
