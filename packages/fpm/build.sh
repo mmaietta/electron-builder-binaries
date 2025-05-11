@@ -12,17 +12,17 @@ if [ "$OS_TARGET" = "darwin" ]; then
 else
     # These are the --platform linux/ARCH options available for buildpack-deps:bookworm-curl
     # Pulled from: https://hub.docker.com/_/buildpack-deps/tags?name=bookworm-curl
-    ARCH_OPTIONS="amd64 arm/v5 arm/v7 arm64/v8 i386 mips64le ppc64le s390x"
+    ARCH_OPTIONS="x86_64 arm/v5 arm/v7 arm64/v8 i386 mips64le ppc64le s390x"
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
         echo "Architecture not specified. Options are: $ARCH_OPTIONS."
-        ARCH="amd64"
+        ARCH="x86_64"
         echo "Defaulting to $ARCH."
     fi
     if [[ "$ARCH_OPTIONS" != *"$ARCH"* ]]; then
         echo "Unknown architecture: $ARCH. Options supported: $ARCH_OPTIONS."
         echo "Please set the ARCH environment variable to one of these values."
-        echo "Example: ARCH=amd64 ./path/to/build.sh"
+        echo "Example: ARCH=x86_64 ./path/to/build.sh"
         exit 1
     fi
     echo "Building for architecture: $ARCH"
@@ -58,7 +58,6 @@ else
     docker buildx build \
         --load \
         -f "$CWD/assets/Dockerfile" \
-        --build-arg DOCKER_IMAGE=$(echo "$ARCH" | tr -d "/")/buildpack-deps:bookworm-curl \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --build-arg TARGETARCH=$ARCH \
         --progress=plain \

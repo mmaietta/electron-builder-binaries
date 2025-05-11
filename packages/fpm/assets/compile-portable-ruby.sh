@@ -6,7 +6,7 @@ BASEDIR=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 if [[ ${BASEDIR: -1} == "/" ]]; then
     BASEDIR="."
 fi
-echo "BASEDIR: $BASEDIR"
+echo "🎯 Base directory: $BASEDIR"
 # Check if the script is running from the correct directory
 if [[ ! -d "$BASEDIR/assets" ]]; then
     echo "Please run this script from the fpm package directory."
@@ -29,12 +29,12 @@ RUBY_PREFIX="$INSTALL_DIR/$RUBY_DIR_NAME"
 GEM_LIST=("fpm") # Add other gem names here
 
 # ===== Prepare folders =====
-echo "🔨 Creating install directories..."
+echo "🪏 Creating install directories..."
 rm -rf "$INSTALL_DIR" "$SOURCE_DIR"
 mkdir -p "$INSTALL_DIR" "$SOURCE_DIR"
 
 # ===== Download Ruby source =====
-echo "🔨 Downloading Ruby $RUBY_VERSION source..."
+echo "⬇️ Downloading Ruby $RUBY_VERSION source..."
 cd "$SOURCE_DIR"
 curl -O "https://cache.ruby-lang.org/pub/ruby/${RUBY_VERSION%.*}/ruby-${RUBY_VERSION}.tar.gz"
 tar -xzf "ruby-${RUBY_VERSION}.tar.gz"
@@ -43,12 +43,12 @@ cd "ruby-${RUBY_VERSION}"
 # ===== Configure and compile Ruby =====
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
-    echo "  🔨 Installing dependencies..."
+    echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
     brew install -q autoconf automake libtool pkg-config openssl readline zlib
 
-    echo "  🔨 Compiling for MacOS."
-    echo "  🔨 Running configure..."
+    echo "  🍎 Compiling for MacOS."
+    echo "  ⚙️ Running configure..."
     ./configure \
         --prefix="$RUBY_PREFIX" \
         --disable-install-doc \
@@ -59,7 +59,7 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "  🔨 Building Ruby..."
     make -j"$(sysctl -n hw.ncpu)" 1>/dev/null
-    echo "  🔨 Installing Ruby..."
+    echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
     echo "  🔨 Patching shebangs to use relative ruby interpreter..."
@@ -79,12 +79,12 @@ if [ "$(uname)" = "Darwin" ]; then
         fi
     done
 else
-    echo "  🔨 Compiling for Linux."
+    echo "  🐧 Compiling for Linux."
     autoconf
     ./autogen.sh
-    echo "  🔨 Running configure..."
+    echo "  ⚙️ Running configure..."
     if [ "$TARGETARCH" = "i386" ]; then
-        echo "    🔨 Using 32-bit architecture flags."
+        echo "    ✏️ Using 32-bit architecture flags."
         ./configure \
             --prefix="$RUBY_PREFIX" \
             --disable-install-doc \
@@ -109,7 +109,7 @@ else
 
     echo "  🔨 Building Ruby..."
     make -j$(nproc) 1>/dev/null
-    echo "  🔨 Installing Ruby..."
+    echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
     echo "  🔍 Scanning Ruby extensions for shared libraries..."
@@ -166,7 +166,7 @@ EOF
 chmod +x "$INSTALL_DIR/ruby.env"
 
 # ===== Install gems =====
-echo "🔨 Installing gems..."
+echo "💎 Installing gems..."
 export PATH="$RUBY_PREFIX/bin:$PATH"
 mkdir -p "$RUBY_PREFIX/gems"
 export GEM_HOME="$RUBY_PREFIX/gems"
