@@ -2,13 +2,10 @@
 
 ARG TARGETARCH=amd64
 ARG RUBY_VERSION=3.4.3
-ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
-# ARG DOCKER_IMAGE=buildpack-deps:22.04-curl
+# ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
+ARG DOCKER_IMAGE=buildpack-deps:22.04-curl
 
-# We need to use bookworm instead of 22.04 in order to be able to compile i386
-# TARGETARCH correpsonds to multi-arch image. Options can be found here:
-# https://hub.docker.com/layers/library/buildpack-deps/bookworm-curl/images/sha256-66af74907dbbf8b0b007f1364cfb5533d82b0914d637c5301d66debd326b5bf0
-FROM --platform=linux/${TARGETARCH} ${DOCKER_IMAGE} AS build
+FROM --platform=linux/x86_64 ${DOCKER_IMAGE} AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -23,7 +20,7 @@ RUN apt-get update -qq && apt-get install -yq \
 
 # Enable 386 multilib toolchain if needed
 ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "i386" ]; then \
+RUN if [ "$TARGETARCH" = "386" ]; then \
     dpkg --add-architecture i386 && \
     apt-get update -qq && \
     apt-get install -yq \
