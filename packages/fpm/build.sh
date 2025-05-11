@@ -4,7 +4,7 @@ set -euo pipefail
 export RUBY_VERSION=3.4.3
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
-BASEDIR=$CWD/out
+BASEDIR=$CWD/out/fpm
 mkdir -p $BASEDIR
 
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
