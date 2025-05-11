@@ -25,6 +25,11 @@ else
         echo "Example: ARCH=x86_64 ./path/to/build.sh"
         exit 1
     fi
+    if [ "$ARCH" = "386" ]; then
+        PLATFORM_ARCH="x64_64" # for --platform=linux/x86_64 multi-arch image compiling 32-bit
+    else
+        PLATFORM_ARCH="$ARCH"
+    fi
     echo "Building for architecture: $ARCH"
 
     ARCH_KEY=$(echo "$ARCH" | tr '/' '-')
@@ -58,7 +63,8 @@ else
     docker buildx build \
         --load \
         -f "$CWD/assets/Dockerfile" \
-        --build-arg TARGETARCH=$ARCH \
+        --build-arg PLATFORM_ARCH=$PLATFORM_ARCH \
+        --build-arg TARGET_ARCH=$ARCH \
         --build-arg RUBY_VERSION=$RUBY_VERSION \
         --progress=plain \
         -t $DOCKER_TAG \
