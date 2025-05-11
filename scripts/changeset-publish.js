@@ -101,7 +101,7 @@ async function run() {
         await new Promise((resolve) => setTimeout(resolve, 5000));
         return releaseArtifact(options, token, releaseName);
       }
-      process.exit(1);
+      throw err
     })
     console.log(`Artifacts for ${releaseName} uploaded successfully.`);
   }
