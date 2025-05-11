@@ -23,7 +23,7 @@ RUN apt-get update -qq && apt-get install -yq \
 
 # Enable 386 multilib toolchain if needed
 ARG TARGETARCH
-RUN if [ "$TARGETARCH" = "386" ]; then \
+RUN if [ "$TARGETARCH" = "i386" ]; then \
     dpkg --add-architecture i386 && \
     apt-get update -qq && \
     apt-get install -yq \

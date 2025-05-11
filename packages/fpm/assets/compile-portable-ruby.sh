@@ -83,7 +83,7 @@ else
     autoconf
     ./autogen.sh
     echo "  ↳ Running configure..."
-    if [ "$TARGETARCH" = "386" ]; then
+    if [ "$TARGETARCH" = "i386" ]; then
         echo "    ↳ Using 32-bit architecture flags."
         ./configure \
             --prefix="$RUBY_PREFIX" \
