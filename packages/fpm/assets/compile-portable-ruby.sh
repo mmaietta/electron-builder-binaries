@@ -43,12 +43,12 @@ cd "ruby-${RUBY_VERSION}"
 # ===== Configure and compile Ruby =====
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
-    echo "  ⏩️ Installing dependencies..."
+    echo "  🔨 Installing dependencies..."
     xcode-select --install 2>/dev/null || true
     brew install -q autoconf automake libtool pkg-config openssl readline zlib
 
-    echo "  ⏩️ Compiling for MacOS."
-    echo "  ⏩️ Running configure..."
+    echo "  🔨 Compiling for MacOS."
+    echo "  🔨 Running configure..."
     ./configure \
         --prefix="$RUBY_PREFIX" \
         --disable-install-doc \
@@ -57,15 +57,15 @@ if [ "$(uname)" = "Darwin" ]; then
         --with-zlib-dir="$(brew --prefix zlib)" \
         1>/dev/null
 
-    echo "  ⏩️ Building Ruby..."
+    echo "  🔨 Building Ruby..."
     make -j"$(sysctl -n hw.ncpu)" 1>/dev/null
-    echo "  ⏩️ Installing Ruby..."
+    echo "  🔨 Installing Ruby..."
     make install 1>/dev/null
 
-    echo "  ⏩️ Patching shebangs to use relative ruby interpreter..."
+    echo "  🔨 Patching shebangs to use relative ruby interpreter..."
     for f in "$RUBY_PREFIX/bin/"*; do
         if head -n 1 "$f" | grep -qE '^#!.*ruby'; then
-            echo "    ⏩️ Patching: $(basename "$f")"
+            echo "    🔨 Patching: $(basename "$f")"
             tail -n +2 "$f" >"$f.tmp"
             {
                 echo '#!/bin/bash -e'
@@ -79,12 +79,12 @@ if [ "$(uname)" = "Darwin" ]; then
         fi
     done
 else
-    echo "  ⏩️ Compiling for Linux."
+    echo "  🔨 Compiling for Linux."
     autoconf
     ./autogen.sh
-    echo "  ⏩️ Running configure..."
+    echo "  🔨 Running configure..."
     if [ "$TARGETARCH" = "i386" ]; then
-        echo "    ⏩️ Using 32-bit architecture flags."
+        echo "    🔨 Using 32-bit architecture flags."
         ./configure \
             --prefix="$RUBY_PREFIX" \
             --disable-install-doc \
@@ -107,46 +107,45 @@ else
             --with-baseruby=$(which ruby) 1>/dev/null
     fi
 
-    echo "  ⏩️ Building Ruby..."
+    echo "  🔨 Building Ruby..."
     make -j$(nproc) 1>/dev/null
-    echo "  ⏩️ Installing Ruby..."
+    echo "  🔨 Installing Ruby..."
     make install 1>/dev/null
 
-    echo "🔨 Scanning Ruby dependencies..."
-
-    echo "  ⏩️ Scanning Ruby extensions for shared libraries..."
+    echo "  🔍 Scanning Ruby extensions for shared libraries..."
     LIB_DIR="$RUBY_PREFIX/lib"
-    find "$LIB_DIR/ruby" -name '*.so' | while read -r ext_so; do
+
+    IFS=$'\n'
+    LDD_SEARCH_PATHS=("$RUBY_PREFIX/bin/ruby" $(find "$LIB_DIR/ruby" -type f -name '*.so'))
+    unset IFS
+
+    for ext_so in "${LDD_SEARCH_PATHS[@]}"; do
+        if [[ ! -f "$ext_so" ]]; then
+            echo "  ⏩️ Skipping $ext_so (not a file)"
+            continue
+        fi
+
         echo "  🔍 Scanning $ext_so"
         ldd "$ext_so" | awk '/=>/ { print $3 }' | while read -r dep; do
             if [[ -f "$dep" ]]; then
                 dest="$LIB_DIR/$(basename $dep)"
                 if [[ ! -f "$dest" ]]; then
-                    echo "    ⏩️ Copying $(basename $dep)"
+                    echo "    📝 Copying $(basename $dep)"
                     cp -u "$dep" "$LIB_DIR/"
                 fi
             fi
         done
-    done
 
-    echo "  ⏩️ Scanning Ruby interpreter binary..."
-    ldd "$RUBY_PREFIX/bin/ruby" | awk '/=>/ { print $3 }' | while read -r dep; do
-        if [[ -f "$dep" ]]; then
-            dest="$LIB_DIR/$(basename $dep)"
-            if [[ ! -f "$dest" ]]; then
-                echo "    ⏩️ Copying $(basename $dep)"
-                cp -u "$dep" "$LIB_DIR/"
-            fi
-        fi
+        SO_DIR=$(dirname "$ext_so")
+        REL_RPATH=$(realpath --relative-to="$SO_DIR" "$LIB_DIR")
+        echo "  🩹 Patching $(realpath --relative-to="$RUBY_PREFIX" "$ext_so") to rpath: \$ORIGIN/$REL_RPATH"
+        patchelf --set-rpath "\$ORIGIN/$REL_RPATH" "$ext_so"
     done
-
-    echo "  ⏩️ Patching rpath to use relative library path..."
-    patchelf --set-rpath '$ORIGIN/../lib' $RUBY_PREFIX/bin/ruby
 fi
 
 # ===== Create wrapper scripts =====
 echo "🔨 Creating environment script..."
-echo "  ⏩️ ruby.env -> $INSTALL_DIR/ruby.env"
+echo "  ✏️ ruby.env -> $INSTALL_DIR/ruby.env"
 cat <<EOF >"$INSTALL_DIR/ruby.env"
 #!/bin/bash
 # Portable Ruby environment setup
@@ -176,7 +175,7 @@ gem install --no-document ${GEM_LIST[@]}
 
 echo "🔨 Creating entrypoint scripts for installed gems..."
 for gem in "${GEM_LIST[@]}"; do
-    echo "  ⏩️ $gem -> $INSTALL_DIR/$gem"
+    echo "  ✏️ $gem -> $INSTALL_DIR/$gem"
     cat <<EOF >"$INSTALL_DIR/$gem"
 #!/bin/bash -e
 # Portable Ruby environment setup
@@ -199,9 +198,9 @@ cd "$INSTALL_DIR"
 ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGETARCH:-$(uname -m)}.tar.gz"
 
 tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
-echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
-echo "  ⏩️ $OUTPUT_DIR/$ARCHIVE_NAME"
+echo "🚢 Portable Ruby $RUBY_VERSION built and bundled at:"
+echo "  ⏭️ $OUTPUT_DIR/$ARCHIVE_NAME"
 
-echo "🔨 Cleaning up source code download..."
+echo "🗑️ Cleaning up source code download..."
 rm -rf "$SOURCE_DIR"
 echo "✅ Done!"
