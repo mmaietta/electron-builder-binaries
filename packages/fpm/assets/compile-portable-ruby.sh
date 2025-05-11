@@ -7,13 +7,11 @@ if [[ ${BASEDIR: -1} == "/" ]]; then
     BASEDIR="."
 fi
 echo "BASEDIR: $BASEDIR"
-# Check if the script is run from the correct directory
+# Check if the script is running from the correct directory
 if [[ ! -d "$BASEDIR/assets" ]]; then
     echo "Please run this script from the fpm package directory."
     exit 1
 fi
-# ./out/OS_NAME-ARCHITECTURE/
-# darwin-arms64, darwin-x64, linux-arms64, etc...
 OUTPUT_DIR="$BASEDIR/out/fpm"
 mkdir -p "$OUTPUT_DIR"
 

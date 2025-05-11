@@ -64,7 +64,7 @@ else
         -t $DOCKER_TAG \
         $CWD
     # --no-cache \ # Add to above to force rebuild
-    docker run --cidfile="$cidFile" $DOCKER_TAG
+    docker run --platform=linux/$ARCH --cidfile="$cidFile" $DOCKER_TAG
 
     containerId=$(cat "$cidFile")
 

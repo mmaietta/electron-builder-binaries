@@ -37,7 +37,6 @@ downloadArtifact()
 NAME="fpm"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
-mkdir -p "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
 for f in "$DESINTATION_DIR"/*; do
     hashArtifact "$NAME/$(basename "$f")"
