@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-ARG TARGETARCH=x86_64
+ARG TARGETARCH=amd64
 ARG RUBY_VERSION=3.4.3
 ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
 # ARG DOCKER_IMAGE=buildpack-deps:22.04-curl
