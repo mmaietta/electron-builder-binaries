@@ -83,7 +83,7 @@ else
     autoconf
     ./autogen.sh
     echo "  ⚙️ Running configure..."
-    if [ "$TARGETARCH" = "386" ]; then
+    if [ "$TARGET_ARCH" = "386" ]; then
         echo "    ✏️ Using 32-bit architecture flags."
         ./configure \
             --prefix="$RUBY_PREFIX" \
@@ -195,7 +195,7 @@ echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
 echo "🔨 Creating portable archive..."
 cd "$INSTALL_DIR"
-ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGETARCH:-$(uname -m)}.tar.gz"
+ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGET_ARCH:-$(uname -m)}.tar.gz"
 
 tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
 echo "🚢 Portable Ruby $RUBY_VERSION built and bundled at:"
