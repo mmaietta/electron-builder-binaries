@@ -14,7 +14,7 @@ if [[ ! -d "$BASEDIR/assets" ]]; then
 fi
 # ./out/OS_NAME-ARCHITECTURE/
 # darwin-arms64, darwin-x64, linux-arms64, etc...
-OUTPUT_DIR="$BASEDIR/out"
+OUTPUT_DIR="$BASEDIR/out/fpm"
 mkdir -p "$OUTPUT_DIR"
 
 # ===== Configuration =====

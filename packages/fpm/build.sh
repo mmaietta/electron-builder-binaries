@@ -4,9 +4,6 @@ set -euo pipefail
 export RUBY_VERSION=3.4.3
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
-BASEDIR=$CWD/out/fpm
-mkdir -p $BASEDIR
-
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 if [ "$OS_TARGET" = "darwin" ]; then
@@ -19,8 +16,8 @@ else
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
         echo "Architecture not specified. Options are: $ARCH_OPTIONS."
-        echo "Defaulting to amd64."
         ARCH="amd64"
+        echo "Defaulting to $ARCH."
     fi
     if [[ "$ARCH_OPTIONS" != *"$ARCH"* ]]; then
         echo "Unknown architecture: $ARCH. Options supported: $ARCH_OPTIONS."
