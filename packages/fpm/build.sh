@@ -26,7 +26,7 @@ else
         exit 1
     fi
     if [ "$ARCH" = "386" ]; then
-        PLATFORM_ARCH="x64_64" # for --platform=linux/x86_64 multi-arch image compiling 32-bit
+        PLATFORM_ARCH="x86_64" # for --platform=linux/x86_64 multi-arch image compiling 32-bit
     else
         PLATFORM_ARCH="$ARCH"
     fi
