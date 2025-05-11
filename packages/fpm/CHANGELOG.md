@@ -1,5 +1,11 @@
 # fpm
 
+## 3.0.0
+
+### Major Changes
+
+- [#31](https://github.com/mmaietta/electron-builder-binaries/pull/31) [`afce856`](https://github.com/mmaietta/electron-builder-binaries/commit/afce856c180aea46c7d778d01baf6b92d9f2ad54) Thanks [@mmaietta](https://github.com/mmaietta)! - chore(breaking): multi-arch docker/darwin builds of fpm 1.16 with ruby 3.4.4
+
 ## 2.0.2
 
 ### Patch Changes
