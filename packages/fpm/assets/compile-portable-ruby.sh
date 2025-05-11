@@ -110,6 +110,34 @@ else
     echo "  ↳ Installing Ruby..."
     make install 1>/dev/null
 
+    echo "[+] Scanning Ruby dependencies..."
+
+    echo "  ↳ Scanning Ruby extensions for shared libraries..."
+    LIB_DIR="$RUBY_PREFIX/lib"
+    find "$LIB_DIR/ruby" -name '*.so' | while read -r ext_so; do
+        echo "🔍 Scanning $ext_so"
+        ldd "$ext_so" | awk '/=>/ { print $3 }' | while read -r dep; do
+            if [[ -f "$dep" ]]; then
+                dest="$LIB_DIR/$(basename $dep)"
+                if [[ ! -f "$dest" ]]; then
+                    echo "    ↳ Copying $(basename $dep)"
+                    cp -u "$dep" "$LIB_DIR/"
+                fi
+            fi
+        done
+    done
+
+    echo "  ↳ Scanning Ruby interpreter binary..."
+    ldd "$RUBY_PREFIX/bin/ruby" | awk '/=>/ { print $3 }' | while read -r dep; do
+        if [[ -f "$dep" ]]; then
+            dest="$LIB_DIR/$(basename $dep)"
+            if [[ ! -f "$dest" ]]; then
+                echo "    ↳ Copying $(basename $dep)"
+                cp -u "$dep" "$LIB_DIR/"
+            fi
+        fi
+    done
+
     echo "  ↳ Patching rpath to use relative library path..."
     patchelf --set-rpath '$ORIGIN/../lib' $RUBY_PREFIX/bin/ruby
 fi
@@ -166,7 +194,7 @@ echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
 echo "[+] Creating portable archive..."
 cd "$INSTALL_DIR"
-ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz"
+ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGETARCH:-$(uname -m)}.tar.gz"
 
 tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
 echo "✅ Portable Ruby $RUBY_VERSION built and bundled at:"
