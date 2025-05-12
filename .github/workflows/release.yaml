@@ -69,6 +69,7 @@ jobs:
       - name: Create scoped releases
         if: steps.changesets.outputs.published == 'true'
         run: |
+          git reset --hard HEAD
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
