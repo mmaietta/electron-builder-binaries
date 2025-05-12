@@ -36,7 +36,7 @@ jobs:
           artifact-ids: ${{ needs.build-artifacts.outputs.artifactId }}
 
       - name: Display structure of downloaded files
-        run: ls -R artifacts
+        run: ls -R artifacts-all
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
@@ -58,7 +58,7 @@ jobs:
         id: changesets
         uses: changesets/action@06245a4e0a36c064a573d4150030f5ec548e4fcc # v1.4.1
         with:
-          version: pnpm ci:version
+          version: "pnpm ci:version"
           publish: "pnpm ci:publish"
           commit: 'chore(deploy): Release'
           title: 'chore(deploy): Release'
