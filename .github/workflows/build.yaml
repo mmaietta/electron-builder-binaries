@@ -133,7 +133,10 @@ jobs:
       - name: Compress Artifacts and verify artifact exists from changeset status
         run: |
           sh ./scripts/compress-artifacts.sh
+      - name: Validate artifact automation
+        run: |
           pnpm i --frozen-lockfile
+          tree ./artifacts-new
           DRY_RUN=true node ./scripts/changeset-version.js
       - name: Upload Artifacts
         id: upload-artifacts
