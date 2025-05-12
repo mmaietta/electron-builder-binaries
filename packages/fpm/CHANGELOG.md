@@ -1,5 +1,11 @@
 # fpm
 
+## 3.0.1
+
+### Patch Changes
+
+- [`f895469`](https://github.com/mmaietta/electron-builder-binaries/commit/f895469c47c24acd1516174268fb1923f769d0b4) Thanks [@mmaietta](https://github.com/mmaietta)! - change to 7z binary format
+
 ## 3.0.0
 
 ### Major Changes
