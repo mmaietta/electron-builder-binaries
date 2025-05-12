@@ -136,16 +136,16 @@ jobs:
       - name: Validate artifact automation
         run: |
           pnpm i --frozen-lockfile
-          tree ./artifacts-new
+          tree ./artifacts-staging
           DRY_RUN=true node ./scripts/changeset-version.js
       - name: Upload Artifacts
         id: upload-artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
-          name: artifacts-new
+          name: artifacts-staging
           if-no-files-found: error
           retention-days: 5
-          path: artifacts-new
+          path: artifacts-staging
       - name: Extract artifact url
         id: artifact-url
         run: |
