@@ -45,7 +45,7 @@ echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
-    brew install -q autoconf automake libtool pkg-config openssl readline zlib
+    brew install -q autoconf automake libtool pkg-config openssl readline zlib p7zip
 
     echo "  🍎 Compiling for MacOS."
     echo "  ⚙️ Running configure..."
@@ -195,9 +195,10 @@ echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
 echo "🔨 Creating portable archive..."
 cd "$INSTALL_DIR"
-ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGET_ARCH:-$(uname -m)}.tar.gz"
+ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-${TARGET_ARCH:-$(uname -m)}.7z"
 
-tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
+# tar -czf "$OUTPUT_DIR/$ARCHIVE_NAME" -C $INSTALL_DIR .
+7za a -mx=9 -mfb=64 "$OUTPUT_DIR/$ARCHIVE_NAME" "$INSTALL_DIR"/*
 echo "🚢 Portable Ruby $RUBY_VERSION built and bundled at:"
 echo "  ⏭️ $OUTPUT_DIR/$ARCHIVE_NAME"
 

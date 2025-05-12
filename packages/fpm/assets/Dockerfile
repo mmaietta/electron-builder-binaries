@@ -17,7 +17,7 @@ RUN apt-get update -qq && apt-get install -yq \
     libssl-dev libreadline-dev libyaml-dev \
     zlib1g-dev libffi-dev libgdbm-dev \
     file patchelf tar ruby-dev valgrind \
-    openssl libz-dev libyaml-dev
+    openssl libz-dev libyaml-dev p7zip-full
 
 # Enable 386 multilib toolchain if needed
 ARG TARGET_ARCH
