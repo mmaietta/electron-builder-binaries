@@ -17,7 +17,7 @@ releases.forEach((release) => {
   const artifactPath = path.resolve(__dirname, "../artifacts", name);
   const newArtifactPath = path.resolve(__dirname, "../artifacts-all", name);
   fs.rmSync(artifactPath, { recursive: true, force: true });
-  fs.mvSync(newArtifactPath, artifactPath, { force: true });
+  fs.renameSync(newArtifactPath, artifactPath);
   console.log(`Moved ${newArtifactPath} to ${artifactPath}...`);
   if (!process.env.DRY_RUN) {
     execSync(`git add --force -A ${artifactPath}`);
