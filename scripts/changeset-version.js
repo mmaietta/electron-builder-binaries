@@ -15,7 +15,7 @@ console.log("Release candidates:", releases);
 releases.forEach((release) => {
   const { name } = release;
   const artifactPath = path.resolve(__dirname, "../artifacts", name);
-  const newArtifactPath = path.resolve(__dirname, "../artifacts-all", name);
+  const newArtifactPath = path.resolve(__dirname, "../artifacts-new", name);
   fs.rmSync(artifactPath, { recursive: true, force: true });
   fs.renameSync(newArtifactPath, artifactPath);
   console.log(`Moved ${newArtifactPath} to ${artifactPath}...`);
