@@ -36,6 +36,7 @@ ARG RUBY_VERSION
 ENV RUBY_VERSION=${RUBY_VERSION}
 ENV TARGET_ARCH=${TARGET_ARCH}
 
+COPY ./assets/constants.sh /tmp/assets/constants.sh
 COPY ./assets/compile-portable-ruby.sh /tmp/assets/compile-portable-ruby.sh
 RUN bash /tmp/assets/compile-portable-ruby.sh
 
