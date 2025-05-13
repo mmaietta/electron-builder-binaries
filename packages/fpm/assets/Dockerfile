@@ -31,10 +31,13 @@ RUN if [ "$TARGET_ARCH" = "386" ]; then \
     fi
 
 WORKDIR /tmp/assets
-COPY ./assets/ /tmp/assets/
 
 ARG RUBY_VERSION
-RUN chmod +x /tmp/assets/compile-portable-ruby.sh && \
-    export RUBY_VERSION=${RUBY_VERSION} && \
-    export TARGET_ARCH=${TARGET_ARCH} && \
-    bash /tmp/assets/compile-portable-ruby.sh
+ENV RUBY_VERSION=${RUBY_VERSION}
+ENV TARGET_ARCH=${TARGET_ARCH}
+
+COPY ./assets/compile-portable-ruby.sh /tmp/assets/compile-portable-ruby.sh
+RUN bash /tmp/assets/compile-portable-ruby.sh
+
+COPY ./assets/patch-portable-ruby.sh /tmp/assets/patch-portable-ruby.sh
+RUN bash /tmp/assets/patch-portable-ruby.sh

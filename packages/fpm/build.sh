@@ -9,6 +9,7 @@ OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 if [ "$OS_TARGET" = "darwin" ]; then
     echo "Building for macOS"
     bash "$CWD/assets/compile-portable-ruby.sh"
+    bash "$CWD/assets/patch-portable-ruby.sh"
 else
     # These are the --platform linux/ARCH options available for buildpack-deps:bookworm-curl
     # Pulled from: https://hub.docker.com/_/buildpack-deps/tags?name=bookworm-curl
