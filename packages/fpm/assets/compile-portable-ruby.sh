@@ -32,6 +32,8 @@ if [ "$(uname)" = "Darwin" ]; then
     brew install -q autoconf automake pkg-config openssl@3 readline zlib p7zip libyaml xz
 
     echo "  🍎 Compiling for MacOS."
+    autoconf
+    ./autogen.sh
 
     BREW_PREFIX="$(brew --prefix)"
     export CFLAGS="-I$BREW_PREFIX/include"
@@ -42,7 +44,7 @@ if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚙️ Running configure..."
     ./configure "${BASE_FLAGS[@]}" \
         --with-opt-dir="$BREW_PREFIX" \
-        --with-openssl-dir="$(brew --prefix openssl)" \
+        --with-openssl-dir="$(brew --prefix openssl@3)" \
         --with-readline-dir="$(brew --prefix readline)" \
         --with-zlib-dir="$(brew --prefix zlib)" \
         --with-libyaml-dir=$(brew --prefix libyaml) \
@@ -54,8 +56,7 @@ if [ "$(uname)" = "Darwin" ]; then
     make install 1>/dev/null
 
     mkdir -p "$LIB_DIR"
-    echo "  📝 Copying liblzma* to $LIB_DIR"
-    cp -a "$BREW_PREFIX/lib/liblzma."*dylib "$LIB_DIR/"
+
 else
     echo "  🐧 Compiling for Linux."
     autoconf
@@ -86,17 +87,7 @@ else
     make -j$(nproc) 1>/dev/null
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
-
-    echo "  👀 Searching for liblzma..."
-    mkdir -p "$LIB_DIR"
-    find /usr/lib /lib -type f -name 'liblzma.so.*' 2>/dev/null | while read -r filepath; do
-        echo "    📝 Copying $filepath to $LIB_DIR"
-        cp -a "$filepath" "$LIB_DIR/"
-    done
 fi
-
-echo "✂️ Stripping debug symbols..."
-strip "$RUBY_PREFIX/bin/ruby"
 
 echo "💎 Ruby $RUBY_VERSION installed to $RUBY_PREFIX"
 echo "🗑️ Cleaning up source code download..."

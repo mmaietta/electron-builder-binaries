@@ -62,14 +62,74 @@ EOF
 done
 
 # ===== Patch Ruby and copy dependencies =====
+echo "✂️ Stripping debug symbols..."
+strip -x "$RUBY_PREFIX/bin/ruby"
+
+LIB_DIR="$RUBY_PREFIX/lib"
 if [ "$(uname)" = "Darwin" ]; then
-    echo "  🍎 Nothing to patch for MacOS."
+    echo "  🗑️ Removing dSYM files"
+    find $RUBY_PREFIX -type d -name "*.dSYM" -exec rm -rf {} +
+
+    echo "  🍎 Patching portable Ruby bundle for MacOS."
+
+    SHARED_LIB_DIR="$LIB_DIR/shared"
+    echo "  ⏩️ Copying shared libraries to $SHARED_LIB_DIR"
+    mkdir -p "$SHARED_LIB_DIR"
+    SHARED_LIBRARYS=(
+        "$(brew --prefix openssl@3)/lib/*.dylib"
+        "$(brew --prefix readline)/lib/*.dylib"
+        "$(brew --prefix zlib)/lib/*.dylib"
+        "$(brew --prefix libyaml)/lib/*.dylib"
+        "$(brew --prefix xz)/lib/*.dylib"
+    )
+    for pattern in "${SHARED_LIBRARYS[@]}"; do
+        for filepath in $pattern; do
+            dest="$SHARED_LIB_DIR/$(basename $filepath)"
+            if [[ ! -f "$dest" ]]; then
+                echo "    📝 Copying $filepath"
+                cp -a "$filepath" "$dest"
+            fi
+        done
+    done
+
+    echo "  ✏️ Patching Ruby binary to look for the bundled libraries in $LIB_DIR"
+    for dylib in "$SHARED_LIB_DIR"/*.dylib; do
+        echo "    🩹 Patching $dylib to install_name: @executable_path/../lib/shared/$(basename $dylib)"
+        install_name_tool -id "@executable_path/../lib/shared/$(basename $dylib)" "$dylib"
+    done
+
+    find "$RUBY_PREFIX" -type f \( -perm +111 \) -exec file {} \; | grep 'Mach-O' | cut -d: -f1 | while read bin; do
+        for dylib in "$SHARED_LIB_DIR"/*.dylib; do
+            base=$(basename "$dylib")
+            echo "    🩹 Patching $dylib to install_name: @executable_path/../lib/shared/$base"
+            install_name_tool -change "$base" "@executable_path/../lib/portable-libs/$base" "$bin" || true
+        done
+        echo "  ✂️ Stripping debug symbols from $bin"
+        strip -x "$bin" || true
+    done
 else
     echo "  🐧 Patching portable Ruby bundle for Linux."
 
-    echo "  🔍 Scanning Ruby extensions for shared libraries..."
-    LIB_DIR="$RUBY_PREFIX/lib"
+    echo "  ⏩️ Copying shared libraries to $LIB_DIR"
+    SHARED_LIBRARYS=(
+        "libssl.so*"
+        "libcrypto.so*"
+        "libreadline.so*"
+        "libz.so*"
+        "libyaml-cpp.so*"
+        "liblzma.so*"
+    )
+    for pattern in "${SHARED_LIBRARYS[@]}"; do
+        find /usr/lib /lib -type f -name "$pattern" 2>/dev/null | while read -r filepath; do
+            dest="$LIB_DIR/$(basename $filepath)"
+            if [[ ! -f "$dest" ]]; then
+                echo "    📝 Copying $filepath"
+                cp -a "$filepath" "$dest"
+            fi
+        done
+    done
 
+    echo "  🔍 Scanning Ruby extensions for additional shared libraries..."
     IFS=$'\n'
     LDD_SEARCH_PATHS=("$RUBY_PREFIX/bin/ruby" $(find "$LIB_DIR/ruby" -type f -name '*.so'))
     unset IFS
@@ -81,14 +141,14 @@ else
         fi
         SO_DIR=$(dirname "$ext_so")
         REL_RPATH=$(realpath --relative-to="$SO_DIR" "$LIB_DIR")
-        echo "  🩹 Patching $(realpath --relative-to="$RUBY_PREFIX" "$ext_so") to rpath: \$ORIGIN/$REL_RPATH"
+        echo "    🩹 Patching $(realpath --relative-to="$RUBY_PREFIX" "$ext_so") to rpath: \$ORIGIN/$REL_RPATH"
         patchelf --set-rpath "\$ORIGIN/$REL_RPATH" "$ext_so"
 
         ldd "$ext_so" | awk '/=>/ { print $3 }' | while read -r dep; do
             if [[ -f "$dep" ]]; then
                 dest="$LIB_DIR/$(basename $dep)"
                 if [[ ! -f "$dest" ]]; then
-                    echo "    📝 Copying $(basename $dep)"
+                    echo "    📝 Copying $dep"
                     cp -u "$dep" "$LIB_DIR/"
                 fi
             fi
@@ -109,4 +169,5 @@ ARCHIVE_NAME="fpm-${FPM_VERSION}-ruby-${RUBY_VERSION}-$(uname -s | tr '[:upper:]
 
 7za a -mx=9 -mfb=64 "$OUTPUT_DIR/$ARCHIVE_NAME" "$INSTALL_DIR"/*
 echo "🚢 Portable Ruby $RUBY_VERSION built and bundled at:"
-echo "  ⏭️ $OUTPUT_DIR/$ARCHIVE_NAME"
+echo "  ⏭️ Directory: $OUTPUT_DIR"
+echo "  ⏭️ Full Path: $OUTPUT_DIR/$ARCHIVE_NAME"
