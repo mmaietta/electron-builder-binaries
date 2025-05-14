@@ -19,11 +19,17 @@ tar -xzf "ruby-${RUBY_VERSION}.tar.gz"
 cd "ruby-${RUBY_VERSION}"
 
 # ===== Configure and compile Ruby =====
+BASE_FLAGS=(
+    "--prefix=$RUBY_PREFIX"
+    --disable-install-doc
+    --enable-shared
+    --enable-load-relative
+)
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
-    brew install -q autoconf automake libtool pkg-config openssl@3 readline zlib p7zip libyaml xz
+    brew install -q autoconf automake pkg-config openssl@3 readline zlib p7zip libyaml xz
 
     echo "  🍎 Compiling for MacOS."
 
@@ -34,11 +40,7 @@ if [ "$(uname)" = "Darwin" ]; then
     export PATH="$BREW_PREFIX/bin:$PATH"
 
     echo "  ⚙️ Running configure..."
-    ./configure \
-        --prefix="$RUBY_PREFIX" \
-        --disable-install-doc \
-        --enable-shared \
-        --enable-load-relative \
+    ./configure "${BASE_FLAGS[@]}" \
         --with-opt-dir="$BREW_PREFIX" \
         --with-openssl-dir="$(brew --prefix openssl)" \
         --with-readline-dir="$(brew --prefix readline)" \
@@ -60,9 +62,7 @@ else
     ./autogen.sh
 
     COMMON_FLAGS=(
-        --disable-install-doc
-        --enable-shared
-        --enable-load-relative
+        "${BASE_FLAGS[@]}"
         "--with-opt-dir=/usr"
         "--with-libyaml-dir=/usr"
         "--with-openssl-dir=/usr"
@@ -96,7 +96,7 @@ else
 fi
 
 echo "✂️ Stripping debug symbols..."
-strip $RUBY_PREFIX/bin/ruby
+strip "$RUBY_PREFIX/bin/ruby"
 
 echo "💎 Ruby $RUBY_VERSION installed to $RUBY_PREFIX"
 echo "🗑️ Cleaning up source code download..."
