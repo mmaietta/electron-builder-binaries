@@ -59,26 +59,28 @@ else
     autoconf
     ./autogen.sh
 
-    ARCH_FLAGS=""
+    COMMON_FLAGS=(
+        --disable-install-doc
+        --enable-shared
+        --enable-load-relative
+        "--with-opt-dir=/usr"
+        "--with-libyaml-dir=/usr"
+        "--with-openssl-dir=/usr"
+        "--with-zlib-dir=/usr"
+        "--with-readline-dir=/usr"
+        "--with-baseruby=$(which ruby)"
+    )
+    echo "  ⚙️ Running configure..."
     if [ "$TARGET_ARCH" = "i386" ]; then
         echo " ✏️ Using 32-bit architecture flags."
-        ARCH_FLAGS='--host=i386-linux-gnu CC="gcc -m32" CXX="g++ -m32"'
+        ./configure "${COMMON_FLAGS[@]}" \
+            --host=i386-linux-gnu \
+            CC="gcc -m32" \
+            CXX="g++ -m32" \
+            1>/dev/null
+    else
+        ./configure "${COMMON_FLAGS[@]}" 1>/dev/null
     fi
-
-    echo "  ⚙️ Running configure..."
-    ./configure \
-        --prefix="$RUBY_PREFIX" \
-        --disable-install-doc \
-        --enable-shared \
-        --enable-load-relative \
-        --with-opt-dir=/usr \
-        --with-libyaml-dir=/usr \
-        --with-openssl-dir=/usr \
-        --with-zlib-dir=/usr \
-        --with-readline-dir=/usr \
-        --with-baseruby=$(which ruby) \
-        $ARCH_FLAGS \
-        1>/dev/null
 
     echo "  🔨 Building Ruby..."
     make -j$(nproc) 1>/dev/null
