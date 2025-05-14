@@ -23,7 +23,8 @@ jobs:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          submodules: true
 
       - name: Remove previous artifacts
         run: |
@@ -69,7 +70,6 @@ jobs:
       - name: Create scoped releases
         if: steps.changesets.outputs.published == 'true'
         run: |
-          git reset --hard HEAD
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:

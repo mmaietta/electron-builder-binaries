@@ -22,7 +22,7 @@ echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
-    brew install -q autoconf automake libtool pkg-config openssl readline zlib p7zip
+    brew install -q autoconf automake libtool pkg-config openssl readline zlib p7zip libyaml
 
     echo "  🍎 Compiling for MacOS."
     echo "  ⚙️ Running configure..."
@@ -32,6 +32,7 @@ if [ "$(uname)" = "Darwin" ]; then
         --with-openssl-dir="$(brew --prefix openssl)" \
         --with-readline-dir="$(brew --prefix readline)" \
         --with-zlib-dir="$(brew --prefix zlib)" \
+        --with-libyaml-dir=$(brew --prefix libyaml) \
         1>/dev/null
 
     echo "  🔨 Building Ruby..."
@@ -52,6 +53,8 @@ else
             --enable-load-relative \
             --with-openssl-dir=/usr \
             --with-libyaml-dir=/usr \
+            --with-readline-dir=/usr \
+            --with-zlib-dir=/usr \
             --with-baseruby=$(which ruby) \
             --host=i386-linux-gnu \
             CC="gcc -m32" \
@@ -64,6 +67,8 @@ else
             --enable-load-relative \
             --with-openssl-dir=/usr \
             --with-libyaml-dir=/usr \
+            --with-readline-dir=/usr \
+            --with-zlib-dir=/usr \
             --with-baseruby=$(which ruby) 1>/dev/null
     fi
 

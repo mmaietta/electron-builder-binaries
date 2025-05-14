@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, "386"] #, arm/v7, arm64/v8, ppc64le, s390x]
+        arch: [x86_64, "386"] #, arm64/v8, arm/v7, ppc64le, s390x]
     steps:
       - name: Set up QEMU dependency
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
@@ -113,7 +113,7 @@ jobs:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
-          submodules: true
+          fetch-depth: 0
       - name: Setup pnpm
         uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
         with:
