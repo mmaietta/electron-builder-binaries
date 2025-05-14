@@ -75,14 +75,14 @@ if [ "$(uname)" = "Darwin" ]; then
     SHARED_LIB_DIR="$LIB_DIR/shared"
     echo "  ⏩️ Copying shared libraries to $SHARED_LIB_DIR"
     mkdir -p "$SHARED_LIB_DIR"
-    SHARED_LIBRARYS=(
+    SHARED_LIBRARIES=(
         "$(brew --prefix openssl@3)/lib/*.dylib"
         "$(brew --prefix readline)/lib/*.dylib"
         "$(brew --prefix zlib)/lib/*.dylib"
         "$(brew --prefix libyaml)/lib/*.dylib"
         "$(brew --prefix xz)/lib/*.dylib"
     )
-    for pattern in "${SHARED_LIBRARYS[@]}"; do
+    for pattern in "${SHARED_LIBRARIES[@]}"; do
         for filepath in $pattern; do
             dest="$SHARED_LIB_DIR/$(basename $filepath)"
             if [[ ! -f "$dest" ]]; then
@@ -111,7 +111,7 @@ else
     echo "  🐧 Patching portable Ruby bundle for Linux."
 
     echo "  ⏩️ Copying shared libraries to $LIB_DIR"
-    SHARED_LIBRARYS=(
+    SHARED_LIBRARIES=(
         "libssl.so*"
         "libcrypto.so*"
         "libreadline.so*"
@@ -119,7 +119,7 @@ else
         "libyaml-cpp.so*"
         "liblzma.so*"
     )
-    for pattern in "${SHARED_LIBRARYS[@]}"; do
+    for pattern in "${SHARED_LIBRARIES[@]}"; do
         find /usr/lib /lib -type f -name "$pattern" 2>/dev/null | while read -r filepath; do
             dest="$LIB_DIR/$(basename $filepath)"
             if [[ ! -f "$dest" ]]; then
