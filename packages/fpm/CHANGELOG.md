@@ -1,5 +1,13 @@
 # fpm
 
+## 3.0.2
+
+### Patch Changes
+
+- [`f22d828`](https://github.com/mmaietta/electron-builder-binaries/commit/f22d82812c9832a4bb87711ce6ea44e626b1583e) Thanks [@mmaietta](https://github.com/mmaietta)! - add xz compression support
+
+- [`6e0b2b7`](https://github.com/mmaietta/electron-builder-binaries/commit/6e0b2b7ecb53ef01186f652f00017987c4f66cb6) Thanks [@mmaietta](https://github.com/mmaietta)! - patch ruby gems to use local ruby interpreter
+
 ## 3.0.1
 
 ### Patch Changes
