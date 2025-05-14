@@ -39,7 +39,7 @@ if [ "$(uname)" = "Darwin" ]; then
         --enable-shared \
         --enable-load-relative \
         --with-opt-dir="$BREW_PREFIX" \
-        --with-openssl-dir="$(brew --prefix openssl@3)" \
+        --with-openssl-dir="$(brew --prefix openssl)" \
         --with-readline-dir="$(brew --prefix readline)" \
         --with-zlib-dir="$(brew --prefix zlib)" \
         --with-libyaml-dir=$(brew --prefix libyaml) \
@@ -50,47 +50,40 @@ if [ "$(uname)" = "Darwin" ]; then
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
+    mkdir -p "$RUBY_PREFIX/lib"
     cp -a "$BREW_PREFIX/lib/liblzma."*dylib "$RUBY_PREFIX/lib/"
 else
     echo "  🐧 Compiling for Linux."
     autoconf
     ./autogen.sh
-    echo "  ⚙️ Running configure..."
+
+    ARCH_FLAGS=""
     if [ "$TARGET_ARCH" = "i386" ]; then
-        echo "    ✏️ Using 32-bit architecture flags."
-        ./configure \
-            --prefix="$RUBY_PREFIX" \
-            --disable-install-doc \
-            --enable-shared \
-            --enable-load-relative \
-            --with-opt-dir=/usr \
-            --with-libyaml-dir=/usr \
-            --with-openssl-dir=/usr \
-            --with-zlib-dir=/usr \
-            --with-readline-dir=/usr \
-            --with-baseruby=$(which ruby) \
-            --host=i386-linux-gnu \
-            CC="gcc -m32" \
-            CXX="g++ -m32" 1>/dev/null
-    else
-        ./configure \
-            --prefix="$RUBY_PREFIX" \
-            --disable-install-doc \
-            --enable-shared \
-            --enable-load-relative \
-            --with-opt-dir=/usr \
-            --with-libyaml-dir=/usr \
-            --with-openssl-dir=/usr \
-            --with-zlib-dir=/usr \
-            --with-readline-dir=/usr \
-            --with-baseruby=$(which ruby) 1>/dev/null
+        echo " ✏️ Using 32-bit architecture flags."
+        ARCH_FLAGS='--host=i386-linux-gnu CC="gcc -m32" CXX="g++ -m32"'
     fi
+
+    echo "  ⚙️ Running configure..."
+    ./configure \
+        --prefix="$RUBY_PREFIX" \
+        --disable-install-doc \
+        --enable-shared \
+        --enable-load-relative \
+        --with-opt-dir=/usr \
+        --with-libyaml-dir=/usr \
+        --with-openssl-dir=/usr \
+        --with-zlib-dir=/usr \
+        --with-readline-dir=/usr \
+        --with-baseruby=$(which ruby) \
+        $ARCH_FLAGS \
+        1>/dev/null
 
     echo "  🔨 Building Ruby..."
     make -j$(nproc) 1>/dev/null
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
+    mkdir -p "$RUBY_PREFIX/lib"
     cp -a /usr/lib/$TARGET_ARCH-linux-gnu/liblzma.so.* $RUBY_PREFIX/lib/
 fi
 
