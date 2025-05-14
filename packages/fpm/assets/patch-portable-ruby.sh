@@ -81,6 +81,7 @@ if [ "$(uname)" = "Darwin" ]; then
         "$(brew --prefix zlib)/lib/*.dylib"
         "$(brew --prefix libyaml)/lib/*.dylib"
         "$(brew --prefix xz)/lib/*.dylib"
+        "$(brew --prefix gmp)/lib/*.dylib"
     )
     for pattern in "${SHARED_LIBRARIES[@]}"; do
         for filepath in $pattern; do

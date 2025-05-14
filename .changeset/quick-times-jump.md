@@ -2,4 +2,4 @@
 "fpm": patch
 ---
 
-add gpm
+add gmp to brew copy stage

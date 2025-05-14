@@ -29,7 +29,7 @@ echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
-    brew install -q autoconf automake pkg-config openssl@3 readline zlib p7zip libyaml xz
+    brew install -q autoconf automake pkg-config openssl@3 readline zlib p7zip libyaml xz gmp
 
     echo "  🍎 Compiling for MacOS."
     autoconf
