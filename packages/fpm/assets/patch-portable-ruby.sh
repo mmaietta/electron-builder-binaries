@@ -44,7 +44,7 @@ export GEM_PATH="$GEM_HOME"
 for gem in "${GEM_LIST[@]}"; do
     gem_name=$(echo "$gem" | cut -d' ' -f1)
     echo "  ⤵️ Installing $gem_name"
-    gem install --no-document $gem --quiet
+    gem install --no-document $gem --quiet --env-shebang
 done
 
 echo "🔨 Creating entrypoint scripts for installed gems..."
@@ -102,7 +102,7 @@ if [ "$(uname)" = "Darwin" ]; then
         for dylib in "$SHARED_LIB_DIR"/*.dylib; do
             base=$(basename "$dylib")
             echo "    🩹 Patching $dylib to install_name: @executable_path/../lib/shared/$base"
-            install_name_tool -change "$base" "@executable_path/../lib/portable-libs/$base" "$bin" || true
+            install_name_tool -change "$base" "@executable_path/../lib/shared/$base" "$bin" || true
         done
         echo "  ✂️ Stripping debug symbols from $bin"
         strip -x "$bin" || true
