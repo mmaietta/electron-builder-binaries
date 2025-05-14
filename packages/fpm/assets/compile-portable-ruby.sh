@@ -4,6 +4,7 @@ set -euo pipefail
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 source "$CWD/constants.sh"
+LIB_DIR="$RUBY_PREFIX/lib"
 
 # ===== Prepare folders =====
 echo "🪏 Creating install directories..."
@@ -50,8 +51,9 @@ if [ "$(uname)" = "Darwin" ]; then
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
-    mkdir -p "$RUBY_PREFIX/lib"
-    cp -a "$BREW_PREFIX/lib/liblzma."*dylib "$RUBY_PREFIX/lib/"
+    mkdir -p "$LIB_DIR"
+    echo "  📝 Copying liblzma to $LIB_DIR"
+    cp -av "$BREW_PREFIX/lib/liblzma."*dylib "$LIB_DIR/"
 else
     echo "  🐧 Compiling for Linux."
     autoconf
@@ -83,11 +85,15 @@ else
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
 
-    mkdir -p "$RUBY_PREFIX/lib"
-    cp -a /usr/lib/$TARGET_ARCH-linux-gnu/liblzma.so.* $RUBY_PREFIX/lib/
+    echo "  👀 Searching for liblzma..."
+    mkdir -p "$LIB_DIR"
+    find /usr/lib /lib -type f -name 'liblzma.so.*' 2>/dev/null | while read -r filepath; do
+        echo "    📝 Copying $filepath to $LIB_DIR"
+        cp -a "$filepath" "$LIB_DIR/"
+    done
 fi
 
-echo "  🔨 Stripping debug symbols..."
+echo "✂️ Stripping debug symbols..."
 strip $RUBY_PREFIX/bin/ruby
 
 echo "💎 Ruby $RUBY_VERSION installed to $RUBY_PREFIX"
