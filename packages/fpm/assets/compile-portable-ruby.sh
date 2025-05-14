@@ -52,8 +52,8 @@ if [ "$(uname)" = "Darwin" ]; then
     make install 1>/dev/null
 
     mkdir -p "$LIB_DIR"
-    echo "  📝 Copying liblzma to $LIB_DIR"
-    cp -av "$BREW_PREFIX/lib/liblzma."*dylib "$LIB_DIR/"
+    echo "  📝 Copying liblzma* to $LIB_DIR"
+    cp -a "$BREW_PREFIX/lib/liblzma."*dylib "$LIB_DIR/"
 else
     echo "  🐧 Compiling for Linux."
     autoconf
