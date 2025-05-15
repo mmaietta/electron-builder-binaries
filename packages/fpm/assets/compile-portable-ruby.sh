@@ -29,7 +29,7 @@ echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
     echo "  ⚒️ Installing dependencies..."
     xcode-select --install 2>/dev/null || true
-    brew install -q autoconf automake pkg-config openssl@3 readline zlib p7zip libyaml xz gmp
+    brew install -q autoconf automake pkg-config openssl@3 ncurses readline zlib p7zip libyaml xz gmp coreutils bison
 
     echo "  🍎 Compiling for MacOS."
     autoconf
@@ -37,7 +37,8 @@ if [ "$(uname)" = "Darwin" ]; then
 
     BREW_PREFIX="$(brew --prefix)"
     export CFLAGS="-I$BREW_PREFIX/include"
-    export LDFLAGS="-L$BREW_PREFIX/lib"
+    export CPPFLAGS="$CFLAGS"
+    export LDFLAGS="-L$BREW_PREFIX/lib  -Wl,-headerpad_max_install_names"
     export PKG_CONFIG_PATH="$BREW_PREFIX/opt/openssl@3/lib/pkgconfig"
     export PATH="$BREW_PREFIX/bin:$PATH"
 

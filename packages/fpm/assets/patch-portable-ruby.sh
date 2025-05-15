@@ -62,9 +62,6 @@ EOF
 done
 
 # ===== Patch Ruby and copy dependencies =====
-echo "✂️ Stripping debug symbols..."
-strip -x "$RUBY_PREFIX/bin/ruby"
-
 LIB_DIR="$RUBY_PREFIX/lib"
 if [ "$(uname)" = "Darwin" ]; then
     echo "  🗑️ Removing dSYM files"
@@ -72,7 +69,7 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "  🍎 Patching portable Ruby bundle for MacOS."
 
-    SHARED_LIB_DIR="$LIB_DIR/shared"
+    SHARED_LIB_DIR="$LIB_DIR"
     echo "  ⏩️ Copying shared libraries to $SHARED_LIB_DIR"
     mkdir -p "$SHARED_LIB_DIR"
     SHARED_LIBRARIES=(
@@ -82,6 +79,7 @@ if [ "$(uname)" = "Darwin" ]; then
         "$(brew --prefix libyaml)/lib/*.dylib"
         "$(brew --prefix xz)/lib/*.dylib"
         "$(brew --prefix gmp)/lib/*.dylib"
+        "$(brew --prefix ncurses)/lib/*.dylib"
     )
     for pattern in "${SHARED_LIBRARIES[@]}"; do
         for filepath in $pattern; do
@@ -93,21 +91,108 @@ if [ "$(uname)" = "Darwin" ]; then
         done
     done
 
-    echo "  ✏️ Patching Ruby binary to look for the bundled libraries in $LIB_DIR"
-    for dylib in "$SHARED_LIB_DIR"/*.dylib; do
-        echo "    🩹 Patching $dylib to install_name: @executable_path/../lib/shared/$(basename $dylib)"
-        install_name_tool -id "@executable_path/../lib/shared/$(basename $dylib)" "$dylib"
+    echo "📦 Making dylib references portable in: $RUBY_PREFIX"
+    DEFAULT_RPATH="@executable_path/../lib"
+    REALPATH_BIN=$(command -v realpath || command -v grealpath)
+    # === Known system libs (do not copy or patch) ===
+    skip_libs=(
+        "libSystem.B.dylib"
+        "libc++.1.dylib"
+    )
+    should_skip() {
+        local libname="$1"
+        for skip in "${skip_libs[@]}"; do
+            [[ "$libname" == "$skip" ]] && return 0
+        done
+        return 1
+    }
+
+    # === Ensure LC_RPATH exists
+    ensure_rpath() {
+        local bin="$1"
+        if ! otool -l "$bin" | grep -q LC_RPATH; then
+            echo "  ➕ Adding RPATH: $DEFAULT_RPATH"
+            install_name_tool -add_rpath "$DEFAULT_RPATH" "$bin" || echo "  ⚠️ Failed to add RPATH"
+        fi
+    }
+
+    # === Compute relative @loader_path path to .dylib
+    compute_loader_path() {
+        set -e
+        local file="$1"
+        local lib="$2"
+        local file_dir
+        file_dir=$(dirname "$file")
+        local rel_path
+        rel_path=$(grealpath --relative-to="$file_dir" "$lib")
+        echo "@loader_path/$rel_path"
+    }
+
+    # === Normalize @rpath/../lib → @rpath
+    normalize_rpath() {
+        local file="$1"
+        otool -L "$file" | awk 'NR>1 {print $1}' | grep '@rpath/../lib/' || return 0
+        while IFS= read -r dep; do
+            clean_dep="@rpath/$(basename "$dep")"
+            echo "  🔁 Normalize: $dep → $clean_dep"
+            install_name_tool -change "$dep" "$clean_dep" "$file" || echo "  ⚠️ Failed to normalize $dep"
+        done < <(otool -L "$file" | awk 'NR>1 {print $1}' | grep '@rpath/../lib/')
+    }
+
+    # === Process all binaries, dylibs, and bundles
+    find "$RUBY_PREFIX" \( -name '*.dylib' -o -name '*.bundle' -o -type f -perm +111 \) | while read -r file; do
+        echo "🔍 Inspecting: $file"
+
+        # Rewrite absolute dylib references
+        abs_deps=$(otool -L "$file" | awk 'NR>1 {print $1}' | grep -E '^/' || true)
+        if [[ -z "$abs_deps" ]]; then
+            echo "  ✅ No absolute dylib references."
+        else
+            while IFS= read -r dep; do
+                dep_basename=$(basename "$dep")
+                if should_skip "$dep_basename"; then
+                    echo "  🔕 Skipping system lib: $dep_basename"
+                    continue
+                fi
+
+                lib_target="$LIB_DIR/$dep_basename"
+
+                # Autocopy if missing
+                if [[ ! -f "$lib_target" && -f "$dep" ]]; then
+                    echo "  📥 Copying $dep → $lib_target"
+                    cp "$dep" "$lib_target"
+                fi
+
+                if [[ -f "$lib_target" ]]; then
+                    loader_path_ref=$(compute_loader_path "$file" "$lib_target")
+                    echo "  🔁 Absolute: $dep → $loader_path_ref"
+                    install_name_tool -change "$dep" "$loader_path_ref" "$file" || echo "  ⚠️ Failed to patch $dep"
+                else
+                    echo "  ⚠️ Missing: $dep_basename could not be found or copied"
+                fi
+            done <<<"$abs_deps"
+        fi
+
+        # Rewrite @executable_path to @rpath
+        exec_deps=$(otool -L "$file" | awk 'NR>1 {print $1}' | grep '@executable_path' || true)
+        if [[ -z "$exec_deps" ]]; then
+            echo "  ✅ No @executable_path references."
+        else
+            while IFS= read -r dep; do
+                new_path="@rpath/${dep#@executable_path/}"
+                echo "  🔁 ExecPath: $dep → $new_path"
+                install_name_tool -change "$dep" "$new_path" "$file" || echo "  ⚠️ Failed to rewrite exec path: $dep"
+                ensure_rpath "$file"
+            done <<<"$exec_deps"
+        fi
+
+        normalize_rpath "$file"
+
+        echo "📦 Stripping debug symbols from binaries..."
+        strip -x "$file" 2>/dev/null || echo "  ⚠️ Skipped: $file"
     done
 
-    find "$RUBY_PREFIX" -type f \( -perm +111 \) -exec file {} \; | grep 'Mach-O' | cut -d: -f1 | while read bin; do
-        for dylib in "$SHARED_LIB_DIR"/*.dylib; do
-            base=$(basename "$dylib")
-            echo "    🩹 Patching $dylib to install_name: @executable_path/../lib/shared/$base"
-            install_name_tool -change "$base" "@executable_path/../lib/shared/$base" "$bin" || true
-        done
-        echo "  ✂️ Stripping debug symbols from $bin"
-        strip -x "$bin" || true
-    done
+    echo "✅ All dylib references made portable. Autocopied missing libraries where needed."
 else
     echo "  🐧 Patching portable Ruby bundle for Linux."
 
@@ -155,7 +240,11 @@ else
             fi
         done
     done
+    echo "✅ All shared library paths rewritten using @rpath where applicable."
 fi
+
+echo "✂️ Stripping debug symbols from Ruby binary..."
+strip -x "$RUBY_PREFIX/bin/ruby"
 
 # ===== Create VERSION file =====
 echo "🔨 Creating VERSION file..."
