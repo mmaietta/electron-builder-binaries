@@ -1,5 +1,11 @@
 # fpm
 
+## 3.0.3
+
+### Patch Changes
+
+- [`3085342`](https://github.com/mmaietta/electron-builder-binaries/commit/30853429ffb34b8caee729fd0ca34460668c4d71) Thanks [@mmaietta](https://github.com/mmaietta)! - add gmp to brew copy stage
+
 ## 3.0.2
 
 ### Patch Changes
