@@ -30,6 +30,9 @@ if [ "\$(uname)" = "Darwin" ]; then
     if grep -q "com.apple.quarantine" <<< "\$(xattr "\$RUBY_BIN/ruby")"; then
         xattr -d com.apple.quarantine "\$RUBY_BIN/ruby"
     fi
+    export DYLD_LIBRARY_PATH="\$RUBY_DIR/lib\${DYLD_LIBRARY_PATH:+:\$DYLD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="\$RUBY_DIR/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
 fi
 EOF
 chmod +x "$INSTALL_DIR/ruby.env"
@@ -93,7 +96,6 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "📦 Making dylib references portable in: $RUBY_PREFIX"
     DEFAULT_RPATH="@executable_path/../lib"
-    REALPATH_BIN=$(command -v realpath || command -v grealpath)
     # === Known system libs (do not copy or patch) ===
     skip_libs=(
         "libSystem.B.dylib"
@@ -187,9 +189,6 @@ if [ "$(uname)" = "Darwin" ]; then
         fi
 
         normalize_rpath "$file"
-
-        echo "📦 Stripping debug symbols from binaries..."
-        strip -x "$file" 2>/dev/null || echo "  ⚠️ Skipped: $file"
     done
 
     echo "✅ All dylib references made portable. Autocopied missing libraries where needed."
@@ -243,13 +242,43 @@ else
     echo "✅ All shared library paths rewritten using @rpath where applicable."
 fi
 
-echo "✂️ Stripping debug symbols from Ruby binary..."
-strip -x "$RUBY_PREFIX/bin/ruby"
+echo "✂️ Stripping symbols and measuring size savings..."
+total_saved=0
+# Platform detection
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    STAT_CMD='stat -f%z'
+    STRIP_CMD='strip -x'
+else
+    STAT_CMD='stat -c%s'
+    STRIP_CMD='strip --strip-unneeded'
+fi
+# Strip and log
+find "$RUBY_PREFIX" \( -name '*.dylib' -o -name '*.so' -o -name '*.so.*' -o -name '*.bundle' -o -type f -perm -111 \) | while read -r bin; do
+    if [[ ! -f "$bin" || -L "$bin" ]]; then
+        # echo "  ⏭️  Skipping (symlink or invalid): $bin"
+        continue
+    fi
+    orig_size=$($STAT_CMD "$bin" 2>/dev/null || echo 0)
+
+    if $STRIP_CMD "$bin" 2>/dev/null; then
+        new_size=$($STAT_CMD "$bin" 2>/dev/null || echo 0)
+        if [[ "$new_size" -gt 0 && "$orig_size" -gt "$new_size" ]]; then
+            saved=$((orig_size - new_size))
+            total_saved=$((total_saved + saved))
+        else
+            saved=0
+        fi
+        printf "  ➖ Stripped: %-60s saved: %6d bytes\n" "$(basename "$bin")" "$saved"
+    else
+        echo "  ⚠️ Could not strip: $bin"
+    fi
+done
+echo "💾 Total space saved: $total_saved bytes (~$((total_saved / 1024)) KB)"
 
 # ===== Create VERSION file =====
 echo "🔨 Creating VERSION file..."
-FPM_VERSION="$($INSTALL_DIR/fpm --version | cut -d' ' -f2)"
 RUBY_VERSION_VERBOSE="$($RUBY_PREFIX/bin/ruby --version)"
+FPM_VERSION="$($INSTALL_DIR/fpm --version | cut -d' ' -f2)"
 echo "$RUBY_VERSION_VERBOSE" >$INSTALL_DIR/VERSION.txt
 echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
