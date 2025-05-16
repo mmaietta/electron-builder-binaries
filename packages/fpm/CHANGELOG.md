@@ -1,5 +1,11 @@
 # fpm
 
+## 3.0.4
+
+### Patch Changes
+
+- [`4255454`](https://github.com/mmaietta/electron-builder-binaries/commit/4255454c7bdf091c5a4d877bcfc57b879f33e897) Thanks [@mmaietta](https://github.com/mmaietta)! - test release
+
 ## 3.0.3
 
 ### Patch Changes
