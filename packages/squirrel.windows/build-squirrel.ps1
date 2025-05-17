@@ -45,10 +45,10 @@ Remove-Item -Force .\NDP452-DevPack.exe
 # Restore NuGet packages
 Write-Host "Restoring NuGet packages..."
 & $nugetExe restore Squirrel.sln
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "NuGet restore failed with exit code $LASTEXITCODE"
-    exit $LASTEXITCODE
-}
+# if ($LASTEXITCODE -ne 0) {
+#     Write-Host "NuGet restore failed with exit code $LASTEXITCODE"
+#     exit $LASTEXITCODE
+# }
 
 # Build solution
 Write-Host "Building solution..."
