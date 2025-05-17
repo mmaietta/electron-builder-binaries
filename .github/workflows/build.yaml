@@ -107,25 +107,17 @@ jobs:
         with:
           submodules: true
 
-      - name: Clone Squirrel.Windows
+      - name: Clone Squirrel.Windows (develop branch)
         run: |
-          git clone --single-branch --depth 1 --branch develop --recursive https://github.com/Squirrel/Squirrel.Windows.git squirrel-windows
+          mkdir C:\s
+          cd C:\s
+          git clone --branch develop --recursive https://github.com/Squirrel/Squirrel.Windows.git
 
-      - name: Apply patch to Squirrel.Windows
-        shell: pwsh
+      - name: Run devbuild.cmd
+        shell: cmd
         run: |
-          $patchPath = Join-Path $PWD "packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
-          Set-Location "squirrel-windows"
-          git apply $patchPath
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v1.3.1
-
-      - name: Restore NuGet packages
-        shell: pwsh
-        run: |
-          Set-Location "squirrel-windows"
-          devbuild.cmd release
+          cd C:\s\Squirrel.Windows
+          devbuild.cmd
 
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -133,7 +125,7 @@ jobs:
           name: squirrel-windows-patched
           if-no-files-found: error
           retention-days: 5
-          path: squirrel-windows\src\**\bin\Release\
+          path: C:\s\Squirrel.Windows\src\**\bin\Release\
 
   combine-artifacts:
     runs-on: macos-latest
