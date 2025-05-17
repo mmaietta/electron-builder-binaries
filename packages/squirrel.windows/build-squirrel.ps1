@@ -37,7 +37,7 @@ Get-ChildItem -Recurse -Filter *.vcxproj -Path $repoRoot | ForEach-Object {
 }
 
 # # Ensure NuGet is available
-# $nugetExe = "$repoRoot\.nuget\NuGet.exe"
+$nugetExe = "$repoRoot\.nuget\NuGet.exe"
 # if (-not (Test-Path $nugetExe)) {
 #   Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile $nugetExe
 # }
