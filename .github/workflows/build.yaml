@@ -114,7 +114,7 @@ jobs:
         run: |
           mkdir C:\s
           cd C:\s
-          git clone --single-branch --depth 1 --branch 1.9.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git
+          git clone --single-branch --depth 1 --branch 2.0.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git
 
       - name: Run devbuild.cmd
         # shell: cmd
