@@ -18,7 +18,7 @@ if ($PatchPath -and (Test-Path $PatchPath)) {
 }
 
 # Install .NET 4.5 Developer Pack
-Invoke-WebRequest -Uri "https://download.microsoft.com/download/2/7/1/27135c32-8f28-4b2d-9e49-b2b8fd9a67d1/NDP45-DevPack-KB2872776-ENU.exe" -OutFile "NDP45-DevPack.exe"
+Invoke-WebRequest -Uri "https://download.microsoft.com/download/b/a/4/ba4a7e71-2906-4b2d-a0e1-80cf16844f5f/dotNetFx45_Full_setup.exe" -OutFile "NDP45-DevPack.exe"
     Start-Process -FilePath .\NDP45-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
     Remove-Item -Path .\NDP45-DevPack.exe
 
