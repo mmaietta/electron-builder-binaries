@@ -117,7 +117,7 @@ jobs:
           git clone --single-branch --depth 1 --branch 1.9.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git
 
       - name: Run devbuild.cmd
-        shell: cmd
+        # shell: cmd
         run: |
           cd C:\s\Squirrel.Windows
           .\.NuGet\NuGet.exe restore
