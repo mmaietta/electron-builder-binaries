@@ -2,8 +2,7 @@ name: Build artifacts
 
 on:
   push:
-    branches:
-      master
+    branches: master
   pull_request:
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
   workflow_call:
@@ -116,8 +115,23 @@ jobs:
           cd C:\s
           git clone --single-branch --depth 1 --branch 2.0.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git
 
+      - name: Retarget to supported .NET and C++ toolsets
+        shell: pwsh
+        run: |
+          $csprojFiles = Get-ChildItem -Recurse -Filter *.csproj -Path "C:\s\Squirrel.Windows"
+          foreach ($file in $csprojFiles) {
+            (Get-Content $file.FullName) -replace 'v4\.5', 'v4.7.2' | Set-Content $file.FullName
+          }
+
+          $vcxprojFiles = Get-ChildItem -Recurse -Filter *.vcxproj -Path "C:\s\Squirrel.Windows"
+          foreach ($file in $vcxprojFiles) {
+            $content = Get-Content $file.FullName
+            $content = $content -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
+            $content = $content -replace '<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>', '<WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>'
+            Set-Content $file.FullName $content
+          }
+
       - name: Run devbuild.cmd
-        # shell: cmd
         run: |
           cd C:\s\Squirrel.Windows
           .\.NuGet\NuGet.exe restore
@@ -132,59 +146,58 @@ jobs:
           path: |
             C:\s\Squirrel.Windows\src\**\bin\Release\
 
-
-  combine-artifacts:
-    runs-on: macos-latest
-    needs: [
-      # build-linux,
-      # build-mac,
-      build-squirrel-windows
-    ]
-    timeout-minutes: 15
-    outputs:
-      artifactUrl: ${{ steps.upload-artifacts.outputs.artifact-url }}
-      artifactId: ${{ steps.upload-artifacts.outputs.artifact-id }}
-    steps:
-      - name: Install `tree`
-        run: |
-          brew install tree
-      - name: Checkout code repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          fetch-depth: 0
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          version: 9.4.0
-      - name: Setup node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
-        with:
-          node-version: '22'
-      - name: Download artifacts
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
-        with:
-          path: out
-          merge-multiple: true
-      - name: Tree the out directory
-        run: |
-          tree ./out
-      - name: Compress Artifacts and verify artifact exists from changeset status
-        run: |
-          sh ./scripts/compress-artifacts.sh
-      - name: Validate artifact automation
-        run: |
-          pnpm i --frozen-lockfile
-          tree ./artifacts-staging
-          DRY_RUN=true node ./scripts/changeset-version.js
-      - name: Upload Artifacts
-        id: upload-artifacts
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
-        with:
-          name: artifacts-staging
-          if-no-files-found: error
-          retention-days: 5
-          path: artifacts-staging
-      - name: Extract artifact url
-        id: artifact-url
-        run: |
-          echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
+  # combine-artifacts:
+  #   runs-on: macos-latest
+  #   needs: [
+  #       # build-linux,
+  #       # build-mac,
+  #       build-squirrel-windows,
+  #     ]
+  #   timeout-minutes: 15
+  #   outputs:
+  #     artifactUrl: ${{ steps.upload-artifacts.outputs.artifact-url }}
+  #     artifactId: ${{ steps.upload-artifacts.outputs.artifact-id }}
+  #   steps:
+  #     - name: Install `tree`
+  #       run: |
+  #         brew install tree
+  #     - name: Checkout code repository
+  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+  #       with:
+  #         fetch-depth: 0
+  #     - name: Setup pnpm
+  #       uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+  #       with:
+  #         version: 9.4.0
+  #     - name: Setup node
+  #       uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+  #       with:
+  #         node-version: "22"
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
+  #       with:
+  #         path: out
+  #         merge-multiple: true
+  #     - name: Tree the out directory
+  #       run: |
+  #         tree ./out
+  #     - name: Compress Artifacts and verify artifact exists from changeset status
+  #       run: |
+  #         sh ./scripts/compress-artifacts.sh
+  #     - name: Validate artifact automation
+  #       run: |
+  #         pnpm i --frozen-lockfile
+  #         tree ./artifacts-staging
+  #         DRY_RUN=true node ./scripts/changeset-version.js
+  #     - name: Upload Artifacts
+  #       id: upload-artifacts
+  #       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+  #       with:
+  #         name: artifacts-staging
+  #         if-no-files-found: error
+  #         retention-days: 5
+  #         path: artifacts-staging
+  #     - name: Extract artifact url
+  #       id: artifact-url
+  #       run: |
+  #         echo "Artifact URL is: ${{ steps.upload-artifacts.outputs.artifact-url }}"
