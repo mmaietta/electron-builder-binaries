@@ -122,12 +122,22 @@ jobs:
       #   with:
       #     dotnet-version: 4.8.x
 
-      - name: Build
+      - name: Cache .NET 4.5.2 Dev Pack Installer
+        uses: actions/cache@v4
+        with:
+          path: NDP452-DevPack.exe
+          key: dotnet452-devpack
+
+      - name: Download .NET 4.5.2 Dev Pack Installer (if not cached)
+        if: steps.cache-dotnet.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
+
+      - name: Install .NET 4.5.2 Dev Pack
+        shell: pwsh
+        run: |
           Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
-          Remove-Item -Path .\NDP452-DevPack.exe
 
       - name: Build
         shell: bash

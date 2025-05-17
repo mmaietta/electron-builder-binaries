@@ -47,10 +47,7 @@ if [ ! -f "$MSBUILD" ]; then
 fi
 
 "$MSBUILD" Squirrel.sln /target:Restore /property:Configuration=Release
-"$MSBUILD" Squirrel.sln /property:Configuration=Release /maxcpucount
-
-# ./.nuget/NuGet.exe restore
-# msbuild /p:Configuration=Release
+"$MSBUILD" Squirrel.sln \/p:Configuration=Release \/maxcpucount
 
 echo $VERSION > $TMP_DIR/VERSION.txt
 
