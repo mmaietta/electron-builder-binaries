@@ -17,10 +17,10 @@ if ($PatchPath -and (Test-Path $PatchPath)) {
   git -C $repoRoot apply $PatchPath
 }
 
-# Install .NET 4.5 Developer Pack
-Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP45-DevPack.exe"
-Start-Process -FilePath .\NDP45-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
-Remove-Item -Path .\NDP45-DevPack.exe
+# Install .NET 4.5.2 Developer Pack
+Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
+Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
+Remove-Item -Path .\NDP452-DevPack.exe
 
 # Retarget .NET projects
 Get-ChildItem -Recurse -Filter *.csproj -Path $repoRoot | ForEach-Object {

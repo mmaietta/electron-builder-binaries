@@ -112,6 +112,11 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
 
+      - name: Install .NET 4.5.2
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 4.5.2
+
       - name: Build
         shell: bash
         run: |

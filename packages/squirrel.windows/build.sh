@@ -34,24 +34,20 @@ git apply $SRC_DIR/*.patch
 # echo "Downloading NuGet..."
 # curl -L -o nuget.exe "$NUGET_EXE"
 
-echo "Retargeting .csproj files to .NET Framework 4.5.2..."
-find . -name "*.csproj" -exec sed -i 's|<TargetFrameworkVersion>v4.5|<TargetFrameworkVersion>v4.5.2|g' {} +
+# Retarget .csproj to .NET Framework 4.5.2
+find . -name '*.csproj' -exec sed -i 's|<TargetFrameworkVersion>v4.5</TargetFrameworkVersion>|<TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>|g' {} +
 
-echo "Retargeting .vcxproj files to PlatformToolset v143..."
-find . -name "*.vcxproj" -exec sed -i 's|<PlatformToolset>v141|<PlatformToolset>v143|g' {} +
+# Retarget .vcxproj to PlatformToolset v143
+find . -name '*.vcxproj' -exec sed -i 's|<PlatformToolset>v141</PlatformToolset>|<PlatformToolset>v143</PlatformToolset>|g' {} +
 
-# echo "Restoring NuGet packages..."
-# ./nuget.exe restore Squirrel.sln
-# ./.nuget/NuGet.exe restore
-
-echo "Restoring and building solution with MSBuild..."
-MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe"
-if [ ! -f "$MSBUILD_PATH" ]; then
-  MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
+# Restore and build
+MSBUILD="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe"
+if [ ! -f "$MSBUILD" ]; then
+  MSBUILD="/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
 fi
 
-"$MSBUILD_PATH" Squirrel.sln /t:Restore /p:Configuration=Release
-"$MSBUILD_PATH" Squirrel.sln /p:Configuration=Release /m
+"$MSBUILD" Squirrel.sln /t:Restore /p:Configuration=Release
+"$MSBUILD" Squirrel.sln /p:Configuration=Release /m
 
 # ./.nuget/NuGet.exe restore
 # msbuild /p:Configuration=Release
