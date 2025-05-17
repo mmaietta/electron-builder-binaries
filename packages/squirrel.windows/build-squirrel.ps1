@@ -76,7 +76,7 @@ $nugetExe = "$repoRoot\.nuget\NuGet.exe"
 
 # Restore packages
 Write-Host "Restoring NuGet packages..."
-"$nugetExe" restore "$repoRoo\Squirrel.sln"
+& "$nugetExe" restore "$repoRoo\Squirrel.sln"
 
 # Build the solution
 Write-Host "Building..."
