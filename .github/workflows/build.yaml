@@ -55,7 +55,7 @@ jobs:
   #       with:
   #         name: build-linux-${{ env.ARCH_KEY }}
   #         if-no-files-found: error
-  #         retention-days: 5
+  #         retention-days: 1
   #         path: |
   #           packages/fpm/out
 
@@ -91,7 +91,7 @@ jobs:
   #       with:
   #         name: mac-artifacts-${{ matrix.node }}
   #         if-no-files-found: error
-  #         retention-days: 5
+  #         retention-days: 1
   #         path: |
   #           packages/fpm/out
 
@@ -162,9 +162,9 @@ jobs:
         with:
           name: squirrel-windows-patched
           if-no-files-found: error
-          retention-days: 5
+          retention-days: 1
           path: |
-            C:\s\Squirrel.Windows\src\**\bin\Release\
+            .\packages\squirrel.windows\out
 
       
 
@@ -217,7 +217,7 @@ jobs:
   #       with:
   #         name: artifacts-staging
   #         if-no-files-found: error
-  #         retention-days: 5
+  #         retention-days: 1
   #         path: artifacts-staging
   #     - name: Extract artifact url
   #       id: artifact-url
