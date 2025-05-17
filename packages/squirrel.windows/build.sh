@@ -4,15 +4,10 @@ set -ex
 VERSION=2.0.1
 
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
-cd $BASEDIR
+
 OUT_DIR=$BASEDIR/out/squirrel.windows
 rm -rf $OUT_DIR
 mkdir -p $OUT_DIR
-# Check if the script is run from the correct directory
-if [ ! -d "./out/squirrel.windows" ]; then
-    echo "This script must be run from the squirrel.windows directory."
-    exit 1
-fi
 
 TMP_DIR=/tmp/squirrel
 rm -rf $TMP_DIR
@@ -29,7 +24,5 @@ msbuild /p:Configuration=Release
 
 echo $VERSION > $TMP_DIR/VERSION.txt
 
-rm -rf $OUT_DIR
-mkdir $OUT_DIR
 DESTINATION="$OUT_DIR/squirrel.windows-$VERSION-patched.7z"
 7za a -mx=9 -mfb=64 "$DESTINATION" "$TMP_DIR"/*
