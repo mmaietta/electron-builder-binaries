@@ -107,17 +107,16 @@ jobs:
         with:
           submodules: true
 
-      - name: Clone Squirrel.Windows (develop branch)
+      - name: Clone Squirrel.Windows (develop)
         run: |
           mkdir C:\s
           cd C:\s
-          git clone --branch develop --recursive https://github.com/Squirrel/Squirrel.Windows.git
+          git clone --single-branch --depth 1 --branch develop --recursive https://github.com/Squirrel/Squirrel.Windows.git
 
       - name: Run devbuild.cmd
         shell: cmd
         run: |
-          cd C:\s\Squirrel.Windows
-          devbuild.cmd
+          C:\s\Squirrel.Windows\devbuild.cmd
 
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
@@ -125,7 +124,9 @@ jobs:
           name: squirrel-windows-patched
           if-no-files-found: error
           retention-days: 5
-          path: C:\s\Squirrel.Windows\src\**\bin\Release\
+          path: |
+            C:\s\Squirrel.Windows\src\**\bin\Release\
+
 
   combine-artifacts:
     runs-on: macos-latest
