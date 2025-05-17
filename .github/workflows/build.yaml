@@ -107,6 +107,9 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
+
       - name: Clone Squirrel.Windows (develop)
         run: |
           mkdir C:\s
