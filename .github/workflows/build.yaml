@@ -99,8 +99,13 @@ jobs:
   build-squirrel-windows:
     runs-on: windows-latest
     steps:
-      - name: Checkout your main repo
-        uses: actions/checkout@v3
+      - name: Enable long paths support
+        run: git config --system core.longpaths true
+        
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          submodules: true
 
       - name: Clone Squirrel.Windows
         run: |
