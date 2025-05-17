@@ -115,7 +115,7 @@ jobs:
       - name: Install .NET 4.5.2
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 4.5.2
+          dotnet-version: 4.5.x
 
       - name: Build
         shell: bash
