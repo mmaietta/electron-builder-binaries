@@ -35,27 +35,17 @@ if ($exitCode -ne 0) {
     Write-Error "❌ build_official.cmd failed with exit code $exitCode"
     exit $exitCode
 }
-
-# --- Locate a Release output folder
-Write-Host "`n🔍 Searching for 'Release' build output..."
-$releaseDirs = Get-ChildItem -Path $repoRoot -Recurse -Directory | Where-Object { $_.Name -eq "Release" }
-
-if ($releaseDirs.Count -eq 0) {
-    Write-Error "❌ No 'Release' folder found after build."
-    exit 1
-}
-
-$releaseDir = $releaseDirs[0].FullName
-Write-Host "📁 Found release directory: $releaseDir"
+Write-Host "`n✅ Build completed successfully!"
 
 # --- Compress the output
+$outputDir = Join-Path $repoRoot "build/artifacts/"
 $archivePath = Join-Path $artifactDir "Squirrel.Windows-$SquirrelVersion.7z"
 if (Test-Path $archivePath) {
     Remove-Item $archivePath -Force
 }
 
 Write-Host "`n📦 Compressing to: $archivePath"
-& 7z a -t7z -mx=9 $archivePath $releaseDirs | Out-Null
+& 7z a -t7z -mx=9 $archivePath $outputDir | Out-Null
 
 Write-Host "`n✅ Done!"
 Write-Host "🗂️ Archive located at: $archivePath"
