@@ -28,6 +28,25 @@ Get-ChildItem $repoRoot -Recurse -Include *.csproj,*.vcxproj -File | ForEach-Obj
     -replace 'v4\.5(\.[0-9]*)*?', 'v4.5.2' |
     Set-Content "$repoRoot\Squirrel.sln" -Encoding UTF8
 
+Write-Host "Fully retargeting .csproj files to .NET Framework 4.5.2..."
+Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
+    $file = $_.FullName
+    [xml]$projXml = Get-Content $file
+    $changed = $false
+
+    $projXml.Project.PropertyGroup | ForEach-Object {
+        if ($_.TargetFrameworkVersion -and $_.TargetFrameworkVersion -ne "v4.5.2") {
+            $_.TargetFrameworkVersion = "v4.5.2"
+            $changed = $true
+        }
+    }
+
+    if ($changed) {
+        $projXml.Save($file)
+        Write-Host "Retargeted: $file"
+    }
+}
+
 # --- Add missing package references (WCF Data Services)
 Write-Host "Injecting missing package references..."
 Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
