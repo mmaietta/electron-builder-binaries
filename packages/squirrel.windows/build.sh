@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-VERSION=2.0.0
+VERSION=2.0.1
 
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
 
@@ -16,8 +16,8 @@ mkdir $TMP_DIR
 cd $TMP_DIR
 git clone --single-branch --depth 1 --branch $VERSION --recursive https://github.com/squirrel/squirrel.windows
 cd $TMP_DIR/squirrel.windows
-cp -a $BASEDIR/patches/* $TMP_DIR/squirrel.windows
-git apply $TMP_DIR/squirrel.windows/*.patch
+# cp -a $BASEDIR/patches/* $TMP_DIR/squirrel.windows
+# git apply $TMP_DIR/squirrel.windows/*.patch
 
 ./.nuget/NuGet.exe restore
 msbuild /p:Configuration=Release
