@@ -101,7 +101,7 @@ jobs:
     steps:
       - name: Enable long paths support
         run: git config --system core.longpaths true
-        
+
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -109,7 +109,7 @@ jobs:
 
       - name: Clone Squirrel.Windows
         run: |
-          git clone --single-branch --depth 1 --branch 2.0.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git squirrel-windows
+          git clone --single-branch --depth 1 --branch develop --recursive https://github.com/Squirrel/Squirrel.Windows.git squirrel-windows
 
       - name: Apply patch to Squirrel.Windows
         shell: pwsh
@@ -125,13 +125,7 @@ jobs:
         shell: pwsh
         run: |
           Set-Location "squirrel-windows"
-          .\.nuget\NuGet.exe restore Squirrel.sln
-
-      - name: Build Squirrel.Windows
-        shell: pwsh
-        run: |
-          Set-Location "squirrel-windows"
-          msbuild Squirrel.sln /p:Configuration=Release
+          devbuild.cmd release
 
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
