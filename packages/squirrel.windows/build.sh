@@ -46,8 +46,8 @@ if [ ! -f "$MSBUILD" ]; then
   MSBUILD="/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
 fi
 
-"$MSBUILD" Squirrel.sln /t:Restore /p:Configuration=Release
-"$MSBUILD" Squirrel.sln /p:Configuration=Release /m
+"$MSBUILD" Squirrel.sln /target:Restore /property:Configuration=Release
+"$MSBUILD" Squirrel.sln /property:Configuration=Release /maxcpucount
 
 # ./.nuget/NuGet.exe restore
 # msbuild /p:Configuration=Release
