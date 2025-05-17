@@ -112,10 +112,22 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
 
-      - name: Install .NET 4.5.2
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 4.5.x
+      # - name: Install .NET 4.5.2
+      #   uses: actions/setup-dotnet@v3
+      #   with:
+      #     dotnet-version: 4.5
+
+      # - name: Install .NET Developer Pack
+      #   uses: actions/setup-dotnet@v3
+      #   with:
+      #     dotnet-version: 4.8.x
+
+      - name: Build
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
+          Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
+          Remove-Item -Path .\NDP452-DevPack.exe
 
       - name: Build
         shell: bash
