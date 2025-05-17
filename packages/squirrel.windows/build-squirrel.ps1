@@ -33,9 +33,9 @@ Get-ChildItem -Recurse -Include *.csproj,*.vcxproj | ForEach-Object {
 
 # Retarget solution file
 Write-Host "Retargeting .sln file..."
-(Get-Content .\Squirrel.sln) `
+(Get-Content "$repoRoo\Squirrel.sln") `
     -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' |
-    Set-Content .\Squirrel.sln
+    Set-Content "$repoRoo\Squirrel.sln"
 
 # # Ensure NuGet is available
 $nugetExe = "$repoRoot\.nuget\NuGet.exe"
@@ -76,11 +76,11 @@ $nugetExe = "$repoRoot\.nuget\NuGet.exe"
 
 # Restore packages
 Write-Host "Restoring NuGet packages..."
-.\.nuget\NuGet.exe restore Squirrel.sln
+"$nugetExe" restore "$repoRoo\Squirrel.sln"
 
 # Build the solution
 Write-Host "Building..."
 $msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-& "$msbuild" Squirrel.sln /p:Configuration=Release /m
+& "$msbuild" "$repoRoo\Squirrel.sln" /p:Configuration=Release /m
 
 Write-Host "✅ Build completed successfully."
