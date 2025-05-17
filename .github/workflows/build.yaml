@@ -155,7 +155,7 @@ jobs:
       - name: Build Squirrel.Windows
         shell: pwsh
         run: |
-          .\packages\squirrel.windows\build-squirrel.ps1 -SquirrelVersion "2.0.1" -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
+          .\packages\squirrel.windows\build-squirrel.ps1 -SquirrelVersion "develop" -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
 
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4

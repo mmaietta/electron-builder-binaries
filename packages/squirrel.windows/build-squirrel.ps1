@@ -6,7 +6,8 @@ $ErrorActionPreference = "Stop"
 
 # --- Setup paths
 $repoRoot = "C:\s\Squirrel.Windows"
-$nugetExe = "$repoRoot\.nuget\NuGet.exe"
+# $nugetExe = "$repoRoot\.nuget\NuGet.exe"
+$buildScript = Join-Path $repoRoot "devbuild.cmd"
 
 # --- Clone source
 git clone --recursive --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
@@ -16,6 +17,44 @@ Set-Location $repoRoot
 if ($PatchPath -and (Test-Path $PatchPath)) {
     git apply $PatchPath
 }
+
+# Run the devbuild.cmd script
+Push-Location $repoRoot
+try {
+    & $buildScript
+    if ($LASTEXITCODE -ne 0) {
+        throw "devbuild.cmd failed with exit code $LASTEXITCODE"
+    }
+}
+finally {
+    Pop-Location
+}
+
+# Locate the Release output folder
+$releaseDir = Join-Path $repoRoot "src\Squirrel\bin\Release"
+
+# Verify the build output exists
+if (-not (Test-Path $releaseDir)) {
+    throw "Release directory not found: $releaseDir"
+}
+
+# Create output directory if needed
+$outputDir = "$PSScriptRoot\out\squirrel.windows"
+if (-not (Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir -Force
+}
+
+# Compress all Release artifacts from bin folders
+$zipPath = "$outputDir\squirrel.windows.$SquirrelVersion.zip"
+if (Test-Path $zipPath) {
+    Remove-Item -Path $zipPath -Force
+}
+Write-Host "Compressing Release artifacts to $zipPath..."
+$releasePaths = Get-ChildItem -Recurse -Path "$repoRoot\src" -Filter Release | Where-Object { $_.PSIsContainer } | ForEach-Object { "$($_.FullName)\*" }
+
+& 7z a -mx=9 -mfb=64 $zipPath $releasePaths
+
+exit 0
 
 # --- Force retarget to .NET Framework 4.5.2 and PlatformToolset v143
 Write-Host "Retargeting project and solution files..."

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-VERSION=2.0.1
+VERSION=develop
 
 BASE_DIR=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 
@@ -24,7 +24,7 @@ rm -rf $TMP_DIR
 mkdir $TMP_DIR
 cd $TMP_DIR
 
-git clone --single-branch --depth 1 --branch $VERSION --recursive https://github.com/squirrel/squirrel.windows
+git clone --single-branch --branch $VERSION --recursive https://github.com/squirrel/squirrel.windows
 
 SRC_DIR=$TMP_DIR/squirrel.windows
 cd $SRC_DIR
