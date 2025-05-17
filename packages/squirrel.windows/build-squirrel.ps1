@@ -1,87 +1,61 @@
-param (
-  [string]$SquirrelVersion = "develop",
-  [string]$PatchPath = ""
+# Parameters
+param(
+    [string]$SquirrelVersion = "2.0.1",
+    [string]$PatchPath = ""
 )
-
-$ErrorActionPreference = "Stop"
 
 # Paths
 $repoRoot = "C:\s\Squirrel.Windows"
 $nugetPath = "$repoRoot\vendor\nuget\src\Core"
+$msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+$nugetExe = "$repoRoot\.nuget\NuGet.exe"
 
-# Clone branch
+# Clone Squirrel.Windows repo
 git clone --recursive --single-branch --depth 1 --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
 Set-Location $repoRoot
 
-# Optional: Apply patch
+# Apply patch if present
 if ($PatchPath -and (Test-Path $PatchPath)) {
-  git -C $repoRoot apply $PatchPath
+    Write-Host "Applying patch..."
+    git apply $PatchPath
 }
 
-# Install .NET 4.5.2 Developer Pack
-# Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
-# Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
-# Remove-Item -Path .\NDP452-DevPack.exe
-
-# Retarget project files
-Write-Host "Retargeting .csproj and .vcxproj files..."
+# Retarget project files (.csproj and .vcxproj)
+Write-Host "Retargeting project files to .NET 4.5.2 and platform toolset v143..."
 Get-ChildItem -Recurse -Include *.csproj,*.vcxproj | ForEach-Object {
-    (Get-Content $_.FullName) `
+    (Get-Content $_.FullName -Raw) `
         -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' `
-        -replace 'PlatformToolset>v141<', 'PlatformToolset>v143<' |
-        Set-Content $_.FullName
+        -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>' |
+        Set-Content $_.FullName -Encoding UTF8
 }
 
-# Retarget solution file
-Write-Host "Retargeting .sln file..."
-(Get-Content .\Squirrel.sln) `
+# Retarget .sln file
+Write-Host "Retargeting solution file..."
+(Get-Content .\Squirrel.sln -Raw) `
     -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' |
-    Set-Content .\Squirrel.sln
+    Set-Content .\Squirrel.sln -Encoding UTF8
 
-# # Ensure NuGet is available
-$nugetExe = "$repoRoot\.nuget\NuGet.exe"
-# if (-not (Test-Path $nugetExe)) {
-#   Invoke-WebRequest -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe -OutFile $nugetExe
-# }
+# Install .NET Framework 4.5.2 Developer Pack
+Write-Host "Installing .NET Framework 4.5.2 Developer Pack..."
+$devPackUrl = "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409"
+Invoke-WebRequest -Uri $devPackUrl -OutFile "NDP452-DevPack.exe"
+Start-Process -FilePath ".\NDP452-DevPack.exe" -ArgumentList "/quiet", "/norestart" -Wait
+Remove-Item -Force .\NDP452-DevPack.exe
 
-# # Restore & add dependencies for vendored NuGet
-# cd $nugetPath
-# & $nugetExe install System.Data.Services.Client -Version 5.6.4 -OutputDirectory packages
-# & $nugetExe install System.Spatial -Version 5.6.4 -OutputDirectory packages
-
-# $coreProj = "$nugetPath\Core.csproj"
-# $content = Get-Content $coreProj
-# if (-not ($content -match "System.Data.Services.Client")) {
-#   $ref = @'
-#   <ItemGroup>
-#     <Reference Include="System.Data.Services.Client">
-#       <HintPath>packages\System.Data.Services.Client.5.6.4\lib\net45\System.Data.Services.Client.dll</HintPath>
-#     </Reference>
-#     <Reference Include="System.Spatial">
-#       <HintPath>packages\System.Spatial.5.6.4\lib\net45\System.Spatial.dll</HintPath>
-#     </Reference>
-#   </ItemGroup>
-# '@
-#   $inserted = $false
-#   $out = foreach ($line in $content) {
-#     if (-not $inserted -and $line -match "<ItemGroup>") {
-#       $inserted = $true
-#       $line
-#       $ref
-#     } else {
-#       $line
-#     }
-#   }
-#   Set-Content $coreProj $out
-# }
-
-# Restore packages
+# Restore NuGet packages
 Write-Host "Restoring NuGet packages..."
-.\.nuget\NuGet.exe restore Squirrel.sln
+& $nugetExe restore Squirrel.sln
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "NuGet restore failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
 
-# Build the solution
-Write-Host "Building..."
-$msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-& "$msbuild" Squirrel.sln /p:Configuration=Release /m
+# Build solution
+Write-Host "Building solution..."
+& $msbuild Squirrel.sln /p:Configuration=Release /m
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Build failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+}
 
-Write-Host "✅ Build completed successfully."
+Write-Host "✅ Build completed successfully!"
