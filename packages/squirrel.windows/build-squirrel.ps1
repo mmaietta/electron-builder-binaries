@@ -8,7 +8,7 @@ $repoRoot = "C:\s\Squirrel.Windows"
 $nugetExe = "$repoRoot\.nuget\NuGet.exe"
 
 # --- Clone source
-git clone --recursive --single-branch --depth 1 --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
+git clone --recursive --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
 Set-Location $repoRoot
 
 # --- Optional patch
