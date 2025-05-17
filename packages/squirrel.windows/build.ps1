@@ -8,8 +8,10 @@ $repoRoot = "C:\s\Squirrel.Windows"
 $buildScript = Join-Path $repoRoot "devbuild.cmd"
 
 # --- Clone source
-git clone --recursive --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
+git clone --recursive https://github.com/Squirrel/Squirrel.Windows $repoRoot
 Set-Location $repoRoot
+git checkout $SquirrelVersion
+git submodule update --init --recursive
 
 # --- Optional patch
 if ($PatchPath -and (Test-Path $PatchPath)) {
