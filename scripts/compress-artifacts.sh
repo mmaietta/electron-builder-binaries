@@ -44,7 +44,6 @@ done
 
 # squirrel.windows
 NAME="squirrel.windows"
-VERSION="2.0.1"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"

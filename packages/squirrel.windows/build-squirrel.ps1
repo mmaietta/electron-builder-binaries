@@ -13,6 +13,7 @@ Set-Location $repoRoot
 
 # --- Optional patch
 if ($PatchPath -and (Test-Path $PatchPath)) {
+    Write-Host "`n🔧 Applying patch: $PatchPath"
     git apply $PatchPath
 }
 
