@@ -42,14 +42,15 @@ find . -name "*.vcxproj" -exec sed -i 's|<PlatformToolset>v141|<PlatformToolset>
 
 # echo "Restoring NuGet packages..."
 # ./nuget.exe restore Squirrel.sln
-./.nuget/NuGet.exe restore
+# ./.nuget/NuGet.exe restore
 
-echo "Building solution with MSBuild..."
+echo "Restoring and building solution with MSBuild..."
 MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin/MSBuild.exe"
 if [ ! -f "$MSBUILD_PATH" ]; then
   MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe"
 fi
 
+"$MSBUILD_PATH" Squirrel.sln /t:Restore /p:Configuration=Release
 "$MSBUILD_PATH" Squirrel.sln /p:Configuration=Release /m
 
 # ./.nuget/NuGet.exe restore
