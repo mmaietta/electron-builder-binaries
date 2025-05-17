@@ -28,22 +28,37 @@ Get-ChildItem $repoRoot -Recurse -Include *.csproj,*.vcxproj -File | ForEach-Obj
     -replace 'v4\.5(\.[0-9]*)*?', 'v4.5.2' |
     Set-Content "$repoRoot\Squirrel.sln" -Encoding UTF8
 
-Write-Host "Fully retargeting .csproj files to .NET Framework 4.5.2..."
+Write-Host "Retargeting all project files to .NET Framework 4.5.2..."
+
+# Handle SDK-style and legacy projects
 Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
     $file = $_.FullName
-    [xml]$projXml = Get-Content $file
-    $changed = $false
+    $content = Get-Content $file
+    $originalContent = $content
 
-    $projXml.Project.PropertyGroup | ForEach-Object {
-        if ($_.TargetFrameworkVersion -and $_.TargetFrameworkVersion -ne "v4.5.2") {
-            $_.TargetFrameworkVersion = "v4.5.2"
-            $changed = $true
+    try {
+        [xml]$projXml = Get-Content $file
+        $changed = $false
+
+        # Legacy style: <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+        $projXml.Project.PropertyGroup | ForEach-Object {
+            if ($_.TargetFrameworkVersion -and $_.TargetFrameworkVersion -ne "v4.5.2") {
+                $_.TargetFrameworkVersion = "v4.5.2"
+                $changed = $true
+            }
         }
-    }
 
-    if ($changed) {
-        $projXml.Save($file)
-        Write-Host "Retargeted: $file"
+        if ($changed) {
+            $projXml.Save($file)
+            Write-Host "Updated TargetFrameworkVersion: $file"
+        }
+    } catch {
+        # SDK-style fallback: <TargetFramework>net45</TargetFramework>
+        if ($content -match '<TargetFramework>net45</TargetFramework>') {
+            $content = $content -replace '<TargetFramework>net45</TargetFramework>', '<TargetFramework>net452</TargetFramework>'
+            Set-Content $file -Value $content
+            Write-Host "Updated TargetFramework: $file"
+        }
     }
 }
 
