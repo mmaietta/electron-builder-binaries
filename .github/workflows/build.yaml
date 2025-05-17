@@ -109,39 +109,9 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
 
-      - name: Clone Squirrel.Windows (develop)
+      - name: Build Squirrel.Windows
         run: |
-          mkdir C:\s
-          cd C:\s
-          git clone --single-branch --depth 1 --branch 2.0.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git
-
-      - name: Retarget .NET and C++ toolsets
-        shell: pwsh
-        run: |
-          $csprojFiles = Get-ChildItem -Recurse -Filter *.csproj -Path "C:\s\Squirrel.Windows"
-          foreach ($file in $csprojFiles) {
-            (Get-Content $file.FullName) -replace 'v4\.5', 'v4.7.2' | Set-Content $file.FullName
-          }
-
-          $vcxprojFiles = Get-ChildItem -Recurse -Filter *.vcxproj -Path "C:\s\Squirrel.Windows"
-          foreach ($file in $vcxprojFiles) {
-            $content = Get-Content $file.FullName
-            $content = $content -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
-            $content = $content -replace '<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>', '<WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>'
-            Set-Content $file.FullName $content
-          }
-
-          # Ensure Update-Mono.csproj is retargeted
-          $monoProject = "C:\s\Squirrel.Windows\src\Update\Update-Mono.csproj"
-          if (Test-Path $monoProject) {
-            (Get-Content $monoProject) -replace 'v4\.5', 'v4.7.2' | Set-Content $monoProject
-          }
-
-      - name: Run devbuild.cmd
-        run: |
-          cd C:\s\Squirrel.Windows
-          .\.NuGet\NuGet.exe restore
-          msbuild /p:Configuration=Release
+          .\.github\scripts\build-squirrel.ps1 -SquirrelVersion "2.0.1" -PatchPath "$env:GITHUB_WORKSPACE\patches\electron-builder-issue-8952.patch"
 
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
