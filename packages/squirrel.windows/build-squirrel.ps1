@@ -20,12 +20,12 @@ if ($PatchPath -and (Test-Path $PatchPath)) {
 Write-Host "Retargeting project and solution files..."
 Get-ChildItem $repoRoot -Recurse -Include *.csproj,*.vcxproj -File | ForEach-Object {
     (Get-Content $_.FullName -Raw) `
-        -replace 'v4\.5(\.[0-9])*?', 'v4.5.2' `
+        -replace 'v4\.5(\.[0-9]*)*?', 'v4.5.2' `
         -replace 'PlatformToolset>v141<', 'PlatformToolset>v143<' |
         Set-Content $_.FullName -Encoding UTF8
 }
 (Get-Content "$repoRoot\Squirrel.sln" -Raw) `
-    -replace 'v4\.5(\.[0-9])*?', 'v4.5.2' |
+    -replace 'v4\.5(\.[0-9]*)*?', 'v4.5.2' |
     Set-Content "$repoRoot\Squirrel.sln" -Encoding UTF8
 
 # --- Add missing package references (WCF Data Services)
