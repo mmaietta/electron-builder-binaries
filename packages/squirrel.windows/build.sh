@@ -19,7 +19,7 @@ cd $TMP_DIR/squirrel.windows
 cp -a $BASEDIR/patches/* $TMP_DIR/squirrel.windows
 git apply $TMP_DIR/squirrel.windows/*.patch
 
-.\.nuget\NuGet.exe restore
+./.nuget/NuGet.exe restore
 msbuild /p:Configuration=Release
 
 echo $VERSION > $TMP_DIR/VERSION.txt
