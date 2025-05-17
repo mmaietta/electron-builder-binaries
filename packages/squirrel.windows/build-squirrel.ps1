@@ -27,14 +27,21 @@ Get-ChildItem -Recurse -Filter *.csproj -Path $repoRoot | ForEach-Object {
   (Get-Content $_.FullName) -replace 'v4\.5', 'v4.5.2' | Set-Content $_.FullName
 }
 
-# Retarget C++ toolset and Windows SDK
-Get-ChildItem -Recurse -Filter *.vcxproj -Path $repoRoot | ForEach-Object {
-  $file = $_.FullName
-  $content = Get-Content $file
-  $content = $content -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
-#   $content = $content -replace '<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>', '<WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>'
-  Set-Content $file $content
-}
+# # Retarget C++ toolset and Windows SDK
+# Get-ChildItem -Recurse -Filter *.vcxproj -Path $repoRoot | ForEach-Object {
+#   $file = $_.FullName
+#   $content = Get-Content $file
+#   $content = $content -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
+# #   $content = $content -replace '<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>', '<WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>'
+#   Set-Content $file $content
+# }
+
+# Install Visual Studio 2017 Build Tools with v141 toolset
+$vsInstallerUrl = "https://aka.ms/vs/15/release/vs_buildtools.exe"
+$vsInstaller = "vs_buildtools.exe"
+Invoke-WebRequest -Uri $vsInstallerUrl -OutFile $vsInstaller
+Start-Process -FilePath .\$vsInstaller -ArgumentList "--quiet", "--wait", "--norestart", "--add", "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" -Wait
+Remove-Item -Path .\$vsInstaller
 
 # # Ensure NuGet is available
 $nugetExe = "$repoRoot\.nuget\NuGet.exe"

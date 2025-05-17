@@ -3,6 +3,11 @@ set -ex
 
 VERSION=2.0.1
 
+export DOTNET_NOLOGO=true
+export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+export DOTNET_CLI_TELEMETRY_OPTOUT=true
+export NUGET_XMLDOC_MODE=skip
+
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
 
 OUT_DIR=$BASEDIR/out/squirrel.windows
@@ -16,8 +21,8 @@ mkdir $TMP_DIR
 cd $TMP_DIR
 git clone --single-branch --depth 1 --branch $VERSION --recursive https://github.com/squirrel/squirrel.windows
 cd $TMP_DIR/squirrel.windows
-# cp -a $BASEDIR/patches/* $TMP_DIR/squirrel.windows
-# git apply $TMP_DIR/squirrel.windows/*.patch
+cp -a $BASEDIR/patches/* $TMP_DIR/squirrel.windows
+git apply $TMP_DIR/squirrel.windows/*.patch
 
 ./.nuget/NuGet.exe restore
 msbuild /p:Configuration=Release
