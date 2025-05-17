@@ -96,11 +96,46 @@ jobs:
           path: |
             packages/fpm/out
 
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          submodules: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9.4.0
+      - name: Setup node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '22'
+      - name: Setup 7-Zip action
+        uses: milliewalky/setup-7-zip@v2
+      - name: Install
+        run: |
+          pnpm i --frozen-lockfile
+      - name: Build
+        shell: bash
+        run: |
+          bash build-windows.sh
+      - name: Archive artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: windows-artifacts
+          if-no-files-found: error
+          retention-days: 5
+          path: |
+            packages/squirrel.windows/out
+
   combine-artifacts:
     runs-on: macos-latest
     needs: [
       build-linux,
-      build-mac
+      build-mac,
+      build-windows
     ]
     timeout-minutes: 15
     outputs:
