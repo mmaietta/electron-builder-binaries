@@ -96,46 +96,52 @@ jobs:
           path: |
             packages/fpm/out
 
-  build-windows:
+  build-squirrel-windows:
     runs-on: windows-latest
-    timeout-minutes: 15
     steps:
-      - name: Checkout code repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          submodules: true
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          version: 9.4.0
-      - name: Setup node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
-        with:
-          node-version: '22'
-      - name: Setup 7-Zip action
-        uses: milliewalky/setup-7-zip@v2
-      - name: Install
+      - name: Checkout your main repo
+        uses: actions/checkout@v3
+
+      - name: Clone Squirrel.Windows
         run: |
-          pnpm i --frozen-lockfile
-      - name: Build
-        shell: bash
+          git clone --single-branch --depth 1 --branch 2.0.1 --recursive https://github.com/Squirrel/Squirrel.Windows.git squirrel-windows
+
+      - name: Apply patch to Squirrel.Windows
+        shell: pwsh
         run: |
-          bash build-windows.sh
+          $patchPath = Join-Path $PWD "packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
+          Set-Location "squirrel-windows"
+          git apply $patchPath
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          Set-Location "squirrel-windows"
+          .\.nuget\NuGet.exe restore Squirrel.sln
+
+      - name: Build Squirrel.Windows
+        shell: pwsh
+        run: |
+          Set-Location "squirrel-windows"
+          msbuild Squirrel.sln /p:Configuration=Release
+
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
-          name: windows-artifacts
+          name: squirrel-windows-patched
           if-no-files-found: error
           retention-days: 5
-          path: |
-            packages/squirrel.windows/out
+          path: squirrel-windows\src\**\bin\Release\
 
   combine-artifacts:
     runs-on: macos-latest
     needs: [
       build-linux,
       build-mac,
-      build-windows
+      build-squirrel-windows
     ]
     timeout-minutes: 15
     outputs:
