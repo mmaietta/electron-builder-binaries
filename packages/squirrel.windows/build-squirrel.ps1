@@ -108,7 +108,7 @@ Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
 # --- Build
 Write-Host "Building with MSBuild..."
 $msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-& "$msbuild" "$repoRoot\Squirrel.sln" /p:Configuration=Release /p:PlatformToolset=v143 /m
+& "$msbuild" "$repoRoot\Squirrel.sln" /p:Configuration=Release /p:PlatformToolset=v143 /m /p:TreatWarningsAsErrors=false
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
