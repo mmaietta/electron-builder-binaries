@@ -97,6 +97,11 @@ jobs:
 
   build-squirrel-windows:
     runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      NUGET_XMLDOC_MODE: skip
     # defaults:
     #   run:
     #     shell: bash

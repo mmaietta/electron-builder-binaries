@@ -62,6 +62,18 @@ Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
     }
 }
 
+Write-Host "Applying text-based fallback retargeting for net45 → net452..."
+
+Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
+    $filePath = $_.FullName
+    $text = Get-Content $filePath -Raw
+    if ($text -match '(<TargetFramework.*?>)net45(</TargetFramework>)') {
+        Write-Host "Patching: $filePath"
+        $text = $text -replace '(<TargetFramework.*?>)net45(</TargetFramework>)', '${1}net452${2}'
+        Set-Content -Path $filePath -Value $text
+    }
+}
+
 # --- Add missing package references (WCF Data Services)
 Write-Host "Injecting missing package references..."
 Get-ChildItem $repoRoot -Recurse -Include *.csproj -File | ForEach-Object {
