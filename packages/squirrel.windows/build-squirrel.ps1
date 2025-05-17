@@ -2,6 +2,7 @@ param (
     [string]$SquirrelVersion = "2.0.1",
     [string]$PatchPath = ""
 )
+$ErrorActionPreference = "Stop"
 
 # --- Setup paths
 $repoRoot = "C:\s\Squirrel.Windows"
@@ -114,3 +115,19 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 Write-Host "✅ Build succeeded."
+
+# Create output directory if needed
+$outputDir = "$PSScriptRoot\out\squirrel.windows"
+if (-not (Test-Path $outputDir)) {
+    New-Item -ItemType Directory -Path $outputDir -Force
+}
+
+# Compress all Release artifacts from bin folders
+$zipPath = "$outputDir\squirrel.windows.$SquirrelVersion.zip"
+if (Test-Path $zipPath) {
+    Remove-Item -Path $zipPath -Force
+}
+Write-Host "Compressing Release artifacts to $zipPath..."
+$releasePaths = Get-ChildItem -Recurse -Path "$repoRoot\src" -Filter Release | Where-Object { $_.PSIsContainer } | ForEach-Object { "$($_.FullName)\*" }
+
+& 7z a $zipPath $releasePaths
