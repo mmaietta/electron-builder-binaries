@@ -9,8 +9,8 @@ $ErrorActionPreference = "Stop"
 $repoRoot = "C:\s\Squirrel.Windows"
 $nugetPath = "$repoRoot\vendor\nuget\src\Core"
 
-# Clone develop branch
-git clone --recursive --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
+# Clone branch
+git clone --recursive --single-branch --depth 1 --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
 
 # Optional: Apply patch
 if ($PatchPath -and (Test-Path $PatchPath)) {
@@ -18,30 +18,24 @@ if ($PatchPath -and (Test-Path $PatchPath)) {
 }
 
 # Install .NET 4.5.2 Developer Pack
-Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
-Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
-Remove-Item -Path .\NDP452-DevPack.exe
+# Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x409" -OutFile "NDP452-DevPack.exe"
+# Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
+# Remove-Item -Path .\NDP452-DevPack.exe
 
-# Retarget .NET projects
-Get-ChildItem -Recurse -Filter *.csproj -Path $repoRoot | ForEach-Object {
-  (Get-Content $_.FullName) -replace 'v4\.5', 'v4.5.2' | Set-Content $_.FullName
+# Retarget project files
+Write-Host "Retargeting .csproj and .vcxproj files..."
+Get-ChildItem -Recurse -Include *.csproj,*.vcxproj | ForEach-Object {
+    (Get-Content $_.FullName) `
+        -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' `
+        -replace 'PlatformToolset>v141<', 'PlatformToolset>v143<' |
+        Set-Content $_.FullName
 }
 
-# Retarget C++ toolset and Windows SDK
-Get-ChildItem -Recurse -Filter *.vcxproj -Path $repoRoot | ForEach-Object {
-  $file = $_.FullName
-  $content = Get-Content $file
-  $content = $content -replace '<PlatformToolset>v141</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
-#   $content = $content -replace '<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>', '<WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>'
-  Set-Content $file $content
-}
-
-# Install Visual Studio 2017 Build Tools with v141 toolset
-$vsInstallerUrl = "https://aka.ms/vs/15/release/vs_buildtools.exe"
-$vsInstaller = "vs_buildtools.exe"
-Invoke-WebRequest -Uri $vsInstallerUrl -OutFile $vsInstaller
-Start-Process -FilePath .\$vsInstaller -ArgumentList "--quiet", "--wait", "--norestart", "--add", "Microsoft.VisualStudio.Workload.VCTools;includeRecommended" -Wait
-Remove-Item -Path .\$vsInstaller
+# Retarget solution file
+Write-Host "Retargeting .sln file..."
+(Get-Content .\Squirrel.sln) `
+    -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' |
+    Set-Content .\Squirrel.sln
 
 # # Ensure NuGet is available
 $nugetExe = "$repoRoot\.nuget\NuGet.exe"
@@ -80,7 +74,13 @@ $nugetExe = "$repoRoot\.nuget\NuGet.exe"
 #   Set-Content $coreProj $out
 # }
 
-# Final restore & build
-cd $repoRoot
-& $nugetExe restore
-& "${env:ProgramFiles}\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe" .\Squirrel.sln /p:Configuration=Release
+# Restore packages
+Write-Host "Restoring NuGet packages..."
+.\.nuget\NuGet.exe restore Squirrel.sln
+
+# Build the solution
+Write-Host "Building..."
+$msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
+& "$msbuild" Squirrel.sln /p:Configuration=Release /m
+
+Write-Host "✅ Build completed successfully."

@@ -97,9 +97,9 @@ jobs:
 
   build-squirrel-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
+    # defaults:
+    #   run:
+    #     shell: bash
     steps:
       - name: Enable long paths support
         run: git config --system core.longpaths true
@@ -139,23 +139,24 @@ jobs:
         run: |
           Start-Process -FilePath .\NDP452-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
 
-      - name: Build
-        shell: bash
-        run: |
-          bash build-windows.sh
-
-      # - name: Build Squirrel.Windows
+      # - name: Build
+      #   shell: bash
       #   run: |
-      #     .\packages\squirrel.windows\build-squirrel.ps1 -SquirrelVersion "2.0.1" -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
+      #     bash build-windows.sh
 
-      # - name: Archive artifacts
-      #   uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
-      #   with:
-      #     name: squirrel-windows-patched
-      #     if-no-files-found: error
-      #     retention-days: 5
-      #     path: |
-      #       C:\s\Squirrel.Windows\src\**\bin\Release\
+      - name: Build Squirrel.Windows
+        shell: pwsh
+        run: |
+          .\packages\squirrel.windows\build-squirrel.ps1 -SquirrelVersion "2.0.1" -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: squirrel-windows-patched
+          if-no-files-found: error
+          retention-days: 5
+          path: |
+            C:\s\Squirrel.Windows\src\**\bin\Release\
 
       
 
