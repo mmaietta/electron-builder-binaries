@@ -22,10 +22,10 @@ Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=397673&clcid=0x4
 Start-Process -FilePath .\NDP45-DevPack.exe -ArgumentList "/quiet", "/norestart" -Wait
 Remove-Item -Path .\NDP45-DevPack.exe
 
-# # Retarget .NET projects
-# Get-ChildItem -Recurse -Filter *.csproj -Path $repoRoot | ForEach-Object {
-#   (Get-Content $_.FullName) -replace 'v4\.5', 'v4.7.2' | Set-Content $_.FullName
-# }
+# Retarget .NET projects
+Get-ChildItem -Recurse -Filter *.csproj -Path $repoRoot | ForEach-Object {
+  (Get-Content $_.FullName) -replace 'v4\.5', 'v4.5.2' | Set-Content $_.FullName
+}
 
 # Retarget C++ toolset and Windows SDK
 Get-ChildItem -Recurse -Filter *.vcxproj -Path $repoRoot | ForEach-Object {
