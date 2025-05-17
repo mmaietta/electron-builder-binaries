@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-VERSION=2.0.1
+VERSION=2.0.0
 
 BASEDIR=$(cd "$(dirname "$0")" && pwd)
 
