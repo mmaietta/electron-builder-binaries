@@ -11,6 +11,7 @@ $nugetPath = "$repoRoot\vendor\nuget\src\Core"
 
 # Clone branch
 git clone --recursive --single-branch --depth 1 --branch $SquirrelVersion https://github.com/Squirrel/Squirrel.Windows $repoRoot
+Set-Location $repoRoot
 
 # Optional: Apply patch
 if ($PatchPath -and (Test-Path $PatchPath)) {
@@ -33,9 +34,9 @@ Get-ChildItem -Recurse -Include *.csproj,*.vcxproj | ForEach-Object {
 
 # Retarget solution file
 Write-Host "Retargeting .sln file..."
-(Get-Content "$repoRoot\Squirrel.sln") `
+(Get-Content .\Squirrel.sln) `
     -replace 'v4\.5(\.[0-9]*)?', 'v4.5.2' |
-    Set-Content "$repoRoot\Squirrel.sln"
+    Set-Content .\Squirrel.sln
 
 # # Ensure NuGet is available
 $nugetExe = "$repoRoot\.nuget\NuGet.exe"
@@ -76,11 +77,11 @@ $nugetExe = "$repoRoot\.nuget\NuGet.exe"
 
 # Restore packages
 Write-Host "Restoring NuGet packages..."
-& "$nugetExe" restore "$repoRoot\Squirrel.sln"
+.\.nuget\NuGet.exe restore Squirrel.sln
 
 # Build the solution
 Write-Host "Building..."
 $msbuild = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe"
-& "$msbuild" "$repoRoot\Squirrel.sln" /p:Configuration=Release /m
+& "$msbuild" Squirrel.sln /p:Configuration=Release /m
 
 Write-Host "✅ Build completed successfully."
