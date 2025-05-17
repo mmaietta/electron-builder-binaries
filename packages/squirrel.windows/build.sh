@@ -27,8 +27,9 @@ git apply $TMP_DIR/squirrel.windows/*.patch
 .\.nuget\NuGet.exe restore
 msbuild /p:Configuration=Release
 
-echo $VERSION > $TMP_DIR/VERSION
+echo $VERSION > $TMP_DIR/VERSION.txt
 
 rm -rf $OUT_DIR
 mkdir $OUT_DIR
-cp -a $TMP_DIR/* $OUT_DIR
+DESTINATION="$OUT_DIR/squirrel.windows-$VERSION-patched.7z"
+7za a -mx=9 -mfb=64 "$DESTINATION" "$TMP_DIR"/*
