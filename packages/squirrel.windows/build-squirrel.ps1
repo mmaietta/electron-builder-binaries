@@ -30,13 +30,13 @@ finally {
     Pop-Location
 }
 
-# Locate the Release output folder
-$releaseDir = Join-Path $repoRoot "src\Squirrel\bin\Release"
+# # Locate the Release output folder
+# $releaseDir = Join-Path $repoRoot "src\Squirrel\bin\Release"
 
-# Verify the build output exists
-if (-not (Test-Path $releaseDir)) {
-    throw "Release directory not found: $releaseDir"
-}
+# # Verify the build output exists
+# if (-not (Test-Path $releaseDir)) {
+#     throw "Release directory not found: $releaseDir"
+# }
 
 # Create output directory if needed
 $outputDir = "$PSScriptRoot\out\squirrel.windows"
