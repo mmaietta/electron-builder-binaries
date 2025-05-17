@@ -19,7 +19,7 @@ if ($PatchPath -and (Test-Path $PatchPath)) {
 # Run the devbuild.cmd script (new build script post 2.0.1)
 Push-Location $repoRoot
 try {
-    & $buildScript
+    & $buildScript release
     if ($LASTEXITCODE -ne 0) {
         throw "devbuild.cmd failed with exit code $LASTEXITCODE"
     }
