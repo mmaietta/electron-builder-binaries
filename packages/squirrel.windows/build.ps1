@@ -89,5 +89,5 @@ try {
     Write-Host "✅ Repo root cleaned up successfully."
 }
 catch {
-    Write-Warning "⚠️ Failed to clean up $repoRoot: $_"
+    Write-Warning "⚠️ Failed to clean up ${repoRoot}: $_"
 }
