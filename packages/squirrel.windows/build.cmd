@@ -36,7 +36,6 @@ msbuild -Restore .\Squirrel.sln -p:Configuration=Release -v:m -m -nr:false -bl:.
 
 nuget pack .\src\Squirrel.nuspec -OutputDirectory .\build\artifacts || exit /b
 
-
 :: Layout electron-winstaller
 ::
 :: The NPM package electron-winstaller allows developers to
