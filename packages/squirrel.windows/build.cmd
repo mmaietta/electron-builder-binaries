@@ -34,7 +34,7 @@ nuget restore .\Squirrel.sln || exit /b
 
 msbuild -Restore .\Squirrel.sln -p:Configuration=Release -v:m -m -nr:false -bl:.\build\logs\build.binlog || exit /b
 
-nuget pack Squirrel.nuspec -OutputDirectory ..\build\artifacts || exit /b
+nuget pack .\src\Squirrel.nuspec -OutputDirectory ..\build\artifacts || exit /b
 
 
 :: Layout electron-winstaller
