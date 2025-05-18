@@ -34,7 +34,7 @@ nuget restore .\Squirrel.sln || exit /b
 
 msbuild -Restore .\Squirrel.sln -p:Configuration=Release -v:m -m -nr:false -bl:.\build\logs\build.binlog || exit /b
 
-nuget pack .\src\Squirrel.nuspec -OutputDirectory ..\build\artifacts || exit /b
+nuget pack .\src\Squirrel.nuspec -OutputDirectory .\build\artifacts || exit /b
 
 
 :: Layout electron-winstaller
@@ -47,20 +47,20 @@ nuget pack .\src\Squirrel.nuspec -OutputDirectory ..\build\artifacts || exit /b
 :: which can then be copied to the electron-winstaller/vendor folder
 :: (either manually or in an automated way).
 
-md ..\build\artifacts\electron-winstaller\vendor
+md .\build\artifacts\electron-winstaller\vendor
 
-copy ..\build\Release\net45\Update.exe ..\build\artifacts\electron-winstaller\vendor\Squirrel.exe || exit /b
-copy ..\build\Release\net45\update.com ..\build\artifacts\electron-winstaller\vendor\Squirrel.com || exit /b
-copy ..\build\Release\net45\Update.pdb ..\build\artifacts\electron-winstaller\vendor\Squirrel.pdb || exit /b
-copy ..\build\Release\Win32\Setup.exe ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\Win32\Setup.pdb ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\net45\Update-Mono.exe ..\build\artifacts\electron-winstaller\vendor\Squirrel-Mono.exe || exit /b
-copy ..\build\Release\net45\Update-Mono.pdb ..\build\artifacts\electron-winstaller\vendor\Squirrel-Mono.pdb || exit /b
-copy ..\build\Release\Win32\StubExecutable.exe ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\net45\SyncReleases.exe ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\net45\SyncReleases.pdb ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\Win32\WriteZipToSetup.exe ..\build\artifacts\electron-winstaller\vendor || exit /b
-copy ..\build\Release\Win32\WriteZipToSetup.pdb ..\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\net45\Update.exe .\build\artifacts\electron-winstaller\vendor\Squirrel.exe || exit /b
+copy .\build\Release\net45\update.com .\build\artifacts\electron-winstaller\vendor\Squirrel.com || exit /b
+copy .\build\Release\net45\Update.pdb .\build\artifacts\electron-winstaller\vendor\Squirrel.pdb || exit /b
+copy .\build\Release\Win32\Setup.exe .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\Win32\Setup.pdb .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\net45\Update-Mono.exe .\build\artifacts\electron-winstaller\vendor\Squirrel-Mono.exe || exit /b
+copy .\build\Release\net45\Update-Mono.pdb .\build\artifacts\electron-winstaller\vendor\Squirrel-Mono.pdb || exit /b
+copy .\build\Release\Win32\StubExecutable.exe .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\net45\SyncReleases.exe .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\net45\SyncReleases.pdb .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\Win32\WriteZipToSetup.exe .\build\artifacts\electron-winstaller\vendor || exit /b
+copy .\build\Release\Win32\WriteZipToSetup.pdb .\build\artifacts\electron-winstaller\vendor || exit /b
 
 echo.
 echo ✅ Build completed successfully!
