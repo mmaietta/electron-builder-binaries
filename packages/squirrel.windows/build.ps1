@@ -1,6 +1,6 @@
 param (
     [string]$SquirrelVersion = "2.0.1",
-    [string]$PatchPath = Join-Path $PSScriptRoot "patches"
+    [string]$PatchPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,7 +9,10 @@ $ErrorActionPreference = "Stop"
 $repoRoot = "C:\s\Squirrel.Windows"
 $artifactDir = Join-Path $PSScriptRoot "out\squirrel.windows"
 $outputDir = Join-Path $repoRoot "build\artifacts"
-$archivePath = Join-Path $artifactDir "squirrel.windows-$SquirrelVersion.7z"
+$archivePath = Join-Path $artifactDir "squirrel.windows-$SquirrelVersion-patched.7z"
+if (-not $PatchPath) {
+    $PatchPath = Join-Path $PSScriptRoot "patches"
+}
 
 # --- Clone source
 Write-Host "`n📥 Cloning Squirrel.Windows..."
