@@ -1,5 +1,0 @@
----
-"squirrel.windows": major
----
-
-t
