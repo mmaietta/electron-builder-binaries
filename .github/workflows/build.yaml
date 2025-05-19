@@ -106,24 +106,16 @@ jobs:
     steps:
       - name: Enable long paths support
         run: git config --system core.longpaths true
-
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           submodules: true
-
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
-
       - name: Build Squirrel.Windows
         shell: pwsh
         run: |
-          .\packages\squirrel.windows\build.ps1 -SquirrelVersion "2.0.1" -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
-      # - name: Build Squirrel.Windows
-      #   shell: cmd
-      #   run: |
-      #     .\packages\squirrel.windows\build.cmd -PatchPath "$env:GITHUB_WORKSPACE\packages\squirrel.windows\patches\electron-builder-issue-8952.patch"
-
+          .\packages\squirrel.windows\build.ps1
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:

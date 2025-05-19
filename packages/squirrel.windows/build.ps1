@@ -1,6 +1,6 @@
 param (
     [string]$SquirrelVersion = "2.0.1",
-    [string]$PatchPath = ""
+    [string]$PatchPath = Join-Path $PSScriptRoot "patches"
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,10 +21,14 @@ Set-Location $repoRoot
 git checkout $SquirrelVersion
 git submodule update --init --recursive
 
-# --- Optional patch
-if ($PatchPath -and (Test-Path $PatchPath)) {
-    Write-Host "`n🔧 Applying patch: $PatchPath"
-    git apply $PatchPath
+# --- Optional patches
+if ($PatchPath -and (Test-Path $PatchPath) -and (Get-Item $PatchPath).PSIsContainer) {
+    $patchFiles = Get-ChildItem -Path $PatchPath -Filter *.patch
+
+    foreach ($patch in $patchFiles) {
+        Write-Host "`n🔧 Applying patch: $($patch.FullName)"
+        git apply $patch.FullName
+    }
 }
 
 # --- Run the official build
