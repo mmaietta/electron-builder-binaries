@@ -1,5 +1,5 @@
 ---
-"squirrel.windows": patch
+"squirrel.windows": major
 ---
 
 test deploy
