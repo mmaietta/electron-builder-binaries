@@ -1,0 +1,5 @@
+---
+"squirrel.windows": major
+---
+
+t
