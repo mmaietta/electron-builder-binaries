@@ -1,5 +1,11 @@
 # squirrel.windows
 
+## 1.0.0
+
+### Major Changes
+
+- [`24674ab`](https://github.com/mmaietta/electron-builder-binaries/commit/24674abf79e176c031f7a8d0339b4d722b613dd0) Thanks [@mmaietta](https://github.com/mmaietta)! - test deploy
+
 ## 0.0.1
 
 ### Patch Changes
