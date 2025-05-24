@@ -55,9 +55,6 @@ if [ "$(uname)" = "Darwin" ]; then
     make -j"$(sysctl -n hw.ncpu)" 1>/dev/null
     echo "  ⤵️ Installing Ruby..."
     make install 1>/dev/null
-
-    mkdir -p "$LIB_DIR"
-
 else
     echo "  🐧 Compiling for Linux."
     autoconf

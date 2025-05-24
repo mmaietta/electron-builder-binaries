@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, i386] #, arm64/v8, arm/v7, ppc64le, s390x]
+        arch: [x86_64, i386, arm64/v8] # , arm/v7, ppc64le, s390x]
     steps:
       - name: Set up QEMU dependency
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
@@ -131,7 +131,7 @@ jobs:
         fpm-linux,
         fpm-mac,
         squirrel-windows,
-      ]
+        ]
     timeout-minutes: 15
     outputs:
       artifactUrl: ${{ steps.upload-artifacts.outputs.artifact-url }}
@@ -151,7 +151,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
         with:
-          node-version: "22"
+          node-version: '22'
       - name: Download artifacts
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4
         with:
