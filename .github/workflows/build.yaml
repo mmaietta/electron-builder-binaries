@@ -131,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [windows-2019, macos-latest, ubuntu-latest]
+        node: [windows-2025, macos-latest, ubuntu-latest]
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
