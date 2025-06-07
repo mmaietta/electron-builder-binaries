@@ -34,7 +34,7 @@ elif [[ "$OS_NAME" == MINGW* || "$OS_NAME" == CYGWIN* || "$OS_NAME" == MSYS* ]];
         -o "$OUTPUT_DIR/rcedit/rcedit-x86.exe"
 
     # Append rcedit version info
-    $OUTPUT_DIR/rcedit/rcedit-x64.exe --version >"$OUTPUT_DIR/rcedit/VERSION"
+    $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/rcedit/rcedit-x64.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/rcedit/VERSION"
 
     # ----------------------------
     # Copy appx assets
