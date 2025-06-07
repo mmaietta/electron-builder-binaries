@@ -38,21 +38,18 @@ NAME="fpm"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
-for f in "$DESINTATION_DIR"/*; do
-    hashArtifact "$NAME/$(basename "$f")"
-done
 
 # squirrel.windows
 NAME="squirrel.windows"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
-hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
 
 # win-codesign
 NAME="win-codesign"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
+mkdir -p "$DESINTATION_DIR"
 compressArtifact "$NAME/osslsigncode.7z" "$BUILD_OUT_DIR/out/$NAME/osslsigncode"/*
 compressArtifact "$NAME/rcedit.7z" "$BUILD_OUT_DIR/out/$NAME/rcedit"/*
 compressArtifact "$NAME/windows-toolkit.7z" "$BUILD_OUT_DIR/out/$NAME/appxAssets" "$BUILD_OUT_DIR/out/$NAME/windows-10"

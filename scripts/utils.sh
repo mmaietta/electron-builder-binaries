@@ -44,7 +44,7 @@ compressArtifact()
 {
     ARCHIVE_PATH="$1"
     PACKAGE_CONTENTS="${@:2}"
-    DESTINATION="$BUILD_OUT_DIR/$ARCHIVE_PATH"
+    DESTINATION="$ARTIFACTS_DIR/$ARCHIVE_PATH"
     rm -f "$DESTINATION"
     7za a -mx=9 -mfb=64 "$DESTINATION" ${PACKAGE_CONTENTS[@]}
     if [ $? -ne 0 ]; then
@@ -52,5 +52,4 @@ compressArtifact()
         exit 1
     fi
     echo "$1 compressed to $DESTINATION"
-    # hashArtifact "$DESTINATION"
 }
