@@ -53,7 +53,13 @@ hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
 NAME="win-codesign"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
-cp -a "$BUILD_OUT_DIR/out/$NAME" "$DESINTATION_DIR"
+compressArtifact "$NAME/osslsigncode.7z" "$BUILD_OUT_DIR/out/$NAME/osslsigncode"/*
+compressArtifact "$NAME/rcedit.7z" "$BUILD_OUT_DIR/out/$NAME/rcedit"/*
+compressArtifact "$NAME/windows-toolkit.7z" "$BUILD_OUT_DIR/out/$NAME/appxAssets" "$BUILD_OUT_DIR/out/$NAME/windows-10"
+
+# ------------------------------------------------------------
+# Download and verify legacy artifacts in build flow.
+# ------------------------------------------------------------
 
 # ztsd
 NAME="zstd"
