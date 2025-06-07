@@ -74,7 +74,7 @@ else
     cp -r a/bin "$OUTPUT_DIR/osslsigncode/windows"
     rm -rf a a.zip
     # Write version info
-    $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/osslsigncode/windows/osslsigncode.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/osslsigncode/windows/VERSION.txt"
+    "$OUTPUT_DIR/osslsigncode/windows/osslsigncode.exe" --version >"$OUTPUT_DIR/osslsigncode/windows/VERSION.txt"
 
     # ----------------------------
     # Copy appx assets
