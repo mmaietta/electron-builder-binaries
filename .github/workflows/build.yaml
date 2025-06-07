@@ -131,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [windows-2019, macos-latest]
+        node: [windows-2019, macos-latest, ubuntu-latest]
     steps:
       - name: Checkout code repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -144,7 +144,7 @@ jobs:
       - name: Build win-codesign
         shell: bash
         run: |
-          ./packages/win-codesign/build.sh
+          bash ./packages/win-codesign/build.sh
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
@@ -152,7 +152,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           path: |
-            .\packages\win-codesign\out
+            ./packages/win-codesign/out
 
   combine-artifacts:
     runs-on: macos-latest

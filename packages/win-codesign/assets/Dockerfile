@@ -30,7 +30,8 @@ RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
 # Prepare output directory
 RUN mkdir -p /out/linux && \
     cp /usr/src/osslsigncode/build/osslsigncode /out/linux/ \
-    && /out/linux/osslsigncode --version > /out/linux/VERSION
+    && chmod +x /out/linux/osslsigncode \
+    && /out/linux/osslsigncode --version > /out/linux/VERSION.txt
 
 # ----------------------------
 # Package as .7z

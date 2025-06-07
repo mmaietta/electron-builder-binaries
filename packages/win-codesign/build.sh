@@ -5,7 +5,8 @@ set -euo pipefail
 # Configuration
 # ----------------------------
 OSSLSIGNCODE_VER=2.9
-RCEDIT_VERSION="${RCEDIT_VERSION:-2.2.0}"
+RCEDIT_VERSION=2.0.0
+# ----------------------------
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TMP_DIR="$(mktemp -d)"
@@ -15,35 +16,10 @@ OUTPUT_DIR="$CWD/out/win-codesign"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/osslsigncode"
 
-# Determine the operating system
-OS_NAME="$(uname -s)"
+OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
-if [[ "$OS_NAME" == Linux ]]; then
-    echo "Please run this script on a MacOS or Windows environment to build the osslsigncode binaries."
-    exit 1
-elif [[ "$OS_NAME" == MINGW* || "$OS_NAME" == CYGWIN* || "$OS_NAME" == MSYS* ]]; then
-    echo "Detected Windows environment."
-
-    # ----------------------------
-    # Download rcedit executables
-    # ----------------------------
-    mkdir -p "$OUTPUT_DIR/rcedit"
-    curl -L "https://github.com/electron/rcedit/releases/download/v$RCEDIT_VERSION/rcedit-x64.exe" \
-        -o "$OUTPUT_DIR/rcedit/rcedit-x64.exe"
-    curl -L "https://github.com/electron/rcedit/releases/download/v$RCEDIT_VERSION/rcedit-x86.exe" \
-        -o "$OUTPUT_DIR/rcedit/rcedit-x86.exe"
-
-    # Append rcedit version info
-    $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/rcedit/rcedit-x64.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/rcedit/VERSION"
-
-    # ----------------------------
-    # Copy appx assets
-    # ----------------------------
-    cp -a "$CWD/assets/appxAssets" "$OUTPUT_DIR/appxAssets"
-    node "$CWD/scripts/appx.js"
-else
-    echo "Assuming MacOS environment."
-
+if [ "$OS_TARGET" = "linux" ]; then
+    echo "Detected Linux target."
     # ----------------------------
     # Build and extract osslsigncode (Linux)
     # ----------------------------
@@ -60,6 +36,8 @@ else
     7za x "osslsigncode-$OSSLSIGNCODE_VER-linux-static.7z" -o"$OUTPUT_DIR/osslsigncode"
     rm "osslsigncode-$OSSLSIGNCODE_VER-linux-static.7z"
 
+elif [ "$OS_TARGET" = "darwin" ]; then
+    echo "Detected MacOS target."
     # ----------------------------
     # Download and extract osslsigncode (macOS)
     # ----------------------------
@@ -71,5 +49,26 @@ else
 
     # Write version info
     chmod +x "$OUTPUT_DIR/osslsigncode/darwin/osslsigncode"
-    "$OUTPUT_DIR/osslsigncode/darwin/osslsigncode" --version >"$OUTPUT_DIR/osslsigncode/darwin/VERSION"
+    "$OUTPUT_DIR/osslsigncode/darwin/osslsigncode" --version >"$OUTPUT_DIR/osslsigncode/darwin/VERSION.txt"
+
+else
+    echo "Assuming Windows target."
+
+    # ----------------------------
+    # Download rcedit executables
+    # ----------------------------
+    mkdir -p "$OUTPUT_DIR/rcedit"
+    curl -L "https://github.com/electron/rcedit/releases/download/v$RCEDIT_VERSION/rcedit-x64.exe" \
+        -o "$OUTPUT_DIR/rcedit/rcedit-x64.exe"
+    curl -L "https://github.com/electron/rcedit/releases/download/v$RCEDIT_VERSION/rcedit-x86.exe" \
+        -o "$OUTPUT_DIR/rcedit/rcedit-x86.exe"
+
+    # Append rcedit version info
+    $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/rcedit/rcedit-x64.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/rcedit/VERSION.txt"
+
+    # ----------------------------
+    # Copy appx assets
+    # ----------------------------
+    cp -a "$CWD/assets/appxAssets" "$OUTPUT_DIR/appxAssets"
+    node "$CWD/assets/appx.js"
 fi

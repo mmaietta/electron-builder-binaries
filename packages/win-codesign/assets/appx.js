@@ -1,15 +1,28 @@
-const path = require("path")
-const promisify = require("util").promisify
-const fs = require("fs")
-const copy = promisify(fs.copyFile)
+const path = require("path");
+const promisify = require("util").promisify;
+const fs = require("fs");
+const copy = promisify(fs.copyFile);
 
-const VERSION = "10.0.26100.0"
+const destination = path.resolve(__dirname, "../out/win-codesign/windows-10");
 
-const windowsKitsDir = "C:\\Program Files (x86)\\Windows Kits\\10"
-const sourceDir = path.resolve(windowsKitsDir, "bin", VERSION)
-const destination = path.resolve(__dirname, "../out/win-codesign/windows-10")
+const sdkBase = process.env["WINDOWS_KIT_PATH"] || "C:\\Program Files (x86)\\Windows Kits\\10\\bin";
 
-// noinspection SpellCheckingInspection
+const versions = fs.readdirSync(sdkBase).filter((v) => /^10\./.test(v));
+const VERSION = versions?.sort().pop();
+if (!VERSION) {
+  console.error("No Windows SDK version found in", sdkBase);
+  console.error("Available versions:", fs.readdirSync(sdkBase));
+  process.exit(1);
+}
+console.log("Using Windows SDK version:", VERSION);
+console.log("SDK base directory:", sdkBase);
+console.log("Destination directory:", destination);
+
+// Ensure the destination directory exists
+if (!fs.existsSync(destination)) {
+  fs.mkdirSync(destination, { recursive: true });
+}
+
 const files = [
   "appxpackaging.dll",
   "makeappx.exe",
@@ -33,38 +46,30 @@ const files = [
   "opcservices.dll",
   "signtool.exe",
   "signtool.exe.manifest",
-  "pvk2pfx.exe"
-]
+  "pvk2pfx.exe",
+];
+
+const sourceDir = path.resolve(sdkBase, VERSION);
 
 function copyFiles(files, archWin, archNode) {
-  fs.mkdirSync(path.join(destination, archNode), { recursive: true })
-  return files.map(async file => {
-    await copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file))
-    return file
-  })
+  fs.mkdirSync(path.join(destination, archNode), { recursive: true });
+  return files.map(async (file) => {
+    await copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file));
+    console.log("Copied:", file);
+    return file;
+  });
 }
 
 // copy files
-Promise.all([
-  ...copyFiles(files, "x86", "ia32"),
-  ...copyFiles(files, "x64", "x64"),
-  ...copyFiles(files, "arm64", "arm64"),
-])
-.then(files => {
-  console.log("Files copied successfully")
-  console.log("Files copied:")
-  files.forEach(file => {
-    console.log(`- ${file}`)
+console.log("Copying files...");
+Promise.all([...copyFiles(files, "x86", "x86"), ...copyFiles(files, "x64", "x64"), ...copyFiles(files, "arm64", "arm64")])
+  .then((_files) => {
+    console.log("Files copied successfully");
   })
-})
-.catch(error => {
-  process.exitCode = 1
-  console.error(error)
-})
+  .catch((error) => {
+    process.exitCode = 1;
+    console.error(error);
+  });
 
 // add version file
-fs.writeFileSync(
-  path.join(destination, "VERSION"),
-  VERSION,
-  "utf8"
-)
+fs.writeFileSync(path.join(destination, "VERSION.txt"), VERSION, "utf8");
