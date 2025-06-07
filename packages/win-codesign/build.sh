@@ -65,13 +65,14 @@ else
     # Append rcedit version info
     $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/rcedit/rcedit-x64.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/rcedit/VERSION.txt"
 
-
+    # ----------------------------
+    # Download osslsigncode artifacts (Windows)
+    # ----------------------------
     cd "$TMP_DIR"
     curl -L "https://github.com/mtrojnar/osslsigncode/releases/download/$OSSLSIGNCODE_VER/osslsigncode-$OSSLSIGNCODE_VER-windows-x64-mingw.zip" -o a.zip
-    7za x a.zip -oa
-    cp -a a/bin "$OUTPUT_DIR/osslsigncode/windows"
+    unzip a.zip -d a
+    cp -r a/bin "$OUTPUT_DIR/osslsigncode/windows"
     rm -rf a a.zip
-    chmod +x "$OUTPUT_DIR/osslsigncode/windows/osslsigncode.exe"
     # Write version info
     $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/osslsigncode/windows/osslsigncode.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/osslsigncode/windows/VERSION.txt"
 
