@@ -152,7 +152,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
           path: |
-            ./packages/win-codesign/out
+            ./packages/win-codesign
 
   combine-artifacts:
     runs-on: macos-latest

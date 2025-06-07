@@ -49,6 +49,12 @@ rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
 hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
 
+# win-codesign
+NAME="win-codesign"
+DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+rm -rf "$DESINTATION_DIR"
+cp -a "$BUILD_OUT_DIR/out/$NAME" "$DESINTATION_DIR"
+
 # ztsd
 NAME="zstd"
 VERSION="1.5.5"
@@ -72,12 +78,6 @@ NAME="nsis"
 VERSION="3.0.4.1"
 ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "VKMiizYdmNdJOWpRGz4trl4lD++BvYP2irAXpMilheUP0pc93iKlWAoP843Vlraj8YG19CVn0j+dCo/hURz9+Q=="
-
-# winCodeSign
-NAME="winCodeSign"
-VERSION="2.6.0"
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA==" "win-codesign-$VERSION"
 
 # wine-4.0.1-mac
 NAME="wine"
