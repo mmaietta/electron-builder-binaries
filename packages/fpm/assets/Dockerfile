@@ -1,12 +1,11 @@
 # syntax=docker/dockerfile:1.4
 
 ARG TARGET_ARCH=x86_64
-ARG PLATFORM_ARCH=x86_64
+ARG PLATFORM_ARCH=amd64
 ARG RUBY_VERSION=3.4.3
-# ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
-ARG DOCKER_IMAGE=buildpack-deps:22.04-curl
+ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
 
-FROM --platform=linux/${PLATFORM_ARCH} ${DOCKER_IMAGE} AS build
+FROM --platform=linux/${PLATFORM_ARCH} ${PLATFORM_ARCH}/${DOCKER_IMAGE}
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -20,22 +19,12 @@ RUN apt-get update -qq && apt-get install -yq \
     openssl libz-dev libyaml-dev p7zip-full xz-utils \
     liblzma-dev
 
-# Enable 386 multilib toolchain if needed
-ARG TARGET_ARCH
-RUN if [ "$TARGET_ARCH" = "i386" ]; then \
-    dpkg --add-architecture i386 && \
-    apt-get update -qq && \
-    apt-get install -yq \
-    gcc-multilib g++-multilib valgrind:i386 libssl-dev:i386 \
-    libc6-dev:i386 libgcc-11-dev:i386 libstdc++-11-dev:i386 \
-    libz-dev:i386 libyaml-dev:i386 xz-utils:i386 \
-    liblzma-dev:i386; \
-    fi
-
 WORKDIR /tmp/assets
 
 ARG RUBY_VERSION
 ENV RUBY_VERSION=${RUBY_VERSION}
+
+ARG TARGET_ARCH
 ENV TARGET_ARCH=${TARGET_ARCH}
 
 COPY ./assets/constants.sh /tmp/assets/constants.sh

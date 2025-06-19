@@ -22,7 +22,11 @@ cd "ruby-${RUBY_VERSION}"
 BASE_FLAGS=(
     "--prefix=$RUBY_PREFIX"
     --disable-install-doc
-    --enable-shared
+    --disable-rpath
+    --disable-dtrace
+    --disable-jit-support
+
+    --disable-shared
     --enable-load-relative
 )
 echo "🔨 Configuring and compiling Ruby..."
@@ -62,6 +66,7 @@ else
 
     COMMON_FLAGS=(
         "${BASE_FLAGS[@]}"
+        
         "--with-opt-dir=/usr"
         "--with-libyaml-dir=/usr"
         "--with-openssl-dir=/usr"
