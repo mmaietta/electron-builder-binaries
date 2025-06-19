@@ -1,11 +1,10 @@
 # syntax=docker/dockerfile:1.4
 
 ARG TARGET_ARCH=x86_64
-ARG PLATFORM_ARCH=amd64
+ARG PLATFORM_ARCH
 ARG RUBY_VERSION=3.4.3
-ARG DOCKER_IMAGE=buildpack-deps:bookworm-curl
 
-FROM --platform=linux/${PLATFORM_ARCH} ${PLATFORM_ARCH}/${DOCKER_IMAGE}
+FROM --platform=linux/${PLATFORM_ARCH:-amd64} buildpack-deps:bookworm-curl
 
 ENV DEBIAN_FRONTEND=noninteractive
 
