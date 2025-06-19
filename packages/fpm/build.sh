@@ -13,7 +13,7 @@ if [ "$OS_TARGET" = "darwin" ]; then
 else
     # These are the --platform linux/ARCH options available
     # Pulled from: https://hub.docker.com/_/buildpack-deps/tags?name=bookworm-curl
-    ARCH_OPTIONS="amd64 arm32v5 arm32v7 arm64v8 i386 mips64le ppc64le riscv64 s390x"
+    ARCH_OPTIONS="i386 amd64 arm/v5 arm/v7 arm64/v8 mips64le ppc64le s390x"
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
         echo "Architecture not specified. Options are: $ARCH_OPTIONS."
