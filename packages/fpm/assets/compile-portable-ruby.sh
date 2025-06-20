@@ -26,8 +26,8 @@ BASE_FLAGS=(
     --disable-dtrace
     --disable-jit-support
 
-    --disable-shared
-    --disable-pie
+    # --disable-shared
+    # --disable-pie
     --enable-load-relative
 )
 echo "🔨 Configuring and compiling Ruby..."
@@ -74,10 +74,13 @@ else
         "--with-zlib-dir=/usr"
         "--with-readline-dir=/usr"
         "--with-baseruby=$(which ruby)"
+
+        # --with-static-linked-ext
+        # --enable-pthread
     )
     echo "  ⚙️ Running configure..."
-    export CFLAGS="-O2 -fPIC -no-pie"
-    export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
+    # export CFLAGS="-O2 -fPIC -no-pie"
+    # export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
     if [ "$TARGET_ARCH" = "i386" ]; then
         echo " ✏️ Using 32-bit architecture flags."
         ./configure "${COMMON_FLAGS[@]}" \
