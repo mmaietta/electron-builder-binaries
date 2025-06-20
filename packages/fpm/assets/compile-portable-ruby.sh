@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -exuo pipefail
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 source "$CWD/constants.sh"
@@ -27,6 +27,7 @@ BASE_FLAGS=(
     --disable-jit-support
 
     --disable-shared
+    --disable-pie
     --enable-load-relative
 )
 echo "🔨 Configuring and compiling Ruby..."
@@ -75,6 +76,8 @@ else
         "--with-baseruby=$(which ruby)"
     )
     echo "  ⚙️ Running configure..."
+    export CFLAGS="-O2 -fPIC -no-pie"
+    export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
     if [ "$TARGET_ARCH" = "i386" ]; then
         echo " ✏️ Using 32-bit architecture flags."
         ./configure "${COMMON_FLAGS[@]}" \

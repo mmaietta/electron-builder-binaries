@@ -4,19 +4,28 @@ ARG TARGET_ARCH=x86_64
 ARG PLATFORM_ARCH
 ARG RUBY_VERSION=3.4.3
 
-FROM --platform=linux/${PLATFORM_ARCH:-amd64} buildpack-deps:bookworm-curl
+FROM --platform=linux/${PLATFORM_ARCH:-amd64} debian:buster
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-# ---- Build stage ----
-# Install build dependencies
-RUN apt-get update -qq && apt-get install -yq \
-    gcc g++ make autoconf bison git \
-    libssl-dev libreadline-dev libyaml-dev \
-    zlib1g-dev libffi-dev libgdbm-dev \
-    file patchelf tar ruby-dev valgrind \
-    openssl libz-dev libyaml-dev p7zip-full xz-utils \
-    liblzma-dev
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libssl-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libyaml-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libncurses5-dev \
+    curl \
+    git \
+    autoconf \
+    bison \
+    pkg-config \
+    patchelf \
+    ruby-dev \
+    openssl \
+    p7zip-full \
+    xz-utils
 
 WORKDIR /tmp/assets
 
