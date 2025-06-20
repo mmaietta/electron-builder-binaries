@@ -27,8 +27,8 @@ BASE_FLAGS=(
     --disable-jit-support
 
     # --disable-shared
-    # --disable-pie
-    --enable-load-relative
+    # # --disable-pie
+    # --enable-load-relative
 )
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
@@ -64,23 +64,25 @@ else
     echo "  🐧 Compiling for Linux."
     autoconf
     ./autogen.sh
-
     COMMON_FLAGS=(
         "${BASE_FLAGS[@]}"
         
+        "--disable-shared"
+        "--with-static-linked-ext"
+        "--enable-load-relative"
+
         "--with-opt-dir=/usr"
         "--with-libyaml-dir=/usr"
         "--with-openssl-dir=/usr"
         "--with-zlib-dir=/usr"
         "--with-readline-dir=/usr"
         "--with-baseruby=$(which ruby)"
-
-        # --with-static-linked-ext
-        # --enable-pthread
     )
+
+    export CFLAGS="-O2 -fPIC -no-pie"
+    export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
+
     echo "  ⚙️ Running configure..."
-    # export CFLAGS="-O2 -fPIC -no-pie"
-    # export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
     if [ "$TARGET_ARCH" = "i386" ]; then
         echo " ✏️ Using 32-bit architecture flags."
         ./configure "${COMMON_FLAGS[@]}" \
