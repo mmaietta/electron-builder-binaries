@@ -77,6 +77,7 @@ else
         "--with-zlib-dir=/usr"
         "--with-readline-dir=/usr"
         "--with-baseruby=$(which ruby)"
+        --disable-install-default-gems
     )
 
     export CFLAGS="-O2 -fPIC -no-pie"
@@ -95,9 +96,9 @@ else
     fi
 
     echo "  🔨 Building Ruby..."
-    make -j$(nproc) 1>/dev/null
+    make -j$(nproc) EXTS= 1>/dev/null
     echo "  ⤵️ Installing Ruby..."
-    make install 1>/dev/null
+    make install EXTS= 1>/dev/null
 fi
 
 echo "💎 Ruby $RUBY_VERSION installed to $RUBY_PREFIX"
