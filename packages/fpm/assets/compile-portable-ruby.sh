@@ -26,9 +26,11 @@ BASE_FLAGS=(
     --disable-dtrace
     --disable-jit-support
 
-    # --disable-shared
-    # # --disable-pie
-    # --enable-load-relative
+    # needed for portable builds
+    --disable-install-default-gems
+    "--disable-shared"
+    "--with-static-linked-ext"
+    "--enable-load-relative"
 )
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
@@ -56,6 +58,10 @@ if [ "$(uname)" = "Darwin" ]; then
         --with-libyaml-dir=$(brew --prefix libyaml) \
         1>/dev/null
 
+    echo "  ⚒️ Clearing default/bundled gems (includes native extensions that can't be portable)..."
+    rm -rf .bundle gems
+    mkdir -p gems && touch gems/bundled_gems
+
     echo "  🔨 Building Ruby..."
     make -j"$(sysctl -n hw.ncpu)" 1>/dev/null
     echo "  ⤵️ Installing Ruby..."
@@ -66,18 +72,12 @@ else
     ./autogen.sh
     COMMON_FLAGS=(
         "${BASE_FLAGS[@]}"
-        
-        "--disable-shared"
-        "--with-static-linked-ext"
-        "--enable-load-relative"
-
         "--with-opt-dir=/usr"
         "--with-libyaml-dir=/usr"
         "--with-openssl-dir=/usr"
         "--with-zlib-dir=/usr"
         "--with-readline-dir=/usr"
         "--with-baseruby=$(which ruby)"
-        --disable-install-default-gems
     )
 
     export CFLAGS="-O2 -fPIC -no-pie"
@@ -95,8 +95,13 @@ else
         ./configure "${COMMON_FLAGS[@]}" 1>/dev/null
     fi
 
+    echo "  ⚒️ Clearing default/bundled gems (includes native extensions that cannot be distributed)..."
+    rm -rf .bundle gems
+    mkdir -p gems && touch gems/bundled_gems
+
     echo "  🔨 Building Ruby..."
     make -j$(nproc) EXTS= 1>/dev/null
+
     echo "  ⤵️ Installing Ruby..."
     make install EXTS= 1>/dev/null
 fi
