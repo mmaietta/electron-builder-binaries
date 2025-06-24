@@ -114,15 +114,13 @@ jobs:
       - name: Install Visual C++ v141 Build Tools
         run: |
           choco install visualstudio2017buildtools --package-parameters "--add Microsoft.VisualStudio.Component.VC.v141 --includeRecommended --passive --locale en-US" -y
-
-      - name: Install .NET Framework 4.5 Targeting Pack
-        shell: powershell
+      
+      - name: Retarget .NET Framework v4.5 to v4.6.2
+        shell: pwsh
         run: |
-          $url = "https://download.microsoft.com/download/1/8/0/180D67F5-63EB-4E4F-A4A2-2FB93A77D7EF/NDP45-DevPack-KB2883200-ENU.exe"
-          $output = "NDP45-DevPack.exe"
-          Invoke-WebRequest -Uri $url -OutFile $output
-          Start-Process -FilePath ".\$output" -ArgumentList "/quiet", "/norestart" -Wait
-
+          Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
+            (Get-Content $_.FullName) -replace '<TargetFrameworkVersion>v4.5</TargetFrameworkVersion>', '<TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>' | Set-Content $_.FullName
+          }
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.3.1
       - name: Build Squirrel.Windows
