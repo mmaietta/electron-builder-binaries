@@ -1,5 +1,11 @@
 # fpm
 
+## 3.0.5
+
+### Patch Changes
+
+- [#43](https://github.com/mmaietta/electron-builder-binaries/pull/43) [`cabb547`](https://github.com/mmaietta/electron-builder-binaries/commit/cabb54774926b5692f47786de9219b2c479efcf8) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: rebuilding with bookworm so as to enable running this on both ubuntu and debian docker containers
+
 ## 3.0.4
 
 ### Patch Changes
