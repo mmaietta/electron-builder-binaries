@@ -26,11 +26,9 @@ BASE_FLAGS=(
     --disable-dtrace
     --disable-jit-support
 
-    # needed for portable builds
-    --disable-install-default-gems
-    "--disable-shared"
-    "--with-static-linked-ext"
-    "--enable-load-relative"
+    --disable-shared
+    --with-static-linked-ext
+    --enable-load-relative
 )
 echo "🔨 Configuring and compiling Ruby..."
 if [ "$(uname)" = "Darwin" ]; then
@@ -78,10 +76,12 @@ else
         "--with-zlib-dir=/usr"
         "--with-readline-dir=/usr"
         "--with-baseruby=$(which ruby)"
+        "--with-out-ext=debug,rbs,syslog,nkf,bigdecimal,racc"
     )
 
-    export CFLAGS="-O2 -fPIC -no-pie"
-    export LDFLAGS="-static-libgcc -static-libstdc++ -no-pie"
+    export CFLAGS="-fPIC -O2"
+    export LDFLAGS="-fPIC -static-libgcc -static-libstdc++"
+    export CPPFLAGS="$CFLAGS"
 
     echo "  ⚙️ Running configure..."
     if [ "$TARGET_ARCH" = "i386" ]; then
@@ -95,15 +95,11 @@ else
         ./configure "${COMMON_FLAGS[@]}" 1>/dev/null
     fi
 
-    echo "  ⚒️ Clearing default/bundled gems (includes native extensions that cannot be distributed)..."
-    rm -rf .bundle gems
-    mkdir -p gems && touch gems/bundled_gems
-
     echo "  🔨 Building Ruby..."
-    make -j$(nproc) EXTS= 1>/dev/null
+    make -j$(nproc) 1>/dev/null
 
     echo "  ⤵️ Installing Ruby..."
-    make install EXTS= 1>/dev/null
+    make install 1>/dev/null
 fi
 
 echo "💎 Ruby $RUBY_VERSION installed to $RUBY_PREFIX"
