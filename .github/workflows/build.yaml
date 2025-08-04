@@ -85,7 +85,9 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          bash build-mac.sh
+          bash packages/fpm/build.sh
+        env:
+          OS_TARGET: darwin
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
@@ -94,6 +96,43 @@ jobs:
           retention-days: 1
           path: |
             packages/fpm/out
+
+
+  makensis:
+    runs-on: ${{ matrix.node }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          submodules: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 9.4.0
+      - name: Setup node
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: |
+          pnpm i --frozen-lockfile
+      - name: Build
+        shell: bash
+        run: |
+          bash packages/nsis/build.sh
+      - name: Archive artifacts
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        with:
+          name: makensis-artifacts-${{ matrix.node }}
+          if-no-files-found: error
+          retention-days: 1
+          path: |
+            packages/nsis/out
 
   squirrel-windows:
     runs-on: windows-2019
@@ -131,6 +170,7 @@ jobs:
         fpm-linux,
         fpm-mac,
         squirrel-windows,
+        makensis
         ]
     timeout-minutes: 15
     outputs:
