@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-set -ex
+set -exu
+
+if ! (set -o | grep -q pipefail); then
+  echo "⚠️  'pipefail' not supported in this shell (likely Git Bash on Windows)"
+fi
 
 echo "📦 Downloading latest SCons via PyPI..."
 rm -rf /tmp/scons
@@ -22,7 +26,7 @@ grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
 grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
 
 echo "🛠️ Building makensis (NSIS 3.11)..."
-python /tmp/scons/script/scons.py \
+python /tmp/scons/SCons/script/scons.py \
   STRIP=0 \
   SKIPSTUBS=all \
   SKIPPLUGINS=all \
