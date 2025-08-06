@@ -24,22 +24,11 @@ grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
 grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
 
 echo "🛠️ Building makensis..."
-if [[ "$(uname -s)" == "Linux" ]]; then
-  python -m SCons \
-    TARGET_ARCHITECTURE=posix \
-    STRIP=0 \
-    NSIS_MAX_STRLEN=8192 \
-    NSIS_CONFIG_LOG=yes \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    SKIPSTUBS=all SKIPPLUGINS=all
-else
-  python -m SCons \
-    STRIP=0 \
-    NSIS_MAX_STRLEN=8192 \
-    NSIS_CONFIG_LOG=yes \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    SKIPSTUBS=all SKIPPLUGINS=all
-fi
+python build.py \
+  --striplevel=0 \
+  --define=NSIS_MAX_STRLEN=8192 \
+  --define=NSIS_CONFIG_LOG \
+  --define=NSIS_CONFIG_CONST_DATA_PATH=no
 
 
 echo "📂 Creating vendor/ structure..."
