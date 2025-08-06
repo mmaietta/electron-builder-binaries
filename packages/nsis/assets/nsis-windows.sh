@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 set -eu
 
-echo "📦 Installing SCons (locally)..."
-rm -rf /tmp/scons-local
-python -m pip install --target /tmp/scons-local scons
-export PYTHONPATH="/tmp/scons-local"
+echo "📦 Downloading SCons 4.7.0 from PyPI..."
+rm -rf /tmp/scons /tmp/scons-download
+mkdir -p /tmp/scons-download
+python -m pip download scons==4.7.0 --no-binary :all: -d /tmp/scons-download
 
-echo "📥 Cloning NSIS v3.11 source..."
+echo "📦 Extracting SCons..."
+tarball=$(find /tmp/scons-download -name 'scons-4.7.0.tar.gz' | head -n1)
+mkdir -p /tmp/scons
+tar -xzf "$tarball" -C /tmp/scons --strip-components=1
+export PYTHONPATH="/tmp/scons"
+
+echo "📥 Cloning NSIS v3.11..."
 rm -rf /tmp/nsis
-git clone --branch v311 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
+git clone --branch v3.11 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
 cd /tmp/nsis
 
 echo "✏️ Patching config.h for STRLEN=8192 and LOGGING..."
@@ -17,14 +23,14 @@ sed -i 's/^#define NSIS_MAX_STRLEN.*/#define NSIS_MAX_STRLEN 8192/' "$CONFIG"
 grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
 grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
 
-echo "🛠️ Building full NSIS + makensis.exe..."
+echo "🛠️ Building makensis.exe..."
 python -m SCons \
   STRIP=0 \
   NSIS_MAX_STRLEN=8192 \
   NSIS_CONFIG_LOG=yes \
   NSIS_CONFIG_CONST_DATA_PATH=no
 
-echo "📂 Preparing full vendor/ layout..."
+echo "📂 Creating vendor/ structure..."
 cd /tmp
 rm -rf vendor
 mkdir -p vendor
@@ -40,10 +46,11 @@ cp nsis/nsisconf.nsh vendor/
 cp nsis/COPYING vendor/
 cp nsis/elevate.exe vendor/ || true
 
-rm -rf vendor/Bin/makensisw.exe || true
+# Remove unneeded items
+rm -f vendor/Bin/makensisw.exe || true
 rm -rf vendor/Docs vendor/Examples vendor/NSIS.chm
 
-echo "🔌 Downloading and installing plugins..."
+echo "🔌 Downloading additional plugins..."
 
 cd vendor
 
@@ -70,7 +77,8 @@ mv a/Plugins/x86-ansi/WinShell.dll Plugins/x86-ansi/WinShell.dll
 mv a/Plugins/x86-unicode/WinShell.dll Plugins/x86-unicode/WinShell.dll
 rm -rf a ws.zip
 
-echo "🗜️ Compressing to vendor.7z..."
+echo "🗜️ Compressing vendor folder into vendor.7z..."
 7z a -m0=lzma2 -mx=9 -mfb=64 -md=64m -ms=on vendor.7z vendor/
 
-echo "✅ Done! Full portable package: /tmp/vendor.7z"
+echo "✅ Done!"
+ls -lh vendor.7z
