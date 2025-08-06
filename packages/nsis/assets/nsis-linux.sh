@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -ex
 
 echo "🔧 Downloading latest SCons (4.7.0)..."
 mkdir -p /tmp/scons

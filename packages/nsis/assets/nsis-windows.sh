@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -ex
 
 echo "🔧 Setting up Python environment..."
 python -m pip install --upgrade pip
