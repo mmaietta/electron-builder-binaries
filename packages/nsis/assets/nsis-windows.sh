@@ -48,12 +48,13 @@ if [[ "${BUILD_WINDOWS:-0}" == "1" ]]; then
     SKIPSTUBS=all SKIPPLUGINS=all
 else
   echo "🛠️ Building native Linux makensis..."
-  python -m SCons \
-    STRIP=0 \
-    NSIS_MAX_STRLEN=8192 \
-    NSIS_CONFIG_LOG=yes \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    SKIPSTUBS=all SKIPPLUGINS=all
+python -m SCons \
+  TARGET_ARCHITECTURE=posix \
+  STRIP=0 \
+  NSIS_MAX_STRLEN=8192 \
+  NSIS_CONFIG_LOG=yes \
+  NSIS_CONFIG_CONST_DATA_PATH=no \
+  SKIPSTUBS=all SKIPPLUGINS=all
 fi
 
 echo "📂 Creating vendor/ structure..."
