@@ -22,12 +22,12 @@ grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFI
 if [[ "$IS_WINDOWS" == "1" ]]; then
   echo "🪟 Windows detected. Building zlib for Win32..."
 
-  ZLIB_VERSION="1.2.11"
+  ZLIB_VERSION="1.3.1"
   ZLIB_DIR="/tmp/zlib-$ZLIB_VERSION"
 
   cd /tmp
-  curl -LO "https://zlib.net/zlib1211.zip"
-  unzip -q zlib1211.zip
+  curl -LO "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+  tar -xzf zlib-$ZLIB_VERSION.tar.gz
   cd zlib-$ZLIB_VERSION
 
   echo "🧱 Building zlib with MinGW..."
