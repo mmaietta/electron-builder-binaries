@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -ex
 
 echo "📦 Downloading SCons 4.7.0 from PyPI..."
 rm -rf /tmp/scons /tmp/scons-download
@@ -12,7 +12,6 @@ mkdir -p /tmp/scons
 tar -xzf "$tarball" -C /tmp/scons --strip-components=1
 export PYTHONPATH="/tmp/scons"
 
-
 echo "📥 Cloning NSIS v3.11..."
 rm -rf /tmp/nsis
 git clone --branch v311 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
@@ -24,12 +23,38 @@ sed -i 's/^#define NSIS_MAX_STRLEN.*/#define NSIS_MAX_STRLEN 8192/' "$CONFIG"
 grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
 grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
 
-echo "🛠️ Building makensis.exe..."
-python -m SCons \
-  STRIP=0 \
-  NSIS_MAX_STRLEN=8192 \
-  NSIS_CONFIG_LOG=yes \
-  NSIS_CONFIG_CONST_DATA_PATH=no
+# Optional cross-compile setup
+if [[ "${BUILD_WINDOWS:-0}" == "1" ]]; then
+  echo "🪟 Setting up Windows build dependencies..."
+  sudo apt-get update
+  sudo apt-get install -y mingw-w64 unzip curl
+
+  echo "📦 Downloading and building zlib for Windows..."
+  cd /tmp
+  curl -LO https://zlib.net/zlib1211.zip
+  unzip -q zlib1211.zip
+  cd zlib-1.2.11
+  make -f win32/Makefile.gcc PREFIX=i686-w64-mingw32- \
+    BINARY_PATH=$(pwd)/bin INCLUDE_PATH=$(pwd)/include LIBRARY_PATH=$(pwd)/lib
+  export ZLIB_W32="$(pwd)"
+  cd /tmp/nsis
+
+  echo "🛠️ Building Windows makensis.exe..."
+  python -m SCons \
+    STRIP=0 \
+    NSIS_MAX_STRLEN=8192 \
+    NSIS_CONFIG_LOG=yes \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    SKIPSTUBS=all SKIPPLUGINS=all
+else
+  echo "🛠️ Building native Linux makensis..."
+  python -m SCons \
+    STRIP=0 \
+    NSIS_MAX_STRLEN=8192 \
+    NSIS_CONFIG_LOG=yes \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    SKIPSTUBS=all SKIPPLUGINS=all
+fi
 
 echo "📂 Creating vendor/ structure..."
 cd /tmp
@@ -41,18 +66,17 @@ cp -r nsis/Include vendor/
 cp -r nsis/Plugins vendor/
 cp -r nsis/Stubs vendor/
 cp -r nsis/Menu vendor/
-cp -r nsis/Build/urelease vendor/Bin
-cp nsis/NSIS.exe vendor/
+cp -r nsis/Build/urelease vendor/Bin || cp -r nsis/Build/ulocal vendor/Bin
+cp nsis/NSIS.exe vendor/ 2>/dev/null || true
 cp nsis/nsisconf.nsh vendor/
 cp nsis/COPYING vendor/
 cp nsis/elevate.exe vendor/ || true
 
-# Remove unneeded items
+# Cleanup
 rm -f vendor/Bin/makensisw.exe || true
 rm -rf vendor/Docs vendor/Examples vendor/NSIS.chm
 
 echo "🔌 Downloading additional plugins..."
-
 cd vendor
 
 # nsProcess
