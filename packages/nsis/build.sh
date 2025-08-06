@@ -12,7 +12,7 @@ if [ "$OS_TARGET" = "darwin" ]; then
     sh "$CWD/assets/nsis-mac.sh"
 elif [ "$OS_TARGET" = "linux" ]; then
     echo "Building for Linux"
-    sh "$CWD/assets/nsis-linux.sh"
+    sh "$CWD/assets/nsis-windows.sh"
 elif [ "$OS_TARGET" = "win32" ] || [ "$OS_TARGET" = "windows" ]; then
     echo "Building for Windows"
     # sh "$CWD/assets/nsis-prepare.sh"
