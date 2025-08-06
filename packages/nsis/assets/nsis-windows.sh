@@ -8,11 +8,6 @@ python -m pip download scons==4.7.0 --no-binary :all: -d /tmp/scons-download
 
 echo "📦 Extracting SCons..."
 tarball=$(find /tmp/scons-download -iname 'scons-*.tar.gz' | head -n1)
-if [[ -z "$tarball" ]]; then
-  echo "❌ Error: SCons tarball not found"
-  exit 1
-fi
-
 mkdir -p /tmp/scons
 tar -xzf "$tarball" -C /tmp/scons --strip-components=1
 export PYTHONPATH="/tmp/scons"
