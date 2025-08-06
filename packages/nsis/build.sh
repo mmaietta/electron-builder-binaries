@@ -19,6 +19,6 @@ elif [ "$OS_TARGET" = "win32" ] || [ "$OS_TARGET" = "windows" ]; then
     sh "$CWD/assets/nsis-windows.sh"
 else
     echo "Building for Linux and Windows"
-    bash "$CWD/assets/nsis-linux.sh"
+    bash "$CWD/assets/nsis-windows.sh"
 fi
 echo "Build completed successfully."
