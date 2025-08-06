@@ -14,7 +14,7 @@ export PYTHONPATH="/tmp/scons"
 
 echo "📥 Cloning NSIS v3.11..."
 rm -rf /tmp/nsis
-git clone --branch v3.11 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
+git clone --branch v311 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
 cd /tmp/nsis
 
 echo "✏️ Patching config.h for STRLEN=8192 and LOGGING..."
