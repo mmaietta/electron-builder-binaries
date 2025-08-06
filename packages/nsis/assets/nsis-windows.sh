@@ -23,39 +23,24 @@ sed -i 's/^#define NSIS_MAX_STRLEN.*/#define NSIS_MAX_STRLEN 8192/' "$CONFIG"
 grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
 grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
 
-# Optional cross-compile setup
-if [[ "${BUILD_WINDOWS:-0}" == "1" ]]; then
-  echo "🪟 Setting up Windows build dependencies..."
-  sudo apt-get update
-  sudo apt-get install -y mingw-w64 unzip curl
-
-  echo "📦 Downloading and building zlib for Windows..."
-  cd /tmp
-  curl -LO https://zlib.net/zlib1211.zip
-  unzip -q zlib1211.zip
-  cd zlib-1.2.11
-  make -f win32/Makefile.gcc PREFIX=i686-w64-mingw32- \
-    BINARY_PATH=$(pwd)/bin INCLUDE_PATH=$(pwd)/include LIBRARY_PATH=$(pwd)/lib
-  export ZLIB_W32="$(pwd)"
-  cd /tmp/nsis
-
-  echo "🛠️ Building Windows makensis.exe..."
+echo "🛠️ Building makensis..."
+if [[ "$(uname -s)" == "Linux" ]]; then
   python -m SCons \
+    TARGET_ARCHITECTURE=posix \
     STRIP=0 \
     NSIS_MAX_STRLEN=8192 \
     NSIS_CONFIG_LOG=yes \
     NSIS_CONFIG_CONST_DATA_PATH=no \
     SKIPSTUBS=all SKIPPLUGINS=all
 else
-  echo "🛠️ Building native Linux makensis..."
-python -m SCons \
-  TARGET_ARCHITECTURE=posix \
-  STRIP=0 \
-  NSIS_MAX_STRLEN=8192 \
-  NSIS_CONFIG_LOG=yes \
-  NSIS_CONFIG_CONST_DATA_PATH=no \
-  SKIPSTUBS=all SKIPPLUGINS=all
+  python -m SCons \
+    STRIP=0 \
+    NSIS_MAX_STRLEN=8192 \
+    NSIS_CONFIG_LOG=yes \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    SKIPSTUBS=all SKIPPLUGINS=all
 fi
+
 
 echo "📂 Creating vendor/ structure..."
 cd /tmp
