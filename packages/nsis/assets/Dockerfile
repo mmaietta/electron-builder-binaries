@@ -54,11 +54,21 @@ RUN export CC=i686-w64-mingw32-gcc && \
     export LDFLAGS="-L${ZLIB_W32}/lib -lz" && \
     export ZLIB_W32=${ZLIB_W32} && \
     scons STRIP=0 \
+        NSIS_CONSOLE=yes \
         NSIS_MAX_STRLEN=8192 \
         NSIS_CONFIG_LOG=yes \
-        NSIS_CONFIG_CONST_DATA_PATH=no && \
-    mkdir -p /opt/nsis-builds/win32 && \
-    find build -name makensis.exe -exec cp {} /opt/nsis-builds/win32/ \;
+        NSIS_CONFIG_CONST_DATA_PATH=no \
+              SKIPSTUBS=all \
+      SKIPPLUGINS=all
+    # After build step
+RUN mkdir -p /opt/nsis-builds/win32 && \
+    # Copy CLI compiler, renaming to makensis.exe
+    cp build/urelease/makensis/makensis /opt/nsis-builds/win32/makensis.exe && \
+    # Copy GUI frontend
+    cp build/urelease/Makensisw/makensisw.exe /opt/nsis-builds/win32/ && \
+    # Copy any DLLs if present
+    find build/urelease -maxdepth 1 -type f -name "*.dll" -exec cp {} /opt/nsis-builds/win32/ \;
+
 
 # Build NSIS 64-bit
 RUN cp -r /opt/nsis-src /opt/nsis-win64
@@ -67,13 +77,22 @@ RUN export CC=x86_64-w64-mingw32-gcc && \
     export CXX=x86_64-w64-mingw32-g++ && \
     export CFLAGS="-I${ZLIB_W64}/include" && \
     export LDFLAGS="-L${ZLIB_W64}/lib -lz" && \
-    export ZLIB_W32=${ZLIB_W64} && \
     scons STRIP=0 \
+        NSIS_CONSOLE=yes \
         NSIS_MAX_STRLEN=8192 \
         NSIS_CONFIG_LOG=yes \
-        NSIS_CONFIG_CONST_DATA_PATH=no && \
-    mkdir -p /opt/nsis-builds/win64 && \
-    find build -name makensis.exe -exec cp {} /opt/nsis-builds/win64/ \;
+        NSIS_CONFIG_CONST_DATA_PATH=no \
+              SKIPSTUBS=all \
+      SKIPPLUGINS=all
+# After build step
+RUN mkdir -p /opt/nsis-builds/win64 && \
+    # Copy CLI compiler, renaming to makensis.exe
+    cp build/urelease/makensis/makensis /opt/nsis-builds/win64/makensis.exe && \
+    # Copy GUI frontend
+    cp build/urelease/Makensisw/makensisw.exe /opt/nsis-builds/win64/ && \
+    # Copy any DLLs if present
+    find build/urelease -maxdepth 1 -type f -name "*.dll" -exec cp {} /opt/nsis-builds/win64/ \;
+
 
 # List results
 CMD ["ls", "-R", "/opt/nsis-builds"]
