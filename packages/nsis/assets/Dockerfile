@@ -17,23 +17,23 @@ RUN curl -sL https://zlib.net/zlib-1.3.1.tar.gz | tar xz
 WORKDIR /tmp/zlib-1.3.1
 RUN make distclean || true && \
     make -f win32/Makefile.gcc \
-        PREFIX=i686-w64-mingw32- \
-        SHARED_MODE=1 \
-        BINARY_PATH=${ZLIB_W32}/bin \
-        INCLUDE_PATH=${ZLIB_W32}/include \
-        LIBRARY_PATH=${ZLIB_W32}/lib \
-        install && \
+    PREFIX=i686-w64-mingw32- \
+    SHARED_MODE=1 \
+    BINARY_PATH=${ZLIB_W32}/bin \
+    INCLUDE_PATH=${ZLIB_W32}/include \
+    LIBRARY_PATH=${ZLIB_W32}/lib \
+    install && \
     cp ${ZLIB_W32}/lib/libz.dll.a ${ZLIB_W32}/lib/zlib1.lib
 
 # Build zlib for Win64 (64-bit)
 RUN make distclean || true && \
     make -f win32/Makefile.gcc \
-        PREFIX=x86_64-w64-mingw32- \
-        SHARED_MODE=1 \
-        BINARY_PATH=${ZLIB_W64}/bin \
-        INCLUDE_PATH=${ZLIB_W64}/include \
-        LIBRARY_PATH=${ZLIB_W64}/lib \
-        install && \
+    PREFIX=x86_64-w64-mingw32- \
+    SHARED_MODE=1 \
+    BINARY_PATH=${ZLIB_W64}/bin \
+    INCLUDE_PATH=${ZLIB_W64}/include \
+    LIBRARY_PATH=${ZLIB_W64}/lib \
+    install && \
     cp ${ZLIB_W64}/lib/libz.dll.a ${ZLIB_W64}/lib/zlib1.lib
 
 # Clone NSIS
@@ -54,13 +54,13 @@ RUN export CC=i686-w64-mingw32-gcc && \
     export LDFLAGS="-L${ZLIB_W32}/lib -lz" && \
     export ZLIB_W32=${ZLIB_W32} && \
     scons STRIP=0 \
-        NSIS_CONSOLE=yes \
-        NSIS_MAX_STRLEN=8192 \
-        NSIS_CONFIG_LOG=yes \
-        NSIS_CONFIG_CONST_DATA_PATH=no \
-              SKIPSTUBS=all \
-      SKIPPLUGINS=all
-    # After build step
+    NSIS_CONSOLE=yes \
+    NSIS_MAX_STRLEN=8192 \
+    NSIS_CONFIG_LOG=yes \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    SKIPSTUBS=all \
+    SKIPPLUGINS=all
+# After build step
 RUN mkdir -p /opt/nsis-builds/win32 && \
     # Copy CLI compiler, renaming to makensis.exe
     cp build/urelease/makensis/makensis /opt/nsis-builds/win32/makensis.exe && \
@@ -78,12 +78,12 @@ RUN export CC=x86_64-w64-mingw32-gcc && \
     export CFLAGS="-I${ZLIB_W64}/include" && \
     export LDFLAGS="-L${ZLIB_W64}/lib -lz" && \
     scons STRIP=0 \
-        NSIS_CONSOLE=yes \
-        NSIS_MAX_STRLEN=8192 \
-        NSIS_CONFIG_LOG=yes \
-        NSIS_CONFIG_CONST_DATA_PATH=no \
-              SKIPSTUBS=all \
-      SKIPPLUGINS=all
+    NSIS_CONSOLE=yes \
+    NSIS_MAX_STRLEN=8192 \
+    NSIS_CONFIG_LOG=yes \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    SKIPSTUBS=all \
+    SKIPPLUGINS=all
 # After build step
 RUN mkdir -p /opt/nsis-builds/win64 && \
     # Copy CLI compiler, renaming to makensis.exe
