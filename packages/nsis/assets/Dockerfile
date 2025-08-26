@@ -45,8 +45,12 @@ RUN sed -i 's/^#define NSIS_MAX_STRLEN.*/#define NSIS_MAX_STRLEN 8192/' Source/e
     echo "#define NSIS_CONFIG_LOG" >> Source/exehead/config.h && \
     echo "#define NSIS_SUPPORT_LOG" >> Source/exehead/config.h
 
-# Build NSIS 32-bit
 RUN cp -r /opt/nsis-src /opt/nsis-win32
+RUN cp -r /opt/nsis-src /opt/nsis-win64
+    
+########################################
+# Build NSIS 32-bit + elevate.exe
+########################################
 WORKDIR /opt/nsis-win32
 RUN export CC=i686-w64-mingw32-gcc && \
     export CXX=i686-w64-mingw32-g++ && \
@@ -54,45 +58,34 @@ RUN export CC=i686-w64-mingw32-gcc && \
     export LDFLAGS="-L${ZLIB_W32}/lib -lz" && \
     export ZLIB_W32=${ZLIB_W32} && \
     scons STRIP=0 \
-    NSIS_CONSOLE=yes \
-    NSIS_MAX_STRLEN=8192 \
-    NSIS_CONFIG_LOG=yes \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    SKIPSTUBS=all \
-    SKIPPLUGINS=all
-# After build step
-RUN mkdir -p /opt/nsis-builds/win32 && \
-    # Copy CLI compiler, renaming to makensis.exe
-    cp build/urelease/makensis/makensis /opt/nsis-builds/win32/makensis.exe && \
-    # Copy GUI frontend
-    cp build/urelease/Makensisw/makensisw.exe /opt/nsis-builds/win32/ && \
-    # Copy any DLLs if present
-    find build/urelease -maxdepth 1 -type f -name "*.dll" -exec cp {} /opt/nsis-builds/win32/ \;
+        NSIS_CONSOLE=yes \
+        NSIS_MAX_STRLEN=8192 \
+        NSIS_CONFIG_LOG=yes \
+        NSIS_CONFIG_CONST_DATA_PATH=no && \
+    mkdir -p /opt/nsis-builds/win32 && \
+    cp build/urelease/makensis /opt/nsis-builds/win32/makensis.exe && \
+    i686-w64-mingw32-g++ -mwindows Contrib/Elevate/elevate.cpp \
+        -o /opt/nsis-builds/win32/elevate.exe
 
-
-# Build NSIS 64-bit
-RUN cp -r /opt/nsis-src /opt/nsis-win64
+########################################
+# Build NSIS 64-bit + elevate.exe
+########################################
 WORKDIR /opt/nsis-win64
 RUN export CC=x86_64-w64-mingw32-gcc && \
     export CXX=x86_64-w64-mingw32-g++ && \
     export CFLAGS="-I${ZLIB_W64}/include" && \
     export LDFLAGS="-L${ZLIB_W64}/lib -lz" && \
+    export ZLIB_W32=${ZLIB_W64} && \
     scons STRIP=0 \
-    NSIS_CONSOLE=yes \
-    NSIS_MAX_STRLEN=8192 \
-    NSIS_CONFIG_LOG=yes \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    SKIPSTUBS=all \
-    SKIPPLUGINS=all
-# After build step
-RUN mkdir -p /opt/nsis-builds/win64 && \
-    # Copy CLI compiler, renaming to makensis.exe
-    cp build/urelease/makensis/makensis /opt/nsis-builds/win64/makensis.exe && \
-    # Copy GUI frontend
-    cp build/urelease/Makensisw/makensisw.exe /opt/nsis-builds/win64/ && \
-    # Copy any DLLs if present
-    find build/urelease -maxdepth 1 -type f -name "*.dll" -exec cp {} /opt/nsis-builds/win64/ \;
+        NSIS_CONSOLE=yes \
+        NSIS_MAX_STRLEN=8192 \
+        NSIS_CONFIG_LOG=yes \
+        NSIS_CONFIG_CONST_DATA_PATH=no && \
+    mkdir -p /opt/nsis-builds/win64 && \
+    cp build/urelease/makensis /opt/nsis-builds/win64/makensis.exe && \
+    x86_64-w64-mingw32-g++ -mwindows Contrib/Elevate/elevate.cpp \
+        -o /opt/nsis-builds/win64/elevate.exe
 
-
-# List results
+        # List results
+WORKDIR /opt/nsis-builds
 CMD ["ls", "-R", "/opt/nsis-builds"]
