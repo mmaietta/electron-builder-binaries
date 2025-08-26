@@ -13,15 +13,15 @@ RUN git clone --branch v311 --depth 1 https://github.com/kichik/nsis.git /build/
 
 WORKDIR /build/nsis-src
 RUN scons NSIS_CONFIG_CONST_DATA_PATH=no SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
-# RUN mkdir -p /out/linux && \
-#   cp build/urelease/makensis /out/linux/makensis
+RUN mkdir -p /out/linux && \
+  cp build/urelease/makensis/makensis /out/linux/makensis
 
-# # ---------------------------
-# # Download makensis for Windows
-# # ---------------------------
-# RUN curl -L -o nsis.zip https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11.zip/download && \
-#   unzip nsis.zip -d nsis-win && \
-#   curl -L -o strlen_patch.zip https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11-strlen_8192.zip/download && \
-#   unzip -o strlen_patch.zip -d nsis-win && \
-#   mkdir -p /out/windows && \
-#   cp -a nsis-win/* /out/windows/
+# ---------------------------
+# Download makensis for Windows
+# ---------------------------
+RUN curl -L -o nsis.zip https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11.zip/download && \
+  unzip nsis.zip -d nsis-win && \
+  curl -L -o strlen_patch.zip https://sourceforge.net/projects/nsis/files/NSIS%203/3.11/nsis-3.11-strlen_8192.zip/download && \
+  unzip -o strlen_patch.zip -d nsis-win && \
+  mkdir -p /out/windows && \
+  cp -a nsis-win/* /out/windows/
