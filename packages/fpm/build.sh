@@ -12,8 +12,8 @@ if [ "$OS_TARGET" = "darwin" ]; then
     bash "$CWD/assets/patch-portable-ruby.sh"
 else
     # These are the --platform linux/ARCH options available
-    # Pulled from: https://hub.docker.com/_/buildpack-deps/tags?name=bookworm-curl
-    ARCH_OPTIONS="i386 amd64 arm/v5 arm/v7 arm64/v8 mips64le ppc64le s390x"
+    # Pulled from: https://hub.docker.com/_/debian/tags?name=buster
+    ARCH_OPTIONS="i386 amd64 arm/v5 arm/v7 arm64/v8"
     echo "Building for Linux"
     if [ -z "$ARCH" ]; then
         echo "Architecture not specified. Options are: $ARCH_OPTIONS."

@@ -193,8 +193,6 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "✅ All dylib references made portable. Autocopied missing libraries where needed."
 else
-    echo "  🐧 Patching portable Ruby bundle for Linux."
-
     WHITELISTED_LIBS=(
         libssl.so
         libcrypto.so
@@ -226,35 +224,9 @@ else
             fi
         done
     done
+
+    echo "  🐧 Patching portable Ruby bundle for Linux"
     patchelf --set-rpath '$ORIGIN/../lib' "$RUBY_PREFIX/bin/ruby"
-
-
-    # IFS=$'\n'
-    # LDD_SEARCH_PATHS=("$RUBY_PREFIX/bin/ruby" $(find "$LIB_DIR/ruby" -type f -name '*.so'))
-    # unset IFS
-
-    # for ext_so in "${LDD_SEARCH_PATHS[@]}"; do
-    #     if [[ ! -f "$ext_so" ]]; then
-    #         echo "  ⏩️ Skipping $ext_so (not a file)"
-    #         continue
-    #     fi
-    #     SO_DIR=$(dirname "$ext_so")
-    #     REL_RPATH=$(realpath --relative-to="$SO_DIR" "$LIB_DIR")
-    #     echo "    🩹 Patching $(realpath --relative-to="$RUBY_PREFIX" "$ext_so") to rpath: \$ORIGIN/$REL_RPATH"
-    #     patchelf --set-rpath "\$ORIGIN/$REL_RPATH" "$ext_so"
-
-    #     ldd "$ext_so" | awk '/=>/ { print $3 }' | while read -r dep; do
-    #         if [[ -f "$dep" ]]; then
-    #             dest="$LIB_DIR/$(basename $dep)"
-    #             [[ "$dest" =~ ^(libc\.so|libm\.so|libdl\.so|libcrypt\.so|librt\.so|libpthread\.so|ld-linux.*\.so).* ]] && continue
-    #             if [[ ! -f "$dest" ]]; then
-    #                 echo "    📝 Copying $dep"
-    #                 cp -u "$dep" "$LIB_DIR/"
-    #             fi
-    #         fi
-    #     done
-    # done
-    # echo "✅ All shared library paths rewritten using @rpath where applicable."
 fi
 
 echo "✂️ Stripping symbols and measuring size savings..."
