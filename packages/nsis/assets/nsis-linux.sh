@@ -6,7 +6,7 @@ set -euo pipefail
 # ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
-VERSION=3.11
+VERSION=v311
 ZLIB_VERSION=1.3.1
 IMAGE_NAME="nsis-builder"
 CONTAINER_NAME="nsis-build-container"
@@ -30,7 +30,7 @@ trap cleanup EXIT INT TERM
 echo "📦 Building Docker image..."
 docker buildx build \
   --platform linux/amd64 \
-  --build-arg NSIS_VERSION=$VERSION \
+  --build-arg NSIS_BRANCH=$VERSION \
   --build-arg ZLIB_VERSION=$ZLIB_VERSION \
   -t ${IMAGE_NAME} \
   -f "$BASEDIR/assets/Dockerfile" \
@@ -51,7 +51,7 @@ tar -xzf ${OUT_DIR}/${OUTPUT_TARBALL} -C ${OUT_DIR}
 # ----------------------
 echo "📝 Writing version metadata..."
 cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
-NSIS Version: ${VERSION}
+NSIS Branch/Tag: ${VERSION}
 zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF

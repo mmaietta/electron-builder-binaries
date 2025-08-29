@@ -8,7 +8,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get clean
 
 # ----------------------
-# Versions (easy to bump later)
+# Versions (preferably passed as build args)
 # ----------------------
 ARG ZLIB_VERSION=1.3.1
 ARG NSIS_BRANCH=v311
@@ -71,12 +71,12 @@ ENV CC=i686-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W32}/include" \
     CXXFLAGS="-I${ZLIB_W32}/include" \
     LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons && \
-    mkdir -p ${NSIS_BUILD}/Bin && \
+RUN scons
+RUN mkdir -p ${NSIS_BUILD}/Bin && \
+    cp -r build/urelease/* ${NSIS_BUILD}/ && \
+    cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
     cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
-    cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
-    cp -r build/urelease/* ${NSIS_BUILD}/ && \
     find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -88,8 +88,8 @@ ENV CC=x86_64-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W64}/include" \
     CXXFLAGS="-I${ZLIB_W64}/include" \
     LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons && \
-    mkdir -p ${NSIS_BUILD64}/Bin && \
+RUN scons
+RUN mkdir -p ${NSIS_BUILD64}/Bin && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
     cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
     cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
@@ -124,4 +124,4 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
 # Verify build structure
 # ----------------------
 WORKDIR /out/nsis-bundle
-CMD ["tree", "-L", "3"]
+CMD ["tree", "-L", "4"]

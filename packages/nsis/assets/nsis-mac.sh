@@ -7,7 +7,6 @@ set -euo pipefail
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
 VERSION=3.11
-ZLIB_VERSION=1.3.1
 IMAGE_NAME="nsis-builder"
 CONTAINER_NAME="nsis-build-container"
 OUTPUT_TARBALL="nsis-bundle.tar.gz"
@@ -36,7 +35,6 @@ cp -a $MAC_TMP/* ${OUT_DIR}/nsis-bundle/mac/
 echo "📝 Writing version metadata..."
 cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
 NSIS Version: ${VERSION}
-zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
 
@@ -49,4 +47,4 @@ tar -czf nsis-bundle-unified.tar.gz nsis-bundle
 
 echo "✅ Done!"
 echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.tar.gz"
-tree -L 3 ${OUT_DIR}/nsis-bundle || true
+tree -L 4 ${OUT_DIR}/nsis-bundle || true
