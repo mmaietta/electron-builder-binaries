@@ -16,19 +16,35 @@ rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 # ----------------------
-echo "🍎 Building macOS makensis..."
-MAC_TMP=/tmp/nsis-mac
-rm -rf $MAC_TMP
-mkdir -p $MAC_TMP/mac
+# Cleanup on exit
+# ----------------------
+cleanup() {
+  echo "🧹 Cleaning up..."
+  docker rm -f ${CONTAINER_NAME} >/dev/null 2>&1 || true
+}
+trap cleanup EXIT INT TERM
 
-brew tap nsis-dev/makensis
-brew install makensis@$VERSION --with-large-strings --with-advanced-logging || true
+# ----------------------
+# Step 1: Build Docker image (Win32/Win64/Linux)
+# ----------------------
+echo "📦 Building Docker image..."
+docker buildx build \
+  --platform linux/amd64 \
+  --build-arg NSIS_VERSION=$VERSION \
+  --build-arg ZLIB_VERSION=$ZLIB_VERSION \
+  -t ${IMAGE_NAME} \
+  -f "$BASEDIR/assets/Dockerfile" \
+  --load .
 
-cp -aL "$(which makensis)" $MAC_TMP/mac/makensis
+echo "🚀 Creating container..."
+docker create --name ${CONTAINER_NAME} ${IMAGE_NAME} /bin/true
 
-# Copy into unified bundle
-mkdir -p ${OUT_DIR}/nsis-bundle/mac
-cp -a $MAC_TMP/* ${OUT_DIR}/nsis-bundle/mac/
+echo "📂 Copying tarball from container..."
+BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle-.*\.tar\.gz$'")
+docker cp ${CONTAINER_NAME}:/out/${BUNDLE_FILE} ${OUT_DIR}/${OUTPUT_TARBALL}
+
+echo "📦 Extracting Docker-built bundle..."
+tar -xzf ${OUT_DIR}/${OUTPUT_TARBALL} -C ${OUT_DIR}
 
 # ----------------------
 # Step 3: Write VERSION.txt

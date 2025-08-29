@@ -50,7 +50,7 @@ RUN curl -LO https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && \
 WORKDIR /tmp/zlib-${ZLIB_VERSION}-32
 RUN mkdir -p ${ZLIB_W32} && \
     make -f win32/Makefile.gcc PREFIX=i686-w64-mingw32- SHARED_MODE=1 \
-        BINARY_PATH=${ZLIB_W32}/bin INCLUDE_PATH=${ZLIB_W32}/include LIBRARY_PATH=${ZLIB_W32}/lib install && \
+    BINARY_PATH=${ZLIB_W32}/bin INCLUDE_PATH=${ZLIB_W32}/include LIBRARY_PATH=${ZLIB_W32}/lib install && \
     cp ${ZLIB_W32}/lib/libz.dll.a ${ZLIB_W32}/lib/zlib1.lib
 
 # ----------------------
@@ -59,7 +59,7 @@ RUN mkdir -p ${ZLIB_W32} && \
 WORKDIR /tmp/zlib-${ZLIB_VERSION}-64
 RUN mkdir -p ${ZLIB_W64} && \
     make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 \
-        BINARY_PATH=${ZLIB_W64}/bin INCLUDE_PATH=${ZLIB_W64}/include LIBRARY_PATH=${ZLIB_W64}/lib install && \
+    BINARY_PATH=${ZLIB_W64}/bin INCLUDE_PATH=${ZLIB_W64}/include LIBRARY_PATH=${ZLIB_W64}/lib install && \
     cp ${ZLIB_W64}/lib/libz.dll.a ${ZLIB_W64}/lib/zlib1.lib
 
 # ----------------------

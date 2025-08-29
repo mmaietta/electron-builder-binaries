@@ -1,15 +1,16 @@
 # !/usr/bin/env bash
 set -euo pipefail
 
+export RUBY_VERSION=3.4.3
+
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
-OUT_DIR="$CWD/out"
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 if [ "$OS_TARGET" = "darwin" ]; then
-    echo "Building for macOS (brew) and Windows & Linux (docker cross-compilation)"
+    echo "Building for macOS"
     bash "$CWD/assets/nsis-mac.sh"
 else
-    echo "This script only supports building with docker on macOS. (brew for macos, docker for cross compiling linux/windows)"
-    exit 1
+    echo "Building for Linux"
+    bash "$CWD/assets/nsis-linux.sh"
 fi
 echo "Build completed successfully."
