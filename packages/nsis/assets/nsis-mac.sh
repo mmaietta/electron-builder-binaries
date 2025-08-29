@@ -14,6 +14,11 @@ OUTPUT_TARBALL="nsis-bundle.tar.gz"
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
+echo "  ⚒️ Installing dependencies..."
+xcode-select --install 2>/dev/null || true
+brew install -q p7zip
+
+
 # ----------------------
 echo "🍎 Building macOS makensis..."
 MAC_TMP=/tmp/nsis-mac
@@ -43,8 +48,8 @@ EOF
 # ----------------------
 echo "📦 Creating unified bundle..."
 cd ${OUT_DIR}
-tar -czf nsis-bundle-unified.tar.gz nsis-bundle
+7za a -mx=9 -mfb=64 nsis-bundle-unified.7z nsis-bundle
 
 echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.tar.gz"
+echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.7z"
 tree -L 4 ${OUT_DIR}/nsis-bundle || true

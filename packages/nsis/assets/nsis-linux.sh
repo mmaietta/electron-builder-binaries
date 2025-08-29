@@ -10,7 +10,7 @@ VERSION=v311
 ZLIB_VERSION=1.3.1
 IMAGE_NAME="nsis-builder"
 CONTAINER_NAME="nsis-build-container"
-OUTPUT_TARBALL="nsis-bundle.tar.gz"
+OUTPUT_ARCHIVE="nsis-bundle.7z"
 
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
@@ -39,12 +39,15 @@ docker buildx build \
 echo "🚀 Creating container..."
 docker create --name ${CONTAINER_NAME} ${IMAGE_NAME} /bin/true
 
-echo "📂 Copying tarball from container..."
-BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle-.*\.tar\.gz$'")
-docker cp ${CONTAINER_NAME}:/out/${BUNDLE_FILE} ${OUT_DIR}/${OUTPUT_TARBALL}
+echo "📂 Copying 7z archive from container..."
+BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle.*\.7z$'")
+docker cp ${CONTAINER_NAME}:/out/${BUNDLE_FILE} ${OUT_DIR}/${OUTPUT_ARCHIVE}
 
+# ----------------------
+# Step 2: Extract 7z bundle
+# ----------------------
 echo "📦 Extracting Docker-built bundle..."
-tar -xzf ${OUT_DIR}/${OUTPUT_TARBALL} -C ${OUT_DIR}
+7z x -y ${OUT_DIR}/${OUTPUT_ARCHIVE} -o${OUT_DIR}
 
 # ----------------------
 # Step 3: Write VERSION.txt
@@ -57,12 +60,12 @@ Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
 
 # ----------------------
-# Step 4: Finalize unified tarball
+# Step 4: Finalize unified 7z bundle
 # ----------------------
-echo "📦 Creating unified bundle..."
+echo "📦 Creating unified 7z bundle..."
 cd ${OUT_DIR}
-tar -czf nsis-bundle-unified.tar.gz nsis-bundle
+7z a -t7z nsis-bundle-unified.7z nsis-bundle
 
 echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.tar.gz"
+echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.7z"
 tree -L 3 ${OUT_DIR}/nsis-bundle || true

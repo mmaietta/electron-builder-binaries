@@ -4,7 +4,7 @@ FROM ubuntu:24.04
 # Install build tools
 # ----------------------
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    git python3 python3-pip scons mingw-w64 curl unzip make gcc g++ tree \
+    git python3 python3-pip scons mingw-w64 curl unzip make gcc g++ tree p7zip-full \
     && apt-get clean
 
 # ----------------------
@@ -28,6 +28,9 @@ ENV NSIS_CONFIG_LOG=yes
 ENV NSIS_CONFIG_CONST_DATA_PATH=no
 ENV NSIS_CONFIG_USE_ELEVATE=yes
 ENV NSIS_CONSOLE=yes
+
+ENV SKIPSTUBS=0
+ENV SKIPUTILS=0
 
 # ----------------------
 # Clone NSIS
@@ -90,10 +93,10 @@ ENV CC=x86_64-w64-mingw32-gcc \
     LDFLAGS="-L${ZLIB_W64}/lib -lz"
 RUN scons
 RUN mkdir -p ${NSIS_BUILD64}/Bin && \
+    cp -r build/urelease/* ${NSIS_BUILD64}/ && \
+    cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
     cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
-    cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
-    cp -r build/urelease/* ${NSIS_BUILD64}/ && \
     find ${NSIS_BUILD64} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -117,11 +120,11 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     echo "NSIS Branch: ${NSIS_BRANCH}" > nsis-bundle/VERSION.txt && \
     echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/VERSION.txt && \
     date -u +"Build Date (UTC): %Y-%m-%d %H:%M:%S" >> nsis-bundle/VERSION.txt && \
-    tar -czf nsis-bundle-${NSIS_BRANCH}-zlib-${ZLIB_VERSION}.tar.gz nsis-bundle
+    7za a -mx=9 -mfb=64 nsis-bundle.7z nsis-bundle
 
 
 # ----------------------
 # Verify build structure
 # ----------------------
 WORKDIR /out/nsis-bundle
-CMD ["tree", "-L", "4"]
+CMD ["tree", "-L", "5"]
