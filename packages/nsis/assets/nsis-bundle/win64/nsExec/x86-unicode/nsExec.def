@@ -1,4 +1,0 @@
-EXPORTS
-    Exec @1
-    ExecToLog @2
-    ExecToStack @3

@@ -1,5 +1,0 @@
-EXPORTS
-    dialog @1
-    initDialog @2
-    make_unicode @3
-    show @4

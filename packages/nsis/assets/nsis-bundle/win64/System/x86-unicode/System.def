@@ -1,9 +1,0 @@
-EXPORTS
-    Alloc @1
-    Call @2
-    Copy @3
-    Free @4
-    Get @5
-    Int64Op @6
-    Store @7
-    StrAlloc @8
