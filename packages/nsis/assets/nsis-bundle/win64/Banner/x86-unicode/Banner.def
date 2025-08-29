@@ -1,0 +1,3 @@
+EXPORTS
+    destroy @1*    getWindow @2
+    show @3

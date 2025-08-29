@@ -1,0 +1,4 @@
+EXPORTS
+    GetAccountType @1
+    GetName @2
+    GetOriginalAccountType @3

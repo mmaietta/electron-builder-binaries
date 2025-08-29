@@ -10,8 +10,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 # ----------------------
 # Versions (easy to bump later)
 # ----------------------
-ENV ZLIB_VERSION=1.3.1
-ENV NSIS_BRANCH=v311
+ARG ZLIB_VERSION=1.3.1
+ARG NSIS_BRANCH=v311
 
 # ----------------------
 # Environment variables
@@ -114,7 +114,11 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
     cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
     cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
-    tar -czf nsis-bundle.tar.gz nsis-bundle
+    echo "NSIS Branch: ${NSIS_BRANCH}" > nsis-bundle/VERSION.txt && \
+    echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/VERSION.txt && \
+    date -u +"Build Date (UTC): %Y-%m-%d %H:%M:%S" >> nsis-bundle/VERSION.txt && \
+    tar -czf nsis-bundle-${NSIS_BRANCH}-zlib-${ZLIB_VERSION}.tar.gz nsis-bundle
+
 
 # ----------------------
 # Verify build structure

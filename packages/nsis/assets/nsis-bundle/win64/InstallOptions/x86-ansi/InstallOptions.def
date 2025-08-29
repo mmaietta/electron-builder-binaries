@@ -1,0 +1,4 @@
+EXPORTS
+    dialog @1
+    initDialog @2
+    show @3

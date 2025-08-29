@@ -1,0 +1,9 @@
+EXPORTS
+    AddImage @1
+    AddText @2
+    Clear @3
+    Destroy @4
+    Redraw @5
+    SetBg @6
+    SetReturn @7
+    Sound @8

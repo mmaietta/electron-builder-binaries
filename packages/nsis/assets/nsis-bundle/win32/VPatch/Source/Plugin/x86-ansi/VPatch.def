@@ -1,0 +1,4 @@
+EXPORTS
+    GetFileCRC32 @1
+    GetFileMD5 @2
+    vpatchfile @3

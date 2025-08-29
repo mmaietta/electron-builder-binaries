@@ -1,33 +1,28 @@
 #!/usr/bin/env bash
-set -ex
+set -euo pipefail
 
-echo "🔧 Downloading latest SCons (4.7.0)..."
-mkdir -p /tmp/scons
-curl -sL https://files.pythonhosted.org/packages/source/s/scons/scons-4.7.0.tar.gz | tar -xz -C /tmp/scons --strip-components 1
-export PYTHONPATH="/tmp/scons"
+# ----------------------
+# Config
+# ----------------------
+IMAGE_NAME="nsis-builder"
+CONTAINER_NAME="nsis-build-container"
+OUTPUT_TARBALL="nsis-bundle.tar.gz"
 
-echo "📦 Cloning NSIS 3.11 source..."
-rm -rf /tmp/nsis
-git clone --branch v3.11 --depth 1 https://github.com/kichik/nsis.git /tmp/nsis
-cd /tmp/nsis
+# ----------------------
+# Build Docker image
+# ----------------------
+echo "📦 Building Docker image..."
+docker build -t ${IMAGE_NAME} .
 
-echo "✏️ Patching config.h..."
-CONFIG="Source/exehead/config.h"
-sed -i 's/^#define NSIS_MAX_STRLEN.*/#define NSIS_MAX_STRLEN 8192/' "$CONFIG"
-grep -q NSIS_CONFIG_LOG "$CONFIG" || echo "#define NSIS_CONFIG_LOG" >> "$CONFIG"
-grep -q NSIS_SUPPORT_LOG "$CONFIG" || echo "#define NSIS_SUPPORT_LOG" >> "$CONFIG"
+# ----------------------
+# Create temporary container
+# ----------------------
+echo "🚀 Creating container..."
+docker create --name ${CONTAINER_NAME} ${IMAGE_NAME} /bin/true
 
-echo "🛠️ Building makensis (NSIS 3.11, minimal)..."
-/usr/bin/python /tmp/scons/script/scons.py \
-  STRIP=0 \
-  SKIPSTUBS=all \
-  SKIPPLUGINS=all \
-  SKIPUTILS=all \
-  SKIPMISC=all \
-  NSIS_CONFIG_CONST_DATA_PATH=no \
-  NSIS_CONFIG_LOG=yes \
-  NSIS_MAX_STRLEN=8192 \
-  makensis
+# ----------------------
+# Copy bundle tarball
+# ----------------------
+echo "📂 Copying tarball from container..."
+docker cp ${CONTAINER_NAME}:/out/$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle-.*\.tar\.gz$'") ./${OUTPUT_TARBALL}
 
-echo "✅ Build complete: /tmp/nsis/Build/urelease/makensis.exe"
-ls -lh /tmp/nsis/Build/urelease/makensis.exe
