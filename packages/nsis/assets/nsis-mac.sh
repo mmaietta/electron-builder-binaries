@@ -28,7 +28,8 @@ trap cleanup EXIT INT TERM
 # Step 1: Build Docker image (Win32/Win64/Linux)
 # ----------------------
 echo "📦 Building Docker image..."
-docker build \
+docker buildx build \
+  --platform linux/amd64 \
   --build-arg NSIS_VERSION=$VERSION \
   --build-arg ZLIB_VERSION=$ZLIB_VERSION \
   -t ${IMAGE_NAME} .
