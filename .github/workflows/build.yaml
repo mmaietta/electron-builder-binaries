@@ -99,9 +99,11 @@ jobs:
 
 
   makensis:
-    runs-on: macos-latest
+    runs-on: macos-13
     timeout-minutes: 15
     steps:
+      - name: Setup Docker on macOS
+        uses: douglascamata/setup-docker-macos-action@a9ac5585664f0f68b067ff33c4e993ebd5279425
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Checkout code repository
@@ -123,6 +125,7 @@ jobs:
         shell: bash
         run: |
           bash packages/nsis/build.sh
+
       - name: Archive artifacts
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
