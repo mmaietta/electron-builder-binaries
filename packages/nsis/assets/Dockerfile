@@ -74,7 +74,7 @@ ENV CC=i686-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W32}/include" \
     CXXFLAGS="-I${ZLIB_W32}/include" \
     LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=0 SKIPUTILS=0
 RUN mkdir -p ${NSIS_BUILD}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD}/ && \
     cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
@@ -91,7 +91,7 @@ ENV CC=x86_64-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W64}/include" \
     CXXFLAGS="-I${ZLIB_W64}/include" \
     LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=0 SKIPUTILS=0
 RUN mkdir -p ${NSIS_BUILD64}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD64}/ && \
     cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
