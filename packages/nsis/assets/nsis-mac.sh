@@ -49,7 +49,8 @@ EOF
 echo "📦 Creating unified bundle..."
 cd ${OUT_DIR}
 7za a -mx=9 -mfb=64 nsis-bundle-unified.7z nsis-bundle
+rm -rf ${OUT_DIR}/nsis-bundle
 
 echo "✅ Done!"
 echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.7z"
-tree -L 4 ${OUT_DIR}/nsis-bundle || true
+
