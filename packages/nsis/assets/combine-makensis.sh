@@ -6,7 +6,6 @@ OUT_DIR="$BASEDIR/out/nsis"
 UNIFIED_DIR="$OUT_DIR/nsis"
 
 mkdir -p "$OUT_DIR"
-rm -rf "$UNIFIED_DIR" "$FINAL_7Z"
 
 DOCKER_BUNDLE=$(ls "$OUT_DIR"/nsis-win-linux-*.7z | head -n1 || true)
 MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-mac-*.7z | head -n1 || true)
@@ -14,6 +13,7 @@ MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-mac-*.7z | head -n1 || true)
 # Extract version from docker bundle filename (e.g. nsis-bundle-v311.7z → v311)
 VERSION=$(basename "$DOCKER_BUNDLE" | sed -E 's/^nsis-win-linux-(v[0-9.]+)\.7z$/\1/')
 FINAL_7Z="$OUT_DIR/nsis-${VERSION}.7z"
+rm -rf "$UNIFIED_DIR" "$FINAL_7Z"
 
 if [[ -z "$DOCKER_BUNDLE" || -z "$MAC_BUNDLE" ]]; then
   echo "❌ Missing one or both bundles."
