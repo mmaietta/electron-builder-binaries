@@ -64,6 +64,7 @@ jobs:
       - name: Upload combined artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
-          name: makensis-bundle
-          path: packages/nsis/out/nsis-bundle-unified.7z
+          name: makensis-unified
+          if-no-files-found: error
+          path: packages/nsis/out/nsis/nsis-bundle-unified.7z
           retention-days: 1
