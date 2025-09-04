@@ -2,10 +2,6 @@ name: Build FPM
 
 on:
   workflow_call:
-    outputs:
-      artifactName:
-        description: "FPM artifacts"
-        value: fpm-artifacts
 
 jobs:
   linux:

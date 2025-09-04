@@ -2,10 +2,6 @@ name: Build Makensis
 
 on:
   workflow_call:
-    outputs:
-      artifactNames:
-        description: "Comma-separated list of Makensis artifacts from all matrix jobs"
-        value: nsis-artifacts
 
 jobs:
   build:
@@ -52,6 +48,7 @@ jobs:
       - name: Download all Makensis artifacts
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
         with:
+          pattern: makensis-artifacts-*
           path: packages/nsis/out
           merge-multiple: true
 
