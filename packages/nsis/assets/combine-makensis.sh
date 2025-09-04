@@ -7,11 +7,11 @@ UNIFIED_DIR="$OUT_DIR/nsis"
 
 mkdir -p "$OUT_DIR"
 
-DOCKER_BUNDLE=$(ls "$OUT_DIR"/nsis-win-linux-*.7z | head -n1 || true)
-MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-mac-*.7z | head -n1 || true)
+DOCKER_BUNDLE=$(ls "$OUT_DIR"/nsis-bundle-win-linux-*.7z | head -n1 || true)
+MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-bundle-mac-*.7z | head -n1 || true)
 
 # Extract version from docker bundle filename (e.g. nsis-bundle-v311.7z → v311)
-VERSION=$(basename "$DOCKER_BUNDLE" | sed -E 's/^nsis-win-linux-(v[0-9.]+)\.7z$/\1/')
+VERSION=$(basename "$DOCKER_BUNDLE" | sed -E 's/^nsis-bundle-win-linux-(v[0-9.]+)\.7z$/\1/')
 FINAL_7Z="$OUT_DIR/nsis-${VERSION}.7z"
 rm -rf "$UNIFIED_DIR" "$FINAL_7Z"
 

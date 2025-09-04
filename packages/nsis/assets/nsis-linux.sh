@@ -65,7 +65,9 @@ EOF
 echo "📦 Creating unified 7z bundle..."
 cd "${OUT_DIR}"
 7z a -t7z nsis-bundle-win-linux-${BRANCH_TAG}.7z nsis-bundle
-rm -rf "${OUT_DIR}/nsis-bundle"
+
+# cleanup temporary assets
+rm -rf "${OUT_DIR}/nsis-bundle" "${OUT_DIR}/${OUTPUT_ARCHIVE}"
 
 echo "✅ Done!"
 echo "Bundle available at: ${OUT_DIR}/nsis-bundle-win-linux-${BRANCH_TAG}.7z"
