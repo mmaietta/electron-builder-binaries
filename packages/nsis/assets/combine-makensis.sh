@@ -3,14 +3,14 @@ set -euo pipefail
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR="$BASEDIR/out/nsis"
-UNIFIED_DIR="$OUT_DIR/nsis-bundle"
-FINAL_7Z="$OUT_DIR/nsis-bundle-unified.7z"
+UNIFIED_DIR="$OUT_DIR/nsis"
+FINAL_7Z="$OUT_DIR/nsis-unified.7z"
 
 mkdir -p "$OUT_DIR"
 rm -rf "$UNIFIED_DIR" "$FINAL_7Z"
 
-DOCKER_BUNDLE=$(ls "$OUT_DIR"/nsis-bundle-win-linux-*.7z | head -n1 || true)
-MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-bundle-mac-*.7z | head -n1 || true)
+DOCKER_BUNDLE=$(ls "$OUT_DIR"/nsis-win-linux-*.7z | head -n1 || true)
+MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-mac-*.7z | head -n1 || true)
 
 if [[ -z "$DOCKER_BUNDLE" || -z "$MAC_BUNDLE" ]]; then
   echo "❌ Missing one or both bundles."
@@ -27,15 +27,15 @@ TMP_MAC=$(mktemp -d)
 
 mkdir -p "$UNIFIED_DIR"
 
-# copy contents (flatten if nsis-bundle/ folder exists)
-if [[ -d "$TMP_DOCKER/nsis-bundle" ]]; then
-  cp -a "$TMP_DOCKER/nsis-bundle/." "$UNIFIED_DIR/"
+# copy contents (flatten if nsis/ folder exists)
+if [[ -d "$TMP_DOCKER/nsis" ]]; then
+  cp -a "$TMP_DOCKER/nsis/." "$UNIFIED_DIR/"
 else
   cp -a "$TMP_DOCKER/." "$UNIFIED_DIR/"
 fi
 
-if [[ -d "$TMP_MAC/nsis-bundle" ]]; then
-  cp -a "$TMP_MAC/nsis-bundle/." "$UNIFIED_DIR/"
+if [[ -d "$TMP_MAC/nsis" ]]; then
+  cp -a "$TMP_MAC/nsis/." "$UNIFIED_DIR/"
 else
   cp -a "$TMP_MAC/." "$UNIFIED_DIR/"
 fi
@@ -43,7 +43,7 @@ fi
 # repack unified bundle
 cd "$OUT_DIR"
 rm -f "$FINAL_7Z"
-7z a -mx=9 "$FINAL_7Z" "nsis-bundle" >/dev/null
+7z a -mx=9 "$FINAL_7Z" "nsis" >/dev/null
 
 # cleanup temps and old bundles
 rm -rf "$TMP_DOCKER" "$TMP_MAC"
