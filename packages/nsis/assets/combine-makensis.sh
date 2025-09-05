@@ -50,7 +50,7 @@ command -v tree >/dev/null 2>&1 && tree -L 3 "$UNIFIED_DIR" || true
 # repack unified bundle
 cd "$OUT_DIR"
 rm -f "$FINAL_7Z"
-7z a -mx=9 "$FINAL_7Z" "nsis" >/dev/null
+7z a -mx=9 "$FINAL_7Z" "$UNIFIED_DIR/nsis-bundle/*" >/dev/null
 
 # cleanup temps and old bundles
 rm -rf "$TMP_DOCKER" "$TMP_MAC" "$UNIFIED_DIR"
