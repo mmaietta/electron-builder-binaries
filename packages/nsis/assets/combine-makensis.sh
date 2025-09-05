@@ -49,7 +49,7 @@ rm -f "$FINAL_7Z"
 7z a -mx=9 "$FINAL_7Z" "nsis" >/dev/null
 
 # cleanup temps and old bundles
-rm -rf "$TMP_DOCKER" "$TMP_MAC"
+rm -rf "$TMP_DOCKER" "$TMP_MAC" "$UNIFIED_DIR"
 rm -f "$DOCKER_BUNDLE" "$MAC_BUNDLE"
 
 echo "✅ Unified bundle created at: $FINAL_7Z"
