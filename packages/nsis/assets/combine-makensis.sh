@@ -3,7 +3,9 @@ set -euo pipefail
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR="$BASEDIR/out/nsis"
-UNIFIED_DIR="$OUT_DIR/nsis"
+UNIFIED_DIR="$OUT_DIR/nsis-unified"
+# nested nsis folder for compress-artifacts stage/step
+UNIFIED_7Z_OUT_DIR="$OUT_DIR/nsis"
 
 mkdir -p "$OUT_DIR"
 
@@ -12,8 +14,8 @@ MAC_BUNDLE=$(ls "$OUT_DIR"/nsis-bundle-mac-*.7z | head -n1 || true)
 
 # Extract version from docker bundle filename (e.g. nsis-bundle-v311.7z → v311)
 VERSION=$(basename "$DOCKER_BUNDLE" | sed -E 's/^nsis-bundle-win-linux-(v[0-9.]+)\.7z$/\1/')
-FINAL_7Z="$OUT_DIR/nsis-${VERSION}.7z"
-rm -rf "$UNIFIED_DIR" "$FINAL_7Z"
+FINAL_7Z="$UNIFIED_7Z_OUT_DIR/nsis-${VERSION}.7z"
+rm -rf "$UNIFIED_7Z_OUT_DIR" "$FINAL_7Z"
 
 if [[ -z "$DOCKER_BUNDLE" || -z "$MAC_BUNDLE" ]]; then
   echo "❌ Missing one or both bundles."
@@ -28,7 +30,7 @@ TMP_MAC=$(mktemp -d)
 7z x -y -o"$TMP_DOCKER" "$DOCKER_BUNDLE" >/dev/null
 7z x -y -o"$TMP_MAC" "$MAC_BUNDLE" >/dev/null
 
-mkdir -p "$UNIFIED_DIR"
+mkdir -p "$UNIFIED_DIR" "$UNIFIED_7Z_OUT_DIR"
 
 # copy contents (flatten if nsis/ folder exists)
 if [[ -d "$TMP_DOCKER/nsis" ]]; then
@@ -43,6 +45,8 @@ else
   cp -a "$TMP_MAC/." "$UNIFIED_DIR/"
 fi
 
+command -v tree >/dev/null 2>&1 && tree -L 3 "$UNIFIED_DIR" || true
+
 # repack unified bundle
 cd "$OUT_DIR"
 rm -f "$FINAL_7Z"
@@ -53,4 +57,3 @@ rm -rf "$TMP_DOCKER" "$TMP_MAC" "$UNIFIED_DIR"
 rm -f "$DOCKER_BUNDLE" "$MAC_BUNDLE"
 
 echo "✅ Unified bundle created at: $FINAL_7Z"
-command -v tree >/dev/null 2>&1 && tree -L 3 "$UNIFIED_DIR" || true
