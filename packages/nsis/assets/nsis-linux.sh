@@ -6,11 +6,11 @@ set -euo pipefail
 # ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
-VERSION=v311
-ZLIB_VERSION=1.3.1
+BRANCH_TAG=${BRANCH_TAG:-v311}
+ZLIB_VERSION=${ZLIB_VERSION:-1.3.1}
 IMAGE_NAME="nsis-builder"
 CONTAINER_NAME="nsis-build-container"
-OUTPUT_ARCHIVE="nsis-bundle.7z"
+OUTPUT_ARCHIVE="nsis-bundle-linux-${BRANCH_TAG}.7z"
 
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
@@ -30,7 +30,7 @@ trap cleanup EXIT INT TERM
 echo "📦 Building Docker image..."
 docker buildx build \
   --platform linux/amd64 \
-  --build-arg NSIS_BRANCH=$VERSION \
+  --build-arg NSIS_BRANCH=$BRANCH_TAG \
   --build-arg ZLIB_VERSION=$ZLIB_VERSION \
   -t ${IMAGE_NAME} \
   -f "$BASEDIR/assets/Dockerfile" \
@@ -54,7 +54,7 @@ echo "📦 Extracting Docker-built bundle..."
 # ----------------------
 echo "📝 Writing version metadata..."
 cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
-NSIS Branch/Tag: ${VERSION}
+NSIS Branch/Tag: ${BRANCH_TAG}
 zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
@@ -63,9 +63,11 @@ EOF
 # Step 4: Finalize unified 7z bundle
 # ----------------------
 echo "📦 Creating unified 7z bundle..."
-cd ${OUT_DIR}
-7z a -t7z nsis-bundle-unified.7z nsis-bundle
+cd "${OUT_DIR}"
+7z a -t7z nsis-bundle-win-linux-${BRANCH_TAG}.7z nsis-bundle
+
+# cleanup temporary assets
+rm -rf "${OUT_DIR}/nsis-bundle" "${OUT_DIR}/${OUTPUT_ARCHIVE}"
 
 echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/nsis-bundle-unified.7z"
-tree -L 3 ${OUT_DIR}/nsis-bundle || true
+echo "Bundle available at: ${OUT_DIR}/nsis-bundle-win-linux-${BRANCH_TAG}.7z"

@@ -2,10 +2,6 @@ name: Build Makensis
 
 on:
   workflow_call:
-    outputs:
-      artifactNames:
-        description: "Comma-separated list of Makensis artifacts from all matrix jobs"
-        value: nsis-artifacts
 
 jobs:
   build:
@@ -13,14 +9,7 @@ jobs:
     strategy:
       matrix:
         node: [ubuntu-latest, macos-latest]
-    outputs:
-      artifactName: ${{ steps.set-artifact-name.outputs.name }}
     steps:
-      - name: Set artifact name output
-        id: set-artifact-name
-        run: |
-          echo "name=makensis-artifacts-${{ matrix.node }}" >> $GITHUB_OUTPUT
-
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with: { submodules: true }
@@ -43,18 +32,39 @@ jobs:
       - name: Upload Makensis artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
-          name: ${{ steps.set-artifact-name.outputs.name }}
+          name: makensis-artifacts-${{ matrix.node }}
           path: packages/nsis/out
           if-no-files-found: error
           retention-days: 1
 
-  set-artifact-list:
+  combine-artifacts:
     runs-on: ubuntu-latest
     needs: build
-    outputs:
-      names: ${{ steps.set-list.outputs.names }}
     steps:
-      - name: Set comma-separated artifact list
-        id: set-list
-        run: |
-          echo "names=$(echo ${{ join(needs.build.*.outputs.artifactName, ',') }})" >> $GITHUB_OUTPUT
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: { submodules: true }
+
+      - name: Download all Makensis artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+        with:
+          pattern: makensis-artifacts-*
+          path: packages/nsis/out
+          merge-multiple: true
+
+      - name: Combine Makensis artifacts
+        run: bash packages/nsis/assets/combine-makensis.sh
+        shell: bash
+
+      - name: Delete all previous build step artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: makensis-artifacts-*
+
+      - name: Upload combined artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: makensis-unified
+          if-no-files-found: error
+          path: packages/nsis/out/nsis
+          retention-days: 1

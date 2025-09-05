@@ -120,7 +120,7 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     echo "NSIS Branch: ${NSIS_BRANCH}" > nsis-bundle/VERSION.txt && \
     echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/VERSION.txt && \
     date -u +"Build Date (UTC): %Y-%m-%d %H:%M:%S" >> nsis-bundle/VERSION.txt && \
-    7za a -mx=9 -mfb=64 nsis-bundle.7z nsis-bundle
+    7za a -mx=9 -mfb=64 nsis-bundle-${NSIS_BRANCH}.7z nsis-bundle
 
 
 # ----------------------
