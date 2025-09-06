@@ -1,5 +1,0 @@
----
-"nsis": major
----
-
-test
