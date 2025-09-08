@@ -1,43 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ----------------------
+# Config
+# ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
-OUT_DIR=$BASEDIR/out/nsis
+OUT_DIR="$BASEDIR/out/nsis"
 VERSION=${VERSION:-3.11}
 
-mkdir -p "$OUT_DIR"
+BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
-echo "⚒️ Installing dependencies..."
+# Start fresh
+rm -rf "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
+mkdir -p "$BUNDLE_DIR/mac/bin" "$BUNDLE_DIR/share"
+
+echo "🍎 Installing dependencies..."
 xcode-select --install 2>/dev/null || true
-brew install -q p7zip || true
+brew install -q p7zip
+brew tap nsis-dev/makensis
 
-echo "🍎 Preparing macOS makensis..."
-MAC_TMP=/tmp/nsis-mac
-rm -rf "$MAC_TMP"
-mkdir -p "$MAC_TMP"
+# Install NSIS via Homebrew if not already present
+if ! brew list "makensis@$VERSION" >/dev/null 2>&1; then
+  brew install "makensis@$VERSION"
+fi
 
-brew tap nsis-dev/makensis || true
-brew install "makensis@$VERSION" --with-large-strings --with-advanced-logging || true
+# ----------------------
+# Copy macOS makensis binary
+# ----------------------
+echo "📦 Copying macOS makensis binary..."
+cp -aL "$(which makensis)" "$BUNDLE_DIR/mac/bin/makensis"
 
-BREW_PREFIX=$(brew --prefix "makensis@$VERSION")
+# ----------------------
+# Copy share/nsis data tree
+# ----------------------
+echo "📂 Copying share/nsis data..."
+CELLAR="$(brew --cellar makensis@$VERSION)"
+cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
 
-# Binary
-mkdir -p "$MAC_TMP/bin"
-cp -aL "$BREW_PREFIX/bin/makensis" "$MAC_TMP/bin/makensis"
-
-# Resources
-mkdir -p "$MAC_TMP/share/nsis"
-cp -aR "$BREW_PREFIX/share/nsis/"* "$MAC_TMP/share/nsis/"
-
-# Wrapper
-cat > "$MAC_TMP/makensis-macos" <<'EOF'
-#!/bin/bash
-HERE="$(cd "$(dirname "$0")" && pwd)"
-export NSISDIR="$HERE/share/nsis"
-exec "$HERE/bin/makensis" "$@"
+cat > "${BUNDLE_DIR}/makensis" <<'EOF'
+#!/usr/bin/env bash
+DIR="$(cd "$(dirname "$0")" && pwd)"
+export NSISDIR="$DIR/share/nsis"
+case "$(uname -s)" in
+  Linux)  exec "$DIR/linux/bin/makensis" "$@" ;;
+  Darwin) exec "$DIR/mac/bin/makensis" "$@" ;;
+  *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
+esac
 EOF
-chmod +x "$MAC_TMP/makensis-macos"
+chmod +x "${BUNDLE_DIR}/makensis"
 
-# Stage for combine
-mkdir -p "${OUT_DIR}/nsis-bundle/mac"
-cp -a "$MAC_TMP/"* "${OUT_DIR}/nsis-bundle/mac/"
+echo "✅ macOS makensis and share/nsis added to bundle:"
+echo "   $BUNDLE_DIR"

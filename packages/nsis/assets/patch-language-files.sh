@@ -5,7 +5,7 @@ set -euo pipefail
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 FIXES_DIR="$BASEDIR/assets/nsis-lang-fixes"
 # Path to NSIS contrib language files
-CONTRIB_DIR="$BASEDIR/out/nsis/nsis-bundle/mac/share/nsis/Contrib/Language files"
+CONTRIB_DIR="$BASEDIR/out/nsis/nsis-bundle/share/nsis/Contrib/Language files"
 
 # Ensure dirs exist
 if [[ ! -d "$FIXES_DIR" ]]; then
@@ -23,10 +23,14 @@ for fixfile in "$FIXES_DIR"/*; do
   target="$CONTRIB_DIR/$fname"
 
   if [[ -f "$target" ]]; then
-    echo "🔧 Appending $fname → $target"
-    echo -e "\n\n# --- BEGIN FIXES ADDED ---\n" >> "$target"
-    cat "$fixfile" >> "$target"
-    echo -e "\n# --- END FIXES ADDED ---\n" >> "$target"
+    echo "🔧 Appending $fname → '$target'"
+    echo -e "\n\n; --- BEGIN FIXES ADDED ---\n" >> "$target"
+
+    while IFS= read -r line; do
+        printf '%s\n' "$line"
+    done < "$fixfile" >> "$target"
+    
+    echo -e "\n; --- END FIXES ADDED ---\n" >> "$target"
   else
     echo "⚠️  Skipping $fname (no matching file in $CONTRIB_DIR)"
   fi
