@@ -24,13 +24,11 @@ for fixfile in "$FIXES_DIR"/*; do
 
   if [[ -f "$target" ]]; then
     echo "🔧 Appending $fname → '$target'"
-    echo -e "\n\n; --- BEGIN FIXES ADDED ---\n" >> "$target"
-
-    while IFS= read -r line; do
-        printf '%s\n' "$line"
-    done < "$fixfile" >> "$target"
-    
-    echo -e "\n; --- END FIXES ADDED ---\n" >> "$target"
+    {
+      echo -e "\n\n; --- BEGIN FIXES ADDED ---\n"
+      cat "$fixfile"
+      echo -e "\n\n; --- END FIXES ADDED ---\n"
+    } >> "$target"
   else
     echo "⚠️  Skipping $fname (no matching file in $CONTRIB_DIR)"
   fi
