@@ -16,4 +16,9 @@ else
     echo "Building for Linux"
     bash "$CWD/assets/nsis-linux.sh"
 fi
+
+echo "Adding patches to language files"
+
+bash "$CWD/assets/patch-language-files.sh"
+
 echo "Build completed successfully."

@@ -8,13 +8,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && apt-get clean
 
 # ----------------------
-# Versions (preferably passed as build args)
+# Versions (passed as build args)
 # ----------------------
 ARG ZLIB_VERSION=1.3.1
 ARG NSIS_BRANCH=v311
 
 # ----------------------
-# Environment variables
+# Environment
 # ----------------------
 ENV NSIS_SRC=/opt/nsis-src
 ENV NSIS_BUILD=/opt/nsis-win32
@@ -29,9 +29,6 @@ ENV NSIS_CONFIG_CONST_DATA_PATH=no
 ENV NSIS_CONFIG_USE_ELEVATE=yes
 ENV NSIS_CONSOLE=yes
 
-ENV SKIPSTUBS=0
-ENV SKIPUTILS=0
-
 # ----------------------
 # Clone NSIS
 # ----------------------
@@ -39,7 +36,7 @@ WORKDIR /opt
 RUN git clone --branch ${NSIS_BRANCH} https://github.com/kichik/nsis.git ${NSIS_SRC}
 
 # ----------------------
-# Download & extract zlib once, then duplicate for 32/64
+# Download & extract zlib
 # ----------------------
 WORKDIR /tmp
 RUN curl -LO https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && \
@@ -110,6 +107,18 @@ RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
     chmod +x ${NSIS_BUILD_LINUX}/Bin/makensis
 
 # ----------------------
+# Normalize Stubs to Homebrew-style nested layout
+# ----------------------
+RUN for DIR in /opt/nsis-win32/Stubs /opt/nsis-win64/Stubs; do \
+      if [ -d "$DIR" ]; then \
+        mkdir -p $DIR/zlib $DIR/bzip2 $DIR/lzma; \
+        [ -f $DIR/zlib-x86-unicode ] && mv $DIR/zlib-x86-unicode $DIR/zlib/x86-unicode || true; \
+        [ -f $DIR/bzip2-x86-unicode ] && mv $DIR/bzip2-x86-unicode $DIR/bzip2/x86-unicode || true; \
+        [ -f $DIR/lzma-x86-unicode ] && mv $DIR/lzma-x86-unicode $DIR/lzma/x86-unicode || true; \
+      fi; \
+    done
+
+# ----------------------
 # Bundle all NSIS artifacts
 # ----------------------
 WORKDIR /out
@@ -117,14 +126,7 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
     cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
     cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
-    echo "NSIS Branch: ${NSIS_BRANCH}" > nsis-bundle/VERSION.txt && \
-    echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/VERSION.txt && \
-    date -u +"Build Date (UTC): %Y-%m-%d %H:%M:%S" >> nsis-bundle/VERSION.txt && \
-    7za a -mx=9 -mfb=64 nsis-bundle-${NSIS_BRANCH}.7z nsis-bundle
+    7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_BRANCH}.7z nsis-bundle
 
-
-# ----------------------
-# Verify build structure
-# ----------------------
 WORKDIR /out/nsis-bundle
 CMD ["tree", "-L", "5"]
