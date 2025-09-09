@@ -1,5 +1,11 @@
 # nsis
 
+## 4.0.0
+
+### Major Changes
+
+- [`580105e`](https://github.com/mmaietta/electron-builder-binaries/commit/580105eb0cd6fdcc5b4b4bdae1f8afada0486cb9) Thanks [@mmaietta](https://github.com/mmaietta)! - test
+
 ## 1.0.0
 
 ### Major Changes
