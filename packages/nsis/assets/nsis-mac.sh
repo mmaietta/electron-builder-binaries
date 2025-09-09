@@ -5,52 +5,73 @@ set -euo pipefail
 # Config
 # ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
-OUT_DIR=$BASEDIR/out/nsis
-VERSION=${VERSION:-3.11}
-IMAGE_NAME="nsis-builder"
-CONTAINER_NAME="nsis-build-container"
-OUTPUT_TARBALL="nsis-bundle.tar.gz"
+OUT_DIR="$BASEDIR/out/nsis"
+VERSION=${NSIS_VERSION:-3.11}
 
-mkdir -p "$OUT_DIR"
+BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
-echo "  ⚒️ Installing dependencies..."
+# Start fresh
+rm -rf "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
+mkdir -p "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
+
+echo "🍎 Installing dependencies..."
 xcode-select --install 2>/dev/null || true
 brew install -q p7zip
-
-
-# ----------------------
-echo "🍎 Building macOS makensis..."
-MAC_TMP=/tmp/nsis-mac
-rm -rf $MAC_TMP
-mkdir -p $MAC_TMP
-
 brew tap nsis-dev/makensis
-brew install makensis@$VERSION --with-large-strings --with-advanced-logging || true
 
-cp -aL "$(which makensis)" $MAC_TMP/makensis
-
-# Copy into unified bundle
-mkdir -p ${OUT_DIR}/nsis-bundle/mac
-cp -a $MAC_TMP/* ${OUT_DIR}/nsis-bundle/mac/
+# Install NSIS via Homebrew if not already present
+if ! brew list "makensis@$VERSION" >/dev/null 2>&1; then
+  brew install "makensis@$VERSION"
+fi
 
 # ----------------------
-# Step 3: Write VERSION.txt
+# Copy macOS makensis binary
 # ----------------------
-echo "📝 Writing version metadata..."
-cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
-NSIS Version: ${VERSION}
-Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-EOF
+echo "📦 Copying macOS makensis binary..."
+cp -aL "$(which makensis)" "$BUNDLE_DIR/mac/makensis"
 
 # ----------------------
-# Step 4: Finalize unified tarball
+# Copy share/nsis data tree
 # ----------------------
-echo "📦 Creating unified bundle..."
-cd ${OUT_DIR}
-ARCHIVE_NAME="nsis-bundle-mac-${VERSION}.7z"
-rm -f "$ARCHIVE_NAME"
-7za a -mx=9 -mfb=64 "$ARCHIVE_NAME" nsis-bundle
-rm -rf ${OUT_DIR}/nsis-bundle
+echo "📂 Copying share/nsis data..."
+CELLAR="$(brew --cellar makensis@$VERSION)"
+cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
+rm -rf "$BUNDLE_DIR/share/nsis/.git" "$BUNDLE_DIR/share/nsis/Docs" "$BUNDLE_DIR/share/nsis/Examples"
 
-echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/$ARCHIVE_NAME"
+# ----------------------
+# Add extra plugins (nsProcess, UAC, WinShell)
+# ----------------------
+echo "🔌 Adding extra plugins (nsProcess, UAC, WinShell)..."
+cd $BUNDLE_DIR/share/nsis
+
+# nsProcess
+curl -sL http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip -o np.zip
+7z x np.zip -oa
+mv a/Plugin/nsProcess.dll   Plugins/x86-ansi/nsProcess.dll
+mv a/Plugin/nsProcessW.dll  Plugins/x86-unicode/nsProcess.dll
+mv a/Include/nsProcess.nsh  Include/nsProcess.nsh
+rm -rf a np.zip
+
+# UAC
+curl -sL http://nsis.sourceforge.net/mediawiki/images/8/8f/UAC.zip -o uac.zip
+7z x uac.zip -oa
+mv a/Plugins/x86-ansi/UAC.dll     Plugins/x86-ansi/UAC.dll
+mv a/Plugins/x86-unicode/UAC.dll  Plugins/x86-unicode/UAC.dll
+mv a/UAC.nsh                      Include/UAC.nsh
+rm -rf a uac.zip
+
+# WinShell
+curl -sL http://nsis.sourceforge.net/mediawiki/images/5/54/WinShell.zip -o ws.zip
+7z x ws.zip -oa
+mv a/Plugins/x86-ansi/WinShell.dll     Plugins/x86-ansi/WinShell.dll
+mv a/Plugins/x86-unicode/WinShell.dll  Plugins/x86-unicode/WinShell.dll
+rm -rf a ws.zip
+
+# ----------------------
+# Package up the macOS bundle with contents for NSISDIR heirarchy
+# ----------------------
+cd "${OUT_DIR}"
+7za a -mx=9 -mfb=64 ${OUT_DIR}/nsis-bundle-mac-${VERSION}.7z nsis-bundle
+
+echo "✅ macOS makensis and share/nsis added to bundle:"
+echo "   $BUNDLE_DIR"

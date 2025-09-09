@@ -1,20 +1,35 @@
-FROM ubuntu:24.04
+FROM --platform=linux/amd64 debian:buster
 
 # ----------------------
-# Install build tools
+# Fix archived Buster repos + install build tools
 # ----------------------
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    git python3 python3-pip scons mingw-w64 curl unzip make gcc g++ tree p7zip-full \
-    && apt-get clean
+RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
+    && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        curl git unzip make gcc g++ mingw-w64 p7zip-full tree \
+        ca-certificates lsb-release \
+        libssl-dev libffi-dev libbz2-dev libreadline-dev zlib1g-dev xz-utils \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # ----------------------
-# Versions (preferably passed as build args)
+# Build Python 3.11 from source
 # ----------------------
-ARG ZLIB_VERSION=1.3.1
-ARG NSIS_BRANCH=v311
+ARG PYTHON_VERSION=3.11.9
+ARG PYTHON_SHA256=9b1e896523fc510691126c864406d9360a3d1e986acbda59cda57b5abda45b87
+WORKDIR /tmp
+RUN curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz \
+    && echo "${PYTHON_SHA256}  Python-${PYTHON_VERSION}.tar.xz" | sha256sum -c - \
+    && tar xf Python-${PYTHON_VERSION}.tar.xz \
+    && cd Python-${PYTHON_VERSION} \
+    && ./configure --enable-optimizations --prefix=/usr/local \
+    && make -j$(nproc) \
+    && make altinstall \
+    && python3.11 --version \
+    && python3.11 -m pip install --upgrade pip scons
 
 # ----------------------
-# Environment variables
+# Environment
 # ----------------------
 ENV NSIS_SRC=/opt/nsis-src
 ENV NSIS_BUILD=/opt/nsis-win32
@@ -29,23 +44,31 @@ ENV NSIS_CONFIG_CONST_DATA_PATH=no
 ENV NSIS_CONFIG_USE_ELEVATE=yes
 ENV NSIS_CONSOLE=yes
 
-ENV SKIPSTUBS=0
-ENV SKIPUTILS=0
-
 # ----------------------
-# Clone NSIS
+# Download & verify NSIS from SourceForge
 # ----------------------
+ARG NSIS_VERSION=3.11
+ARG NSIS_SHA256=19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b
 WORKDIR /opt
-RUN git clone --branch ${NSIS_BRANCH} https://github.com/kichik/nsis.git ${NSIS_SRC}
+RUN curl -sL -o nsis-${NSIS_VERSION}-src.tar.bz2 \
+      https://downloads.sourceforge.net/project/nsis/NSIS%203/${NSIS_VERSION}/nsis-${NSIS_VERSION}-src.tar.bz2 && \
+    echo "${NSIS_SHA256}  nsis-${NSIS_VERSION}-src.tar.bz2" | sha256sum -c - && \
+    mkdir nsis-src && \
+    tar xjf nsis-${NSIS_VERSION}-src.tar.bz2 -C nsis-src --strip-components=1
 
 # ----------------------
-# Download & extract zlib once, then duplicate for 32/64
+# Download & verify zlib
 # ----------------------
+ARG ZLIB_VERSION=1.3.1
+ARG ZLIB_SHA256=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
 WORKDIR /tmp
-RUN curl -LO https://zlib.net/zlib-${ZLIB_VERSION}.tar.gz && \
+RUN curl -sL -o zlib-${ZLIB_VERSION}.tar.gz \
+      https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz && \
+    echo "${ZLIB_SHA256}  zlib-${ZLIB_VERSION}.tar.gz" | sha256sum -c - && \
     tar xf zlib-${ZLIB_VERSION}.tar.gz && \
     cp -r zlib-${ZLIB_VERSION} zlib-${ZLIB_VERSION}-32 && \
     cp -r zlib-${ZLIB_VERSION} zlib-${ZLIB_VERSION}-64
+
 
 # ----------------------
 # Build zlib for Win32
@@ -74,12 +97,12 @@ ENV CC=i686-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W32}/include" \
     CXXFLAGS="-I${ZLIB_W32}/include" \
     LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
 RUN mkdir -p ${NSIS_BUILD}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD}/ && \
     cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
-    cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
+    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
     find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -91,12 +114,12 @@ ENV CC=x86_64-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W64}/include" \
     CXXFLAGS="-I${ZLIB_W64}/include" \
     LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
 RUN mkdir -p ${NSIS_BUILD64}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD64}/ && \
     cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
-    cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
+    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
     find ${NSIS_BUILD64} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -117,14 +140,7 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
     cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
     cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
-    echo "NSIS Branch: ${NSIS_BRANCH}" > nsis-bundle/VERSION.txt && \
-    echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/VERSION.txt && \
-    date -u +"Build Date (UTC): %Y-%m-%d %H:%M:%S" >> nsis-bundle/VERSION.txt && \
-    7za a -mx=9 -mfb=64 nsis-bundle-${NSIS_BRANCH}.7z nsis-bundle
+    7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_VERSION}.7z nsis-bundle
 
-
-# ----------------------
-# Verify build structure
-# ----------------------
 WORKDIR /out/nsis-bundle
 CMD ["tree", "-L", "5"]
