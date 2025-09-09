@@ -3,8 +3,8 @@ set -euo pipefail
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
-VERSION=${VERSION:-v311}
-ZLIB_VERSION=${ZLIB_VERSION:-1.3.1}
+VERSION="${VERSION:-3.11}"
+ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}"
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
 TMP_DIR="$OUT_DIR/tmp-merge"

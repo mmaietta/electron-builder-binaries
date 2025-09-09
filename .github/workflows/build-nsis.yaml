@@ -66,5 +66,5 @@ jobs:
         with:
           name: makensis-unified
           if-no-files-found: error
-          path: packages/nsis/out/nsis
+          path: packages/nsis/out
           retention-days: 1
