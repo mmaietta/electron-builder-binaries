@@ -8,6 +8,10 @@ ZLIB_VERSION=${ZLIB_VERSION:-1.3.1}
 
 mkdir -p "$OUT_DIR"
 
+echo "Adding patches to language files"
+
+bash "$BASEDIR/assets/patch-language-files.sh"
+
 echo "📝 Writing version metadata..."
 {
   echo "NSIS Version/Branch: ${VERSION}"

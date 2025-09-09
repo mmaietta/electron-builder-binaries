@@ -12,7 +12,7 @@ BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
 # Start fresh
 rm -rf "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
-mkdir -p "$BUNDLE_DIR/mac/bin" "$BUNDLE_DIR/share"
+mkdir -p "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
 
 echo "🍎 Installing dependencies..."
 xcode-select --install 2>/dev/null || true
@@ -28,7 +28,7 @@ fi
 # Copy macOS makensis binary
 # ----------------------
 echo "📦 Copying macOS makensis binary..."
-cp -aL "$(which makensis)" "$BUNDLE_DIR/mac/bin/makensis"
+cp -aL "$(which makensis)" "$BUNDLE_DIR/mac/makensis"
 
 # ----------------------
 # Copy share/nsis data tree
@@ -42,8 +42,8 @@ cat > "${BUNDLE_DIR}/makensis" <<'EOF'
 DIR="$(cd "$(dirname "$0")" && pwd)"
 export NSISDIR="$DIR/share/nsis"
 case "$(uname -s)" in
-  Linux)  exec "$DIR/linux/bin/makensis" "$@" ;;
-  Darwin) exec "$DIR/mac/bin/makensis" "$@" ;;
+  Linux)  exec "$DIR/linux/makensis" "$@" ;;
+  Darwin) exec "$DIR/mac/makensis" "$@" ;;
   *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 EOF
