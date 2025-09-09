@@ -37,6 +37,35 @@ echo "📂 Copying share/nsis data..."
 CELLAR="$(brew --cellar makensis@$VERSION)"
 cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
 
+echo "🔌 Adding extra plugins (nsProcess, UAC, WinShell)..."
+cd $BUNDLE_DIR/share/nsis
+
+# nsProcess
+curl -sL http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip -o np.zip
+7z x np.zip -oa
+mv a/Plugin/nsProcess.dll   Plugins/x86-ansi/nsProcess.dll
+mv a/Plugin/nsProcessW.dll  Plugins/x86-unicode/nsProcess.dll
+mv a/Include/nsProcess.nsh  Include/nsProcess.nsh
+rm -rf a np.zip
+
+# UAC
+curl -sL http://nsis.sourceforge.net/mediawiki/images/8/8f/UAC.zip -o uac.zip
+7z x uac.zip -oa
+mv a/Plugins/x86-ansi/UAC.dll     Plugins/x86-ansi/UAC.dll
+mv a/Plugins/x86-unicode/UAC.dll  Plugins/x86-unicode/UAC.dll
+mv a/UAC.nsh                      Include/UAC.nsh
+rm -rf a uac.zip
+
+# WinShell
+curl -sL http://nsis.sourceforge.net/mediawiki/images/5/54/WinShell.zip -o ws.zip
+7z x ws.zip -oa
+mv a/Plugins/x86-ansi/WinShell.dll     Plugins/x86-ansi/WinShell.dll
+mv a/Plugins/x86-unicode/WinShell.dll  Plugins/x86-unicode/WinShell.dll
+rm -rf a ws.zip
+
+# ----------------------
+# Package up the macOS bundle with contents for NSISDIR heirarchy
+# ----------------------
 cd "${OUT_DIR}"
 7za a -mx=9 -mfb=64 ${OUT_DIR}/nsis-bundle-mac-${VERSION}.7z nsis-bundle
 
