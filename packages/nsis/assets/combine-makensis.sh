@@ -34,6 +34,7 @@ for ARCHIVE in "${ARCHIVES[@]}"; do
   DEST="$TMP_DIR/extracted-$i"
   echo "📂 Extracting $ARCHIVE → $DEST"
   7z x -y "$ARCHIVE" -o"$DEST"
+  rm -f "$ARCHIVE"
 done
 
 # ----------------------
@@ -131,7 +132,7 @@ PLATFORMS=()
 [ -d "${BUNDLE_DIR}/mac" ]   && PLATFORMS+=("macos")
 
 PLATFORM_STR=$(IFS=-; echo "${PLATFORMS[*]}")
-ARCHIVE_NAME="nsis-universal-${PLATFORM_STR}-${VERSION}.7z"
+ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.7z"
 
 echo "📦 Creating final archive $ARCHIVE_NAME..."
 cd "${OUT_DIR}"
