@@ -15,7 +15,7 @@ rm -rf "$BUNDLE_DIR" "$TMP_DIR"
 mkdir -p "$TMP_DIR" "$BUNDLE_DIR"
 
 # ----------------------
-# Step 1: Find and extract all nsis-bundle-*.7z archives
+# Find and extract all nsis-bundle-*.7z archives
 # ----------------------
 shopt -s nullglob
 ARCHIVES=("$OUT_DIR"/nsis-bundle-*.7z)
@@ -38,7 +38,7 @@ for ARCHIVE in "${ARCHIVES[@]}"; do
 done
 
 # ----------------------
-# Step 2: Merge into nsis-bundle
+# Merge into nsis-bundle
 # ----------------------
 echo "🔗 Merging extracted bundles..."
 
@@ -52,7 +52,7 @@ for DIR in "$TMP_DIR"/extracted-*; do
 done
 
 # ----------------------
-# Step 3: Verify
+# Verify
 # ----------------------
 echo "📂 Final nsis-bundle structure:"
 if command -v tree >/dev/null 2>&1; then
@@ -65,15 +65,16 @@ rm -rf "$TMP_DIR"
 echo "✅ Done! Combined bundle is at $BUNDLE_DIR"
 
 # ----------------------
-# Step 4: Patch language files so that warnings-as-errors can remain enabled
+# Patch language files so that warnings-as-errors can remain enabled
 # ----------------------
 echo "🩹 Adding patches to language files"
-
 bash "$BASEDIR/assets/patch-language-files.sh"
 
 # ----------------------
-# Step 5: Create wrapper script that auto-sets NSISDIR
+# Create wrapper script that auto-sets NSISDIR
 # ----------------------
+echo "🛠️  Creating makensis wrapper scripts...
+"
 # Linux/mac wrapper
 cat > "${BUNDLE_DIR}/makensis" <<'EOF'
 #!/usr/bin/env bash
@@ -108,7 +109,7 @@ exit $LASTEXITCODE
 EOF
 
 # ----------------------
-# Step 6: Write version metadata
+# Write version metadata
 # ----------------------
 echo "📝 Writing version metadata..."
 {

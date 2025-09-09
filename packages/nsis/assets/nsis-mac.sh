@@ -6,7 +6,7 @@ set -euo pipefail
 # ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR="$BASEDIR/out/nsis"
-VERSION=${VERSION:-3.11}
+VERSION=${NSIS_VERSION:-3.11}
 
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
@@ -36,7 +36,11 @@ cp -aL "$(which makensis)" "$BUNDLE_DIR/mac/makensis"
 echo "📂 Copying share/nsis data..."
 CELLAR="$(brew --cellar makensis@$VERSION)"
 cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
+rm -rf "$BUNDLE_DIR/share/nsis/.git" "$BUNDLE_DIR/share/nsis/Docs" "$BUNDLE_DIR/share/nsis/Examples"
 
+# ----------------------
+# Add extra plugins (nsProcess, UAC, WinShell)
+# ----------------------
 echo "🔌 Adding extra plugins (nsProcess, UAC, WinShell)..."
 cd $BUNDLE_DIR/share/nsis
 
