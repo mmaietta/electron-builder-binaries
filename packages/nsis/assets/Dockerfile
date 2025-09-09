@@ -16,11 +16,11 @@ RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /
 # Build Python 3.11 from source
 # ----------------------
 ARG PYTHON_VERSION=3.11.9
-ARG PYTHON_SHA256=19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b
+ARG PYTHON_SHA256=9b1e896523fc510691126c864406d9360a3d1e986acbda59cda57b5abda45b87
 WORKDIR /tmp
-RUN curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz \
-    && echo "${PYTHON_SHA256}  Python-${PYTHON_VERSION}.tgz" | sha256sum -c - \
-    && tar xf Python-${PYTHON_VERSION}.tgz \
+RUN curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz \
+    && echo "${PYTHON_SHA256}  Python-${PYTHON_VERSION}.tar.xz" | sha256sum -c - \
+    && tar xf Python-${PYTHON_VERSION}.tar.xz \
     && cd Python-${PYTHON_VERSION} \
     && ./configure --enable-optimizations --prefix=/usr/local \
     && make -j$(nproc) \
@@ -97,12 +97,12 @@ ENV CC=i686-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W32}/include" \
     CXXFLAGS="-I${ZLIB_W32}/include" \
     LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
 RUN mkdir -p ${NSIS_BUILD}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD}/ && \
     cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
-    cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
+    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
     find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -114,12 +114,12 @@ ENV CC=x86_64-w64-mingw32-gcc \
     CFLAGS="-I${ZLIB_W64}/include" \
     CXXFLAGS="-I${ZLIB_W64}/include" \
     LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons
+RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
 RUN mkdir -p ${NSIS_BUILD64}/Bin && \
     cp -r build/urelease/* ${NSIS_BUILD64}/ && \
     cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
-    cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
+    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
     find ${NSIS_BUILD64} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
 # ----------------------
@@ -133,18 +133,6 @@ RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
     chmod +x ${NSIS_BUILD_LINUX}/Bin/makensis
 
 # ----------------------
-# Normalize Stubs to Homebrew-style nested layout
-# ----------------------
-RUN for DIR in /opt/nsis-win32/Stubs /opt/nsis-win64/Stubs; do \
-      if [ -d "$DIR" ]; then \
-        mkdir -p $DIR/zlib $DIR/bzip2 $DIR/lzma; \
-        [ -f $DIR/zlib-x86-unicode ] && mv $DIR/zlib-x86-unicode $DIR/zlib/x86-unicode || true; \
-        [ -f $DIR/bzip2-x86-unicode ] && mv $DIR/bzip2-x86-unicode $DIR/bzip2/x86-unicode || true; \
-        [ -f $DIR/lzma-x86-unicode ] && mv $DIR/lzma-x86-unicode $DIR/lzma/x86-unicode || true; \
-      fi; \
-    done
-
-# ----------------------
 # Bundle all NSIS artifacts
 # ----------------------
 WORKDIR /out
@@ -152,7 +140,7 @@ RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
     cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
     cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
-    7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_BRANCH}.7z nsis-bundle
+    7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_VERSION}.7z nsis-bundle
 
 WORKDIR /out/nsis-bundle
 CMD ["tree", "-L", "5"]

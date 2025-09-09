@@ -37,17 +37,8 @@ echo "📂 Copying share/nsis data..."
 CELLAR="$(brew --cellar makensis@$VERSION)"
 cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
 
-cat > "${BUNDLE_DIR}/makensis" <<'EOF'
-#!/usr/bin/env bash
-DIR="$(cd "$(dirname "$0")" && pwd)"
-export NSISDIR="$DIR/share/nsis"
-case "$(uname -s)" in
-  Linux)  exec "$DIR/linux/makensis" "$@" ;;
-  Darwin) exec "$DIR/mac/makensis" "$@" ;;
-  *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
-esac
-EOF
-chmod +x "${BUNDLE_DIR}/makensis"
+cd "${OUT_DIR}"
+7za a -mx=9 -mfb=64 ${OUT_DIR}/nsis-bundle-mac-${VERSION}.7z nsis-bundle
 
 echo "✅ macOS makensis and share/nsis added to bundle:"
 echo "   $BUNDLE_DIR"
