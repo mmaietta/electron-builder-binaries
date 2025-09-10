@@ -2,10 +2,6 @@ name: Build FPM
 
 on:
   workflow_call:
-    outputs:
-      artifactName:
-        description: "FPM artifacts"
-        value: fpm-artifacts
 
 jobs:
   linux:
@@ -14,7 +10,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [amd64, i386, arm64/v8]
+        arch: [
+          amd64,
+          i386,
+          arm64/v8
+          ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
