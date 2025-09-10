@@ -138,7 +138,7 @@ ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.7z"
 echo "📦 Creating final archive $ARCHIVE_NAME..."
 cd "${OUT_DIR}"
 rm -f "$ARCHIVE_NAME"
-7za a -mx=9 -mfb=64 "$ARCHIVE_NAME" nsis-bundle
+7za a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=64m -ms=on "$ARCHIVE_NAME" nsis-bundle
 rm -rf "${BUNDLE_DIR}"
 
 echo "✅ Done!"
