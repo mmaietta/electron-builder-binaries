@@ -1,5 +1,11 @@
 # nsis
 
+## 4.0.1
+
+### Patch Changes
+
+- [`73f7a22`](https://github.com/mmaietta/electron-builder-binaries/commit/73f7a22120fec06a40dfc074b8f70608d7d4dfcf) Thanks [@mmaietta](https://github.com/mmaietta)! - recompress binary with flags `7za a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=64m -ms=on` to avoid corruption of internal files during archive
+
 ## 4.0.0
 
 ### Major Changes
