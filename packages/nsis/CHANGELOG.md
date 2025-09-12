@@ -1,5 +1,11 @@
 # nsis
 
+## 4.0.3
+
+### Patch Changes
+
+- [`7f17630`](https://github.com/mmaietta/electron-builder-binaries/commit/7f176300f9be342efe52831aa017f3dbf0d7f431) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: trigger release
+
 ## 4.0.2
 
 ### Patch Changes
