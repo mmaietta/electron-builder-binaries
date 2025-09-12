@@ -1,5 +1,11 @@
 # nsis
 
+## 4.0.2
+
+### Patch Changes
+
+- [`57c9d48`](https://github.com/mmaietta/electron-builder-binaries/commit/57c9d484ea2ac7360a07368c50d707e411f944c9) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: change compression method
+
 ## 4.0.1
 
 ### Patch Changes
