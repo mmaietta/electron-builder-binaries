@@ -133,12 +133,12 @@ PLATFORMS=()
 [ -d "${BUNDLE_DIR}/mac" ]   && PLATFORMS+=("macos")
 
 PLATFORM_STR=$(IFS=-; echo "${PLATFORMS[*]}")
-ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.7z"
+ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.zip"
 
 echo "📦 Creating final archive $ARCHIVE_NAME..."
 cd "${OUT_DIR}"
 rm -f "$ARCHIVE_NAME"
-7za a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=64m -ms=on "$ARCHIVE_NAME" nsis-bundle
+zip -r -9 "$ARCHIVE_NAME" nsis-bundle/*
 rm -rf "${BUNDLE_DIR}"
 
 echo "✅ Done!"
