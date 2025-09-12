@@ -13,7 +13,7 @@ jobs:
         arch: [
           amd64,
           i386,
-          arm64/v8
+          # arm64/v8
           ]
     steps:
       - name: Set up QEMU
