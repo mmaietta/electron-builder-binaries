@@ -36,7 +36,7 @@ ENV NSIS_BUILD=/opt/nsis-win32
 ENV NSIS_BUILD64=/opt/nsis-win64
 ENV NSIS_BUILD_LINUX=/opt/nsis-linux
 ENV ZLIB_W32=/opt/zlib-win32
-ENV ZLIB_W64=/opt/zlib-win64
+# ENV ZLIB_W64=/opt/zlib-win64
 
 ENV NSIS_MAX_STRLEN=8192
 ENV NSIS_CONFIG_LOG=yes
@@ -53,8 +53,8 @@ WORKDIR /opt
 RUN curl -sL -o nsis-${NSIS_VERSION}-src.tar.bz2 \
       https://downloads.sourceforge.net/project/nsis/NSIS%203/${NSIS_VERSION}/nsis-${NSIS_VERSION}-src.tar.bz2 && \
     echo "${NSIS_SHA256}  nsis-${NSIS_VERSION}-src.tar.bz2" | sha256sum -c - && \
-    mkdir nsis-src && \
-    tar xjf nsis-${NSIS_VERSION}-src.tar.bz2 -C nsis-src --strip-components=1
+    mkdir ${NSIS_SRC} && \
+    tar xjf nsis-${NSIS_VERSION}-src.tar.bz2 -C ${NSIS_SRC} --strip-components=1
 
 # ----------------------
 # Download & verify zlib
@@ -79,54 +79,73 @@ RUN mkdir -p ${ZLIB_W32} && \
     BINARY_PATH=${ZLIB_W32}/bin INCLUDE_PATH=${ZLIB_W32}/include LIBRARY_PATH=${ZLIB_W32}/lib install && \
     cp ${ZLIB_W32}/lib/libz.dll.a ${ZLIB_W32}/lib/zlib1.lib
 
-# ----------------------
-# Build zlib for Win64
-# ----------------------
-WORKDIR /tmp/zlib-${ZLIB_VERSION}-64
-RUN mkdir -p ${ZLIB_W64} && \
-    make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 \
-    BINARY_PATH=${ZLIB_W64}/bin INCLUDE_PATH=${ZLIB_W64}/include LIBRARY_PATH=${ZLIB_W64}/lib install && \
-    cp ${ZLIB_W64}/lib/libz.dll.a ${ZLIB_W64}/lib/zlib1.lib
+# # ----------------------
+# # Build zlib for Win64
+# # ----------------------
+# WORKDIR /tmp/zlib-${ZLIB_VERSION}-64
+# RUN mkdir -p ${ZLIB_W64} && \
+#     make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 \
+#     BINARY_PATH=${ZLIB_W64}/bin INCLUDE_PATH=${ZLIB_W64}/include LIBRARY_PATH=${ZLIB_W64}/lib install && \
+#     cp ${ZLIB_W64}/lib/libz.dll.a ${ZLIB_W64}/lib/zlib1.lib
 
 # ----------------------
 # Build NSIS Win32
 # ----------------------
-WORKDIR ${NSIS_SRC}
-ENV CC=i686-w64-mingw32-gcc \
-    CXX=i686-w64-mingw32-g++ \
-    CFLAGS="-I${ZLIB_W32}/include" \
-    CXXFLAGS="-I${ZLIB_W32}/include" \
-    LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
-RUN mkdir -p ${NSIS_BUILD}/Bin && \
-    cp -r build/urelease/* ${NSIS_BUILD}/ && \
-    cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
-    cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
-    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
-    find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
+# WORKDIR ${NSIS_SRC}
+# ENV CC=i686-w64-mingw32-gcc \
+#     CXX=i686-w64-mingw32-g++ \
+#     CFLAGS="-I${ZLIB_W32}/include" \
+#     CXXFLAGS="-I${ZLIB_W32}/include" \
+#     LDFLAGS="-L${ZLIB_W32}/lib -lz"
+# RUN scons
+# RUN mkdir -p ${NSIS_BUILD}/Bin && \
+#     cp -r build/urelease/* ${NSIS_BUILD}/ && \
+#     cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
+#     cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
+#     # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
+#     find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
 
-# ----------------------
-# Build NSIS Win64
-# ----------------------
+# ---------------------------------------------------------
+# Build NSIS for Windows (64-bit) with MinGW
+# ---------------------------------------------------------
+
 WORKDIR ${NSIS_SRC}
-ENV CC=x86_64-w64-mingw32-gcc \
-    CXX=x86_64-w64-mingw32-g++ \
-    CFLAGS="-I${ZLIB_W64}/include" \
-    CXXFLAGS="-I${ZLIB_W64}/include" \
-    LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
-RUN mkdir -p ${NSIS_BUILD64}/Bin && \
-    cp -r build/urelease/* ${NSIS_BUILD64}/ && \
-    cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
-    cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
-    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
-    find ${NSIS_BUILD64} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
+
+# ENV HOST=mingw \
+#     ARCH=x86-64 \
+#     CROSS_COMPILE=x86_64-w64-mingw32- \
+#     STRIP=x86_64-w64-mingw32-strip \
+    # CC=x86_64-w64-mingw32-gcc \
+    # CXX=x86_64-w64-mingw32-g++ \
+    # CFLAGS="-I${ZLIB_W64}/include" \
+    # CXXFLAGS="-I${ZLIB_W64}/include" \
+    # LDFLAGS="-L${ZLIB_W64}/lib -lz"
+
+# RUN scons -c
+# RUN scons CROSS=mingw ZLIB_W64=$ZLIB_W64 target=makensis-x64
+
+
+# # Copy only if the output is a Windows PE binary
+# RUN mkdir -p ${NSIS_BUILD64}/Bin && \
+#     if file build/urelease/makensis/makensis | grep -q 'PE32'; then \
+#         cp -r build/urelease/* ${NSIS_BUILD64}/ && \
+#         cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
+#         cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe; \
+#     else \
+#         echo "❌ Build did not produce a Windows binary" && exit 1; \
+#     fi
+
+# RUN find ${NSIS_BUILD64} \
+#       \( -name '*.o' -o -name '*.obj' -o -name '*.map' -o -name '*.ilk' \
+#          -o -name '*.pdb' -o -name '*.a' \) -delete
+
 
 # ----------------------
 # Build NSIS Linux makensis
 # ----------------------
 WORKDIR ${NSIS_SRC}
-ENV CC=gcc CXX=g++
+# ENV CC=gcc CXX=g++
+RUN scons -c
 RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
     mkdir -p ${NSIS_BUILD_LINUX}/Bin && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD_LINUX}/Bin/makensis && \
@@ -136,11 +155,11 @@ RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
 # Bundle all NSIS artifacts
 # ----------------------
 WORKDIR /out
-RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
+RUN mkdir -p nsis-bundle/linux && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
-    cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
-    cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
+    # cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
+    # cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
     7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_VERSION}.7z nsis-bundle
 
-WORKDIR /out/nsis-bundle
-CMD ["tree", "-L", "5"]
+# WORKDIR /out/nsis-bundle
+# CMD ["file", "./win64/Bin/makensis.exe"]
