@@ -41,7 +41,7 @@ Rename-Item -Path (Join-Path $WorkRoot "nsis-$NSIS_VERSION") -NewName "nsis-src"
 Push-Location $SrcDir
 
 Write-Host "Building makensis.exe with all stubs ..."
-scons target=makensis-x64 stubs=bzip2,zlib,lzma STRIP=1
+scons target=makensis-x64 stubs=bzip2,zlib,lzma STRIP=yes
 
 Write-Host "Copying files to portable folder ..."
 $BinDir = Join-Path $PortableDir "bin"
