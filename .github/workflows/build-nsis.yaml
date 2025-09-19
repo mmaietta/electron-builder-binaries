@@ -2,7 +2,8 @@ name: Build Makensis
 
 on:
   workflow_call:
-
+  workflow_dispatch:
+    
 jobs:
   nsis-unix:
     runs-on: ${{ matrix.node }}

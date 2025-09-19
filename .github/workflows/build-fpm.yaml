@@ -2,7 +2,8 @@ name: Build FPM
 
 on:
   workflow_call:
-
+  workflow_dispatch:
+    
 jobs:
   linux:
     runs-on: ubuntu-latest
