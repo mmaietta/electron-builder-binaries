@@ -1,65 +1,90 @@
 <#
 .SYNOPSIS
-    Download, verify, and build NSIS 3.11 (portable) on Windows with all stubs.
-
-.DESCRIPTION
-    Uses MinGW-w64 and SCons to build makensis.exe from the SourceForge tarball.
-    Copies the executable and required files into a portable folder without installing system-wide.
+    Download, verify, extract, and build NSIS makensis.exe from source on Windows.
 #>
+
+param(
+    [string]$NsisVersion = "3.11",
+    [string]$Sha256      = "19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b",
+    [string]$OutDir      = "$PWD\nsis-src",
+    [string]$BuildDir    = "$PWD\nsis-build"
+)
 
 $ErrorActionPreference = 'Stop'
 
-# --- Config ---
-$NSIS_VERSION = "3.11"
-$NSIS_SHA256  = "19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b"
-$DownloadUrl  = "https://downloads.sourceforge.net/project/nsis/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2"
+# ------------------------------------------------------------
+# Build names and URLs
+# ------------------------------------------------------------
+$TarName = "nsis-$NsisVersion-src.tar.bz2"
+$Tarball = Join-Path $OutDir $TarName
+$Url     = "https://downloads.sourceforge.net/project/nsis/NSIS%203/$NsisVersion/" + $TarName + "?download"
 
-$WorkRoot     = "$env:TEMP\nsis-build"
-$Tarball      = "$WorkRoot\nsis-$NSIS_VERSION-src.tar.bz2"
-$SrcDir       = "$WorkRoot\nsis-src"
-$PortableDir  = "$WorkRoot\nsis-portable"
+Write-Host "`n==> Downloading NSIS $NsisVersion from $Url"
 
-# --- Prepare work directory ---
-if (Test-Path $WorkRoot) { Remove-Item $WorkRoot -Recurse -Force }
-New-Item -ItemType Directory -Path $WorkRoot | Out-Null
-New-Item -ItemType Directory -Path $PortableDir | Out-Null
-
-Write-Host "Downloading NSIS $NSIS_VERSION ..."
-Invoke-WebRequest -Uri $DownloadUrl -OutFile $Tarball
-
-Write-Host "Verifying SHA256 ..."
-$hash = (Get-FileHash $Tarball -Algorithm SHA256).Hash.ToLower()
-if ($hash -ne $NSIS_SHA256.ToLower()) {
-    throw "Checksum mismatch! Expected $NSIS_SHA256, got $hash"
+if (-not (Test-Path $OutDir)) {
+    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 }
 
-Write-Host "Extracting sources ..."
-tar -xjf $Tarball -C $WorkRoot
-Rename-Item -Path (Join-Path $WorkRoot "nsis-$NSIS_VERSION") -NewName "nsis-src"
-
-# --- Build with SCons ---
-Push-Location $SrcDir
-
-Write-Host "Building makensis.exe with all stubs ..."
-scons target=makensis-x64 stubs=bzip2,zlib,lzma STRIP=yes
-
-Write-Host "Copying files to portable folder ..."
-$BinDir = Join-Path $PortableDir "bin"
-New-Item -ItemType Directory -Path $BinDir | Out-Null
-
-# Copy the built makensis.exe
-Copy-Item -Path "$SrcDir\Build\URelease\makensis.exe" -Destination $BinDir
-
-# Copy all stubs (bzip2, zlib, lzma) so portable build works standalone
-$StubDirs = @("Stubs", "Plugins", "Include", "Completions")
-foreach ($d in $StubDirs) {
-    $SrcPath = Join-Path $SrcDir $d
-    if (Test-Path $SrcPath) {
-        Copy-Item -Path $SrcPath -Destination $PortableDir -Recurse
-    }
+# ------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------
+function Test-Bzip2Magic([string]$FilePath) {
+    if (-not (Test-Path $FilePath)) { return $false }
+    try {
+        $fs  = [System.IO.File]::OpenRead($FilePath)
+        $buf = New-Object byte[] 3
+        $fs.Read($buf,0,3) | Out-Null
+        $fs.Close()
+        return ($buf[0] -eq 0x42 -and $buf[1] -eq 0x5A -and $buf[2] -eq 0x68) # “BZh”
+    } catch { return $false }
 }
 
-Pop-Location
+# ------------------------------------------------------------
+# Download with curl
+# ------------------------------------------------------------
+if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
+    throw "curl.exe not found; install or ensure it's in PATH."
+}
 
-Write-Host "✅ Fully portable build complete!"
-Write-Host "You can run makensis.exe from $BinDir with all stubs included"
+& curl.exe -f -L -o $Tarball $Url
+
+if (-not (Test-Bzip2Magic $Tarball)) {
+    throw "Downloaded file is not a valid bzip2 archive (magic bytes failed)."
+}
+
+# ------------------------------------------------------------
+# Verify SHA256
+# ------------------------------------------------------------
+$actual = (Get-FileHash -Algorithm SHA256 $Tarball).Hash.ToLower()
+if ($actual -ne $Sha256.ToLower()) {
+    throw "Checksum mismatch! Expected $Sha256, got $actual"
+}
+Write-Host "✓ SHA256 verified"
+
+# ------------------------------------------------------------
+# Extract
+# ------------------------------------------------------------
+Write-Host "==> Extracting source..."
+if (-not (Test-Path $BuildDir)) {
+    New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
+}
+tar -xjf $Tarball -C $BuildDir --strip-components=1
+
+# ------------------------------------------------------------
+# Build makensis.exe
+# ------------------------------------------------------------
+Write-Host "==> Building makensis.exe with SCons"
+Push-Location $BuildDir
+try {
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw "Python not found in PATH." }
+    if (-not (Get-Command scons  -ErrorAction SilentlyContinue)) { throw "SCons not found in PATH (pip install scons)." }
+
+    scons -c
+    scons makensis
+}
+finally {
+    Pop-Location
+}
+
+Write-Host "`n✓ makensis.exe built successfully!"
+Write-Host "Location: $BuildDir\build\urelease\makensis.exe"
