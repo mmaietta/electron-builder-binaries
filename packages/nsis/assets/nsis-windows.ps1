@@ -1,90 +1,135 @@
 <#
 .SYNOPSIS
-    Download, verify, extract, and build NSIS makensis.exe from source on Windows.
+  Builds a fully portable NSIS (makensis.exe) with static zlib, bzip2, and lzma
+  on a Windows ARM64 VM (cross-compiling x64). Uses pinned release versions,
+  custom SCons build flags, and outputs a zipped portable bundle.
+
+.REQUIREMENTS
+  - Visual Studio 2022 with MSVC v143 x64 build tools
+  - Python 3.x + pip
+  - SCons (pip install scons)
+  - CMake (>= 3.21)
+  - Git
 #>
 
-param(
-    [string]$NsisVersion = "3.11",
-    [string]$Sha256      = "19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b",
-    [string]$OutDir      = "$PWD\nsis-src",
-    [string]$BuildDir    = "$PWD\nsis-build"
+$ErrorActionPreference = "Stop"
+
+# Output + source directories
+$BuildRoot   = "$PWD\out"
+$InstallRoot = "$BuildRoot\install"
+$ZlibSrc     = "$BuildRoot\zlib"
+$Bzip2Src    = "$BuildRoot\bzip2"
+$LzmaSrc     = "$BuildRoot\lzma"
+$NsisSrc     = "$BuildRoot\nsis"
+$PortableDir = "$BuildRoot\nsis-bundle"
+$ZipFile     = "$BuildRoot\nsis-bundle-x64.zip"
+
+# Reset build dir
+if (Test-Path $BuildRoot) { Remove-Item -Recurse -Force $BuildRoot }
+New-Item -ItemType Directory -Path $BuildRoot, $InstallRoot | Out-Null
+
+Write-Host "=== Cloning pinned versions (shallow) ==="
+
+function Clone-Repo {
+    param (
+        [string]$RepoUrl,
+        [string]$Tag,
+        [string]$Dest
+    )
+    Write-Host ">>> Cloning $RepoUrl @ $Tag"
+    git clone --branch $Tag --single-branch --depth=1 $RepoUrl $Dest
+    if ($LASTEXITCODE -ne 0) {
+        throw "ERROR: git clone failed for $RepoUrl ($Tag)"
+    }
+}
+
+Write-Host "=== Cloning pinned versions (shallow) ==="
+
+Clone-Repo "https://github.com/madler/zlib.git"   "v1.3.1"     $ZlibSrc
+Clone-Repo "https://sourceware.org/git/bzip2.git" "bzip2-1.0.8" $Bzip2Src
+Clone-Repo "https://git.tukaani.org/xz.git"       "v5.6.2"     $LzmaSrc
+Clone-Repo "https://github.com/kichik/nsis.git"   "v311"      $NsisSrc
+
+
+Write-Host "=== Locating Visual Studio environment ==="
+$VsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$VsPath  = & $VsWhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+$VcVars  = Join-Path $VsPath "VC\Auxiliary\Build\vcvarsall.bat"
+
+function Invoke-WithVCEnv {
+    param (
+        [string]$Arch,
+        [string[]]$Commands
+    )
+    $tmpBat = [System.IO.Path]::GetTempFileName() + ".bat"
+    Set-Content $tmpBat "@echo off"
+    Add-Content $tmpBat "call `"$VcVars`" $Arch"
+    foreach ($cmd in $Commands) {
+        Add-Content $tmpBat $cmd
+    }
+    cmd.exe /c $tmpBat
+    Remove-Item $tmpBat -Force
+}
+
+### Build zlib
+Write-Host "=== Building zlib (x64, static) ==="
+Invoke-WithVCEnv -Arch "x64" -Commands @(
+    "cd /d `"$ZlibSrc`"",
+    "mkdir build",
+    "cd build",
+    "cmake .. -A x64 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\zlib`" -DBUILD_SHARED_LIBS=OFF",
+    "cmake --build . --config Release --target INSTALL"
 )
 
-$ErrorActionPreference = 'Stop'
+### Build bzip2
+Write-Host "=== Building bzip2 (x64, static) ==="
+Invoke-WithVCEnv -Arch "x64" -Commands @(
+    "cd /d `"$Bzip2Src`"",
+    "mkdir build",
+    "cd build",
+    "cmake .. -A x64 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\bzip2`" -DBUILD_SHARED_LIBS=OFF",
+    "cmake --build . --config Release --target INSTALL"
+)
 
-# ------------------------------------------------------------
-# Build names and URLs
-# ------------------------------------------------------------
-$TarName = "nsis-$NsisVersion-src.tar.bz2"
-$Tarball = Join-Path $OutDir $TarName
-$Url     = "https://downloads.sourceforge.net/project/nsis/NSIS%203/$NsisVersion/" + $TarName + "?download"
+### Build lzma/xz
+Write-Host "=== Building lzma (xz, x64, static) ==="
+Invoke-WithVCEnv -Arch "x64" -Commands @(
+    "cd /d `"$LzmaSrc`"",
+    "mkdir build",
+    "cd build",
+    "cmake .. -A x64 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\lzma`" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF",
+    "cmake --build . --config Release --target INSTALL"
+)
 
-Write-Host "`n==> Downloading NSIS $NsisVersion from $Url"
+### Build NSIS with all libs + custom flags
+Write-Host "=== Building NSIS with SCons (x64, static linking, custom flags) ==="
+$SconsFlags = @(
+    "ZLIB_PATH=`"$InstallRoot\zlib`"",
+    "BZIP2_PATH=`"$InstallRoot\bzip2`"",
+    "LZMA_PATH=`"$InstallRoot\lzma`"",
+    "NSIS_MAX_STRLEN=8192",
+    "NSIS_CONFIG_LOG=yes",
+    "NSIS_CONFIG_CONST_DATA_PATH=no",
+    "NSIS_CONFIG_USE_ELEVATE=yes",
+    "NSIS_CONSOLE=yes",
+    "SKIPSTUBS=all",
+    "SKIPUTILS=all"
+) -join " "
 
-if (-not (Test-Path $OutDir)) {
-    New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
-}
+Invoke-WithVCEnv -Arch "x64" -Commands @(
+    "cd /d `"$NsisSrc`"",
+    "scons $SconsFlags"
+)
 
-# ------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------
-function Test-Bzip2Magic([string]$FilePath) {
-    if (-not (Test-Path $FilePath)) { return $false }
-    try {
-        $fs  = [System.IO.File]::OpenRead($FilePath)
-        $buf = New-Object byte[] 3
-        $fs.Read($buf,0,3) | Out-Null
-        $fs.Close()
-        return ($buf[0] -eq 0x42 -and $buf[1] -eq 0x5A -and $buf[2] -eq 0x68) # “BZh”
-    } catch { return $false }
-}
+### Create portable bundle
+Write-Host "=== Assembling portable NSIS bundle ==="
+if (Test-Path $PortableDir) { Remove-Item -Recurse -Force $PortableDir }
+New-Item -ItemType Directory -Path $PortableDir | Out-Null
+Copy-Item -Recurse "$NsisSrc\build\urelease\*" $PortableDir
 
-# ------------------------------------------------------------
-# Download with curl
-# ------------------------------------------------------------
-if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
-    throw "curl.exe not found; install or ensure it's in PATH."
-}
+### Zip it
+if (Test-Path $ZipFile) { Remove-Item -Force $ZipFile }
+Compress-Archive -Path "$PortableDir\*" -DestinationPath $ZipFile
 
-& curl.exe -f -L -o $Tarball $Url
-
-if (-not (Test-Bzip2Magic $Tarball)) {
-    throw "Downloaded file is not a valid bzip2 archive (magic bytes failed)."
-}
-
-# ------------------------------------------------------------
-# Verify SHA256
-# ------------------------------------------------------------
-$actual = (Get-FileHash -Algorithm SHA256 $Tarball).Hash.ToLower()
-if ($actual -ne $Sha256.ToLower()) {
-    throw "Checksum mismatch! Expected $Sha256, got $actual"
-}
-Write-Host "✓ SHA256 verified"
-
-# ------------------------------------------------------------
-# Extract
-# ------------------------------------------------------------
-Write-Host "==> Extracting source..."
-if (-not (Test-Path $BuildDir)) {
-    New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
-}
-tar -xjf $Tarball -C $BuildDir --strip-components=1
-
-# ------------------------------------------------------------
-# Build makensis.exe
-# ------------------------------------------------------------
-Write-Host "==> Building makensis.exe with SCons"
-Push-Location $BuildDir
-try {
-    if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw "Python not found in PATH." }
-    if (-not (Get-Command scons  -ErrorAction SilentlyContinue)) { throw "SCons not found in PATH (pip install scons)." }
-
-    scons -c
-    scons makensis
-}
-finally {
-    Pop-Location
-}
-
-Write-Host "`n✓ makensis.exe built successfully!"
-Write-Host "Location: $BuildDir\build\urelease\makensis.exe"
+Write-Host "=== DONE! Portable NSIS bundle ready at: $PortableDir ==="
+Write-Host "=== Zipped bundle: $ZipFile ==="
