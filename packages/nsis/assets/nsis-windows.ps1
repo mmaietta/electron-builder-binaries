@@ -161,8 +161,7 @@ $SconsFlags = @(
     "NSIS_CONFIG_CONST_DATA_PATH=no",
     "NSIS_CONFIG_USE_ELEVATE=yes",
     "NSIS_CONSOLE=yes",
-    "SKIPSTUBS=all",
-    "SKIPUTILS=all"
+    "LINKFLAGS=/DEFAULTLIB:msvcrt.lib"
 ) -join " "
 
 Invoke-WithVCEnv -Arch "x86" -Commands @(
