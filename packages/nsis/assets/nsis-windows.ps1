@@ -15,7 +15,7 @@
 $ErrorActionPreference = "Stop"
 
 # Output + source directories
-$BuildRoot = Join-Path $PSScriptRoot "..\out"
+$BuildRoot = Resolve-Path (Join-Path $PSScriptRoot "..\out")
 $InstallRoot = Join-Path $BuildRoot "install"
 $ZlibSrc     = Join-Path $BuildRoot "zlib"
 $Bzip2Src    = Join-Path $BuildRoot "bzip2"
