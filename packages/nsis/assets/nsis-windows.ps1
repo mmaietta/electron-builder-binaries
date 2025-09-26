@@ -107,8 +107,8 @@ function Invoke-WithVCEnv {
 }
 
 ### Build bzip2 (no CMake, use nmake)
-Write-Host "=== Building bzip2 (x64, static, using nmake) ==="
-Invoke-WithVCEnv -Arch "x64" -Commands @(
+Write-Host "=== Building bzip2 (x86, static, using nmake) ==="
+Invoke-WithVCEnv -Arch "x86" -Commands @(
     "cd /d `"$Bzip2Src`"",
     "nmake -f makefile.msc clean",
     "nmake -f makefile.msc",
@@ -119,23 +119,23 @@ Invoke-WithVCEnv -Arch "x64" -Commands @(
 )
 
 ### Build lzma/xz
-Write-Host "=== Building lzma (xz, x64, static) ==="
-Invoke-WithVCEnv -Arch "x64" -Commands @(
+Write-Host "=== Building lzma (xz, x86, static) ==="
+Invoke-WithVCEnv -Arch "x86" -Commands @(
     "cd /d `"$LzmaSrc`"",
     "mkdir build",
     "cd build",
-    "cmake .. -A x64 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\lzma`" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF",
+    "cmake .. -A Win32 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\lzma`" -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF",
     "cmake --build . --config Release --target INSTALL"
 )
 
 
 ### Build zlib
-Write-Host "=== Building zlib (x64, static) ==="
-Invoke-WithVCEnv -Arch "x64" -Commands @(
+Write-Host "=== Building zlib (x86, static) ==="
+Invoke-WithVCEnv -Arch "x86" -Commands @(
     "cd /d `"$ZlibSrc`"",
     "mkdir build",
     "cd build",
-    "cmake .. -A x64 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\zlib`" -DBUILD_SHARED_LIBS=OFF",
+    "cmake .. -A Win32 -DCMAKE_INSTALL_PREFIX=`"$InstallRoot\zlib`" -DBUILD_SHARED_LIBS=OFF",
     "cmake --build . --config Release --target INSTALL"
 )
 # Adjust zlib naming so NSIS detects it
@@ -165,7 +165,7 @@ $SconsFlags = @(
     "SKIPUTILS=all"
 ) -join " "
 
-Invoke-WithVCEnv -Arch "x64" -Commands @(
+Invoke-WithVCEnv -Arch "x86" -Commands @(
     "cd /d `"$NsisSrc`"",
     "scons $SconsFlags"
 )
