@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  # fpm:
-    # uses: ./.github/workflows/build-fpm.yaml
+  fpm:
+    uses: ./.github/workflows/build-fpm.yaml
 
   nsis:
     uses: ./.github/workflows/build-nsis.yaml
@@ -28,7 +28,7 @@ jobs:
   combine:
     runs-on: macos-latest
     needs: [
-      # fpm,
+      fpm,
       nsis
       # squirrel
     ]
