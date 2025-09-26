@@ -164,8 +164,8 @@ $SconsFlags = @(
     "NSIS_CONFIG_LOG=yes",
     "NSIS_CONFIG_CONST_DATA_PATH=no",
     "NSIS_CONFIG_USE_ELEVATE=yes",
-    "NSIS_CONSOLE=yes"
-    # "SKIPPLUGINS=VPatch/Source/Plugin"
+    "NSIS_CONSOLE=yes",
+    "SKIPPLUGINS=VPatch/Source/Plugin"
 ) -join " "
 
 Invoke-WithVCEnv -Arch "x86" -Commands @(
