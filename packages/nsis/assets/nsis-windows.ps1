@@ -15,18 +15,22 @@
 $ErrorActionPreference = "Stop"
 
 # Output + source directories
-$BuildRoot = Resolve-Path (Join-Path $PSScriptRoot "..\out")
+$OutDir = Join-Path $PSScriptRoot "..\out"
+
+# Reset build dir
+if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
+New-Item -ItemType Directory -Path $OutDir | Out-Null
+
+$BuildRoot = Resolve-Path ($OutDir)
 $InstallRoot = Join-Path $BuildRoot "install"
+New-Item -ItemType Directory -Path $InstallRoot | Out-Null
+
 $ZlibSrc     = Join-Path $BuildRoot "zlib"
 $Bzip2Src    = Join-Path $BuildRoot "bzip2"
 $LzmaSrc     = Join-Path $BuildRoot "lzma"
 $NsisSrc     = Join-Path $BuildRoot "nsis"
 $PortableDir = Join-Path $BuildRoot "nsis-bundle"
 $ZipFile     = Join-Path $BuildRoot "nsis-bundle-x64.zip"
-
-# Reset build dir
-if (Test-Path $BuildRoot) { Remove-Item -Recurse -Force $BuildRoot }
-New-Item -ItemType Directory -Path $BuildRoot, $InstallRoot | Out-Null
 
 # Helper: clone with error handling
 function Clone-Repo {
