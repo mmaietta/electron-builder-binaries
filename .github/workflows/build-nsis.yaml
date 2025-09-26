@@ -39,7 +39,7 @@ jobs:
           retention-days: 1
 
   nsis-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       DOTNET_NOLOGO: true
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true

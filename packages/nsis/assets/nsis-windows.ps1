@@ -15,14 +15,14 @@
 $ErrorActionPreference = "Stop"
 
 # Output + source directories
-$BuildRoot   = "$PWD\out"
-$InstallRoot = "$BuildRoot\install"
-$ZlibSrc     = "$BuildRoot\zlib"
-$Bzip2Src    = "$BuildRoot\bzip2"
-$LzmaSrc     = "$BuildRoot\lzma"
-$NsisSrc     = "$BuildRoot\nsis"
-$PortableDir = "$BuildRoot\nsis-bundle"
-$ZipFile     = "$BuildRoot\nsis-bundle-x64.zip"
+$BuildRoot = Join-Path $PSScriptRoot "..\out"
+$InstallRoot = Join-Path $BuildRoot "install"
+$ZlibSrc     = Join-Path $BuildRoot "zlib"
+$Bzip2Src    = Join-Path $BuildRoot "bzip2"
+$LzmaSrc     = Join-Path $BuildRoot "lzma"
+$NsisSrc     = Join-Path $BuildRoot "nsis"
+$PortableDir = Join-Path $BuildRoot "nsis-bundle"
+$ZipFile     = Join-Path $BuildRoot "nsis-bundle-x64.zip"
 
 # Reset build dir
 if (Test-Path $BuildRoot) { Remove-Item -Recurse -Force $BuildRoot }
@@ -161,7 +161,7 @@ $SconsFlags = @(
     "NSIS_CONFIG_CONST_DATA_PATH=no",
     "NSIS_CONFIG_USE_ELEVATE=yes",
     "NSIS_CONSOLE=yes",
-    "SKIPPLUGINS=VPatch/Source/Plugin"
+    # "SKIPPLUGINS=VPatch/Source/Plugin"
 ) -join " "
 
 Invoke-WithVCEnv -Arch "x86" -Commands @(
