@@ -55,7 +55,7 @@ unzip -o ${OUT_DIR}/${OUTPUT_ARCHIVE} -d ${OUT_DIR}
 # Step 3: Write VERSION.txt
 # ----------------------
 echo "📝 Writing version metadata..."
-cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
+cat > ${OUT_DIR}/linux/VERSION.txt <<EOF
 NSIS Version: ${NSIS_BRANCH_OR_COMMIT}
 zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -66,10 +66,10 @@ EOF
 # ----------------------
 echo "📦 Creating unified zip bundle..."
 cd "${OUT_DIR}"
-zip -r nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip nsis-bundle
+zip -r $OUTPUT_ARCHIVE linux
 
 # cleanup temporary assets
-rm -rf "${OUT_DIR}/nsis-bundle" "${OUT_DIR}/${OUTPUT_ARCHIVE}"
+rm -rf "${OUT_DIR}/linux"
 
 echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip"
+echo "Bundle available at: ${OUT_DIR}/${OUTPUT_ARCHIVE}"
