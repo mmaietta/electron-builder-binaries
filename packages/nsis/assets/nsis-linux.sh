@@ -42,7 +42,11 @@ echo "🚀 Creating container..."
 docker create --name ${CONTAINER_NAME} ${IMAGE_NAME} /bin/true
 
 echo "📂 Copying zip archive from container..."
-BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle.*\.zip$'")
+BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} /bin/bash -c "ls /out | grep '^nsis-bundle.*\.zip$'")
+if [ -z "$BUNDLE_FILE" ]; then
+  echo "❌ No bundle file found in container output."
+  exit 1
+fi
 docker cp ${CONTAINER_NAME}:/out/${BUNDLE_FILE} ${OUT_DIR}/${OUTPUT_ARCHIVE}
 
 # ----------------------
@@ -55,7 +59,7 @@ unzip -o ${OUT_DIR}/${OUTPUT_ARCHIVE} -d ${OUT_DIR}
 # Step 3: Write VERSION.txt
 # ----------------------
 echo "📝 Writing version metadata..."
-cat > ${OUT_DIR}/linux/VERSION.txt <<EOF
+cat > ${OUT_DIR}/nsis-bundle/linux/VERSION.txt <<EOF
 NSIS Version: ${NSIS_BRANCH_OR_COMMIT}
 zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -66,10 +70,10 @@ EOF
 # ----------------------
 echo "📦 Creating unified zip bundle..."
 cd "${OUT_DIR}"
-zip -r $OUTPUT_ARCHIVE linux
+zip -r $OUTPUT_ARCHIVE nsis-bundle
 
 # cleanup temporary assets
-rm -rf "${OUT_DIR}/linux"
+rm -rf "${OUT_DIR}/nsis-bundle"
 
 echo "✅ Done!"
 echo "Bundle available at: ${OUT_DIR}/${OUTPUT_ARCHIVE}"

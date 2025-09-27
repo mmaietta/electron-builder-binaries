@@ -92,4 +92,6 @@ RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
 WORKDIR /out
 RUN mkdir -p nsis-bundle/linux && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
-    (cd nsis-bundle && zip -r -9 "../nsis-bundle-linux-${NSIS_VERSION}.zip" .)
+    zip -r -9 "nsis-bundle-linux-${NSIS_VERSION}.zip" nsis-bundle
+
+CMD [ "/bin/bash", "-c", "ls -R /out && echo 'NSIS Bundle created at /out/nsis-bundle-linux-${NSIS_VERSION}.zip'" ]
