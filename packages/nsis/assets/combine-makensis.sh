@@ -15,13 +15,13 @@ rm -rf "$BUNDLE_DIR" "$TMP_DIR"
 mkdir -p "$TMP_DIR" "$BUNDLE_DIR"
 
 # ----------------------
-# Find and extract all nsis-bundle-*.7z archives
+# Find and extract all nsis-bundle-*.zip archives
 # ----------------------
 shopt -s nullglob
-ARCHIVES=("$OUT_DIR"/nsis-bundle-*.7z)
+ARCHIVES=("$OUT_DIR"/nsis-bundle-*.zip)
 
 if [ ${#ARCHIVES[@]} -eq 0 ]; then
-  echo "❌ No nsis-bundle-*.7z archives found in $OUT_DIR"
+  echo "❌ No nsis-bundle-*.zip archives found in $OUT_DIR"
   exit 1
 fi
 
@@ -33,7 +33,8 @@ for ARCHIVE in "${ARCHIVES[@]}"; do
   i=$((i+1))
   DEST="$TMP_DIR/extracted-$i"
   echo "📂 Extracting $ARCHIVE → $DEST"
-  7z x -y "$ARCHIVE" -o"$DEST"
+  mkdir -p "$DEST"
+  unzip -q "$ARCHIVE" -d "$DEST"
   rm -f "$ARCHIVE"
 done
 
@@ -73,8 +74,8 @@ bash "$BASEDIR/assets/patch-language-files.sh"
 # ----------------------
 # Create wrapper script that auto-sets NSISDIR
 # ----------------------
-echo "🛠️  Creating makensis wrapper scripts...
-"
+echo "🛠️  Creating makensis wrapper scripts..."
+
 # Linux/mac wrapper
 cat > "${BUNDLE_DIR}/makensis" <<'EOF'
 #!/usr/bin/env bash
@@ -138,6 +139,7 @@ ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.zip"
 echo "📦 Creating final archive $ARCHIVE_NAME..."
 cd "${OUT_DIR}"
 rm -f "$ARCHIVE_NAME"
+# ensure nsis-bundle contents are at top-level in the zip
 zip -r -9 "$ARCHIVE_NAME" nsis-bundle/*
 rm -rf "${BUNDLE_DIR}"
 
