@@ -30,7 +30,7 @@ $Bzip2Src    = Join-Path $BuildRoot "bzip2"
 $LzmaSrc     = Join-Path $BuildRoot "lzma"
 $NsisSrc     = Join-Path $BuildRoot "nsis"
 $PortableDir = Join-Path $BuildRoot "nsis-bundle"
-$ZipFile     = Join-Path $BuildRoot "nsis-bundle-windows.zip"
+$ZipFile     = Join-Path $BuildRoot "nsis\nsis-bundle-windows.zip"
 
 # Helper: clone with error handling
 function Clone-Repo {
