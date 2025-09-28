@@ -181,7 +181,7 @@ Copy-Item -Recurse "$NsisSrc\build\urelease\*" $PortableDir
 
 ### Zip it
 if (Test-Path $ZipFile) { Remove-Item -Force $ZipFile }
-Compress-Archive -Path "$PortableDir\*" -DestinationPath $ZipFile
+Compress-Archive -Path $PortableDir -DestinationPath $ZipFile
 
 Write-Host "=== DONE! Portable NSIS bundle ready at: $PortableDir ==="
 Write-Host "=== Zipped bundle: $ZipFile ==="
