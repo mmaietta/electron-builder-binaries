@@ -12,7 +12,7 @@ TMP_DIR="$OUT_DIR/tmp-merge"
 # ----------------------
 echo "🧹 Cleaning up old merge..."
 rm -rf "$BUNDLE_DIR" "$TMP_DIR"
-mkdir -p "$TMP_DIR" "$BUNDLE_DIR"
+mkdir -p "$TMP_DIR" "$BUNDLE_DIR/vendor"
 
 # ----------------------
 # Find and extract all nsis-bundle-*.zip archives
@@ -45,7 +45,7 @@ echo "🔗 Merging extracted bundles..."
 
 for DIR in "$TMP_DIR"/extracted-*; do
   if [ -d "$DIR/nsis-bundle" ]; then
-    cp -a "$DIR/nsis-bundle/." "$BUNDLE_DIR/"
+    cp -a "$DIR/nsis-bundle/." "$BUNDLE_DIR/vendor"
   else
     echo "⚠️ $DIR does not contain nsis-bundle/"
     exit 1
@@ -80,10 +80,10 @@ echo "🛠️  Creating makensis wrapper scripts..."
 cat > "${BUNDLE_DIR}/makensis" <<'EOF'
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
-export NSISDIR="$DIR/share/nsis"
+export NSISDIR="$DIR/vendor/share/nsis"
 case "$(uname -s)" in
-  Linux)  exec "$DIR/linux/makensis" "$@" ;;
-  Darwin) exec "$DIR/mac/makensis" "$@" ;;
+  Linux)  exec "$DIR/vendor/linux/makensis" "$@" ;;
+  Darwin) exec "$DIR/vendor/mac/makensis" "$@" ;;
   *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 EOF
@@ -95,16 +95,16 @@ cat > "${BUNDLE_DIR}/makensis.cmd" <<'EOF'
 REM NSIS Wrapper for Windows (cmd.exe)
 set DIR=%~dp0
 set DIR=%DIR:~0,-1%
-set NSISDIR=%DIR%\share\nsis
-"%DIR%\win32\Bin\makensis.exe" %*
+set NSISDIR=%DIR%\vendor\share\nsis
+"%DIR%\vendor\Bin\makensis.exe" %*
 EOF
 
 # Windows PowerShell wrapper
 cat > "${BUNDLE_DIR}/makensis.ps1" <<'EOF'
 # NSIS Wrapper for Windows (PowerShell)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$env:NSISDIR = Join-Path $ScriptDir "share\nsis"
-$Makensis = Join-Path $ScriptDir "win32\Bin\makensis.exe"
+$env:NSISDIR = Join-Path $ScriptDir "vendor\share\nsis"
+$Makensis = Join-Path $ScriptDir "vendor\Bin\makensis.exe"
 & $Makensis @args
 exit $LASTEXITCODE
 EOF
