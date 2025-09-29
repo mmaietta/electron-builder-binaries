@@ -12,16 +12,16 @@ TMP_DIR="$OUT_DIR/tmp-merge"
 # ----------------------
 echo "🧹 Cleaning up old merge..."
 rm -rf "$BUNDLE_DIR" "$TMP_DIR"
-mkdir -p "$TMP_DIR" "$BUNDLE_DIR"
+mkdir -p "$TMP_DIR" "$BUNDLE_DIR/vendor"
 
 # ----------------------
-# Find and extract all nsis-bundle-*.7z archives
+# Find and extract all nsis-bundle-*.zip archives
 # ----------------------
 shopt -s nullglob
-ARCHIVES=("$OUT_DIR"/nsis-bundle-*.7z)
+ARCHIVES=("$OUT_DIR"/nsis-bundle-*.zip)
 
 if [ ${#ARCHIVES[@]} -eq 0 ]; then
-  echo "❌ No nsis-bundle-*.7z archives found in $OUT_DIR"
+  echo "❌ No nsis-bundle-*.zip archives found in $OUT_DIR"
   exit 1
 fi
 
@@ -33,7 +33,8 @@ for ARCHIVE in "${ARCHIVES[@]}"; do
   i=$((i+1))
   DEST="$TMP_DIR/extracted-$i"
   echo "📂 Extracting $ARCHIVE → $DEST"
-  7z x -y "$ARCHIVE" -o"$DEST"
+  mkdir -p "$DEST"
+  unzip -q "$ARCHIVE" -d "$DEST"
   rm -f "$ARCHIVE"
 done
 
@@ -44,7 +45,7 @@ echo "🔗 Merging extracted bundles..."
 
 for DIR in "$TMP_DIR"/extracted-*; do
   if [ -d "$DIR/nsis-bundle" ]; then
-    cp -a "$DIR/nsis-bundle/." "$BUNDLE_DIR/"
+    cp -a "$DIR/nsis-bundle/." "$BUNDLE_DIR/vendor"
   else
     echo "⚠️ $DIR does not contain nsis-bundle/"
     exit 1
@@ -73,16 +74,16 @@ bash "$BASEDIR/assets/patch-language-files.sh"
 # ----------------------
 # Create wrapper script that auto-sets NSISDIR
 # ----------------------
-echo "🛠️  Creating makensis wrapper scripts...
-"
+echo "🛠️  Creating makensis wrapper scripts..."
+
 # Linux/mac wrapper
 cat > "${BUNDLE_DIR}/makensis" <<'EOF'
 #!/usr/bin/env bash
 DIR="$(cd "$(dirname "$0")" && pwd)"
-export NSISDIR="$DIR/share/nsis"
+export NSISDIR="$DIR/vendor/share/nsis"
 case "$(uname -s)" in
-  Linux)  exec "$DIR/linux/makensis" "$@" ;;
-  Darwin) exec "$DIR/mac/makensis" "$@" ;;
+  Linux)  exec "$DIR/vendor/linux/makensis" "$@" ;;
+  Darwin) exec "$DIR/vendor/mac/makensis" "$@" ;;
   *) echo "Unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 EOF
@@ -94,16 +95,16 @@ cat > "${BUNDLE_DIR}/makensis.cmd" <<'EOF'
 REM NSIS Wrapper for Windows (cmd.exe)
 set DIR=%~dp0
 set DIR=%DIR:~0,-1%
-set NSISDIR=%DIR%\share\nsis
-"%DIR%\win32\Bin\makensis.exe" %*
+set NSISDIR=%DIR%\vendor
+"%DIR%\vendor\makensis\makensis.exe" %*
 EOF
 
 # Windows PowerShell wrapper
 cat > "${BUNDLE_DIR}/makensis.ps1" <<'EOF'
 # NSIS Wrapper for Windows (PowerShell)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$env:NSISDIR = Join-Path $ScriptDir "share\nsis"
-$Makensis = Join-Path $ScriptDir "win32\Bin\makensis.exe"
+$env:NSISDIR = Join-Path $ScriptDir "vendor"
+$Makensis = Join-Path $ScriptDir "vendor\makensis\makensis.exe"
 & $Makensis @args
 exit $LASTEXITCODE
 EOF
@@ -117,20 +118,18 @@ echo "📝 Writing version metadata..."
   echo "zlib Version: ${ZLIB_VERSION}"
   echo "Build Date (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   echo "Platforms Included:"
-  [ -d "${BUNDLE_DIR}/linux" ]  && echo "  - linux"
-  [ -d "${BUNDLE_DIR}/win32" ]  && echo "  - win32"
-  [ -d "${BUNDLE_DIR}/win64" ]  && echo "  - win64"
-  [ -d "${BUNDLE_DIR}/mac" ]    && echo "  - macos"
+  [ -d "${BUNDLE_DIR}/vendor/linux" ]  && echo "  - linux"
+  [ -d "${BUNDLE_DIR}/vendor/makensis" ]  && echo "  - win32"
+  [ -d "${BUNDLE_DIR}/vendor/mac" ]    && echo "  - macos"
 } > "${BUNDLE_DIR}/VERSION.txt"
 
 # ----------------------
 # Build archive name dynamically
 # ----------------------
 PLATFORMS=()
-[ -d "${BUNDLE_DIR}/linux" ] && PLATFORMS+=("linux")
-[ -d "${BUNDLE_DIR}/win32" ] && PLATFORMS+=("win32")
-[ -d "${BUNDLE_DIR}/win64" ] && PLATFORMS+=("win64")
-[ -d "${BUNDLE_DIR}/mac" ]   && PLATFORMS+=("macos")
+[ -d "${BUNDLE_DIR}/vendor/linux" ] && PLATFORMS+=("linux")
+[ -d "${BUNDLE_DIR}/vendor/makensis" ] && PLATFORMS+=("win32")
+[ -d "${BUNDLE_DIR}/vendor/mac" ]   && PLATFORMS+=("macos")
 
 PLATFORM_STR=$(IFS=-; echo "${PLATFORMS[*]}")
 ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.zip"
@@ -138,6 +137,7 @@ ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.zip"
 echo "📦 Creating final archive $ARCHIVE_NAME..."
 cd "${OUT_DIR}"
 rm -f "$ARCHIVE_NAME"
+# ensure nsis-bundle contents are at top-level in the zip
 zip -r -9 "$ARCHIVE_NAME" nsis-bundle/*
 rm -rf "${BUNDLE_DIR}"
 

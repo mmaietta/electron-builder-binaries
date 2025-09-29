@@ -6,12 +6,12 @@ set -euo pipefail
 # ----------------------
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
-NSIS_VERSION=${NSIS_VERSION:-3.11}
+NSIS_BRANCH_OR_COMMIT=${NSIS_BRANCH_OR_COMMIT:-v311}
 NSIS_SHA256=${NSIS_SHA256:-19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b}
 ZLIB_VERSION=${ZLIB_VERSION:-1.3.1}
 IMAGE_NAME="nsis-builder"
 CONTAINER_NAME="nsis-build-container"
-OUTPUT_ARCHIVE="nsis-bundle-linux-${NSIS_VERSION}.7z"
+OUTPUT_ARCHIVE="nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip"
 
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
@@ -31,7 +31,7 @@ trap cleanup EXIT INT TERM
 echo "📦 Building Docker image..."
 docker buildx build \
   --platform linux/amd64 \
-  --build-arg NSIS_VERSION=$NSIS_VERSION \
+  --build-arg NSIS_BRANCH_OR_COMMIT=$NSIS_BRANCH_OR_COMMIT \
   --build-arg NSIS_SHA256=$NSIS_SHA256 \
   --build-arg ZLIB_VERSION=$ZLIB_VERSION \
   -t ${IMAGE_NAME} \
@@ -41,22 +41,26 @@ docker buildx build \
 echo "🚀 Creating container..."
 docker create --name ${CONTAINER_NAME} ${IMAGE_NAME} /bin/true
 
-echo "📂 Copying 7z archive from container..."
-BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} bash -c "ls /out | grep '^nsis-bundle.*\.7z$'")
+echo "📂 Copying zip archive from container..."
+BUNDLE_FILE=$(docker run --rm ${IMAGE_NAME} /bin/bash -c "ls /out | grep '^nsis-bundle.*\.zip$'")
+if [ -z "$BUNDLE_FILE" ]; then
+  echo "❌ No bundle file found in container output."
+  exit 1
+fi
 docker cp ${CONTAINER_NAME}:/out/${BUNDLE_FILE} ${OUT_DIR}/${OUTPUT_ARCHIVE}
 
 # ----------------------
-# Step 2: Extract 7z bundle
+# Step 2: Extract zip bundle
 # ----------------------
 echo "📦 Extracting Docker-built bundle..."
-7z x -y ${OUT_DIR}/${OUTPUT_ARCHIVE} -o${OUT_DIR}
+unzip -o ${OUT_DIR}/${OUTPUT_ARCHIVE} -d ${OUT_DIR}
 
 # ----------------------
 # Step 3: Write VERSION.txt
 # ----------------------
 echo "📝 Writing version metadata..."
-cat > ${OUT_DIR}/nsis-bundle/VERSION.txt <<EOF
-NSIS Version: ${NSIS_VERSION}
+cat > ${OUT_DIR}/nsis-bundle/linux/VERSION.txt <<EOF
+NSIS Version: ${NSIS_BRANCH_OR_COMMIT}
 zlib Version: ${ZLIB_VERSION}
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 EOF
@@ -64,12 +68,12 @@ EOF
 # ----------------------
 # Step 4: Finalize unified 7z bundle
 # ----------------------
-echo "📦 Creating unified 7z bundle..."
+echo "📦 Creating unified zip bundle..."
 cd "${OUT_DIR}"
-7z a -t7z nsis-bundle-win-linux-${NSIS_VERSION}.7z nsis-bundle
+zip -r $OUTPUT_ARCHIVE nsis-bundle
 
 # cleanup temporary assets
-rm -rf "${OUT_DIR}/nsis-bundle" "${OUT_DIR}/${OUTPUT_ARCHIVE}"
+rm -rf "${OUT_DIR}/nsis-bundle"
 
 echo "✅ Done!"
-echo "Bundle available at: ${OUT_DIR}/nsis-bundle-win-linux-${NSIS_VERSION}.7z"
+echo "Bundle available at: ${OUT_DIR}/${OUTPUT_ARCHIVE}"

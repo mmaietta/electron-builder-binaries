@@ -6,7 +6,7 @@ FROM --platform=linux/amd64 debian:buster
 RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
     && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
     && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        curl git unzip make gcc g++ mingw-w64 p7zip-full tree \
+        curl git unzip make gcc g++ mingw-w64 p7zip-full zip tree \
         ca-certificates lsb-release \
         libssl-dev libffi-dev libbz2-dev libreadline-dev zlib1g-dev xz-utils \
     && apt-get clean \
@@ -32,11 +32,8 @@ RUN curl -O https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_
 # Environment
 # ----------------------
 ENV NSIS_SRC=/opt/nsis-src
-ENV NSIS_BUILD=/opt/nsis-win32
-ENV NSIS_BUILD64=/opt/nsis-win64
 ENV NSIS_BUILD_LINUX=/opt/nsis-linux
 ENV ZLIB_W32=/opt/zlib-win32
-ENV ZLIB_W64=/opt/zlib-win64
 
 ENV NSIS_MAX_STRLEN=8192
 ENV NSIS_CONFIG_LOG=yes
@@ -53,8 +50,8 @@ WORKDIR /opt
 RUN curl -sL -o nsis-${NSIS_VERSION}-src.tar.bz2 \
       https://downloads.sourceforge.net/project/nsis/NSIS%203/${NSIS_VERSION}/nsis-${NSIS_VERSION}-src.tar.bz2 && \
     echo "${NSIS_SHA256}  nsis-${NSIS_VERSION}-src.tar.bz2" | sha256sum -c - && \
-    mkdir nsis-src && \
-    tar xjf nsis-${NSIS_VERSION}-src.tar.bz2 -C nsis-src --strip-components=1
+    mkdir ${NSIS_SRC} && \
+    tar xjf nsis-${NSIS_VERSION}-src.tar.bz2 -C ${NSIS_SRC} --strip-components=1
 
 # ----------------------
 # Download & verify zlib
@@ -80,53 +77,10 @@ RUN mkdir -p ${ZLIB_W32} && \
     cp ${ZLIB_W32}/lib/libz.dll.a ${ZLIB_W32}/lib/zlib1.lib
 
 # ----------------------
-# Build zlib for Win64
-# ----------------------
-WORKDIR /tmp/zlib-${ZLIB_VERSION}-64
-RUN mkdir -p ${ZLIB_W64} && \
-    make -f win32/Makefile.gcc PREFIX=x86_64-w64-mingw32- SHARED_MODE=1 \
-    BINARY_PATH=${ZLIB_W64}/bin INCLUDE_PATH=${ZLIB_W64}/include LIBRARY_PATH=${ZLIB_W64}/lib install && \
-    cp ${ZLIB_W64}/lib/libz.dll.a ${ZLIB_W64}/lib/zlib1.lib
-
-# ----------------------
-# Build NSIS Win32
-# ----------------------
-WORKDIR ${NSIS_SRC}
-ENV CC=i686-w64-mingw32-gcc \
-    CXX=i686-w64-mingw32-g++ \
-    CFLAGS="-I${ZLIB_W32}/include" \
-    CXXFLAGS="-I${ZLIB_W32}/include" \
-    LDFLAGS="-L${ZLIB_W32}/lib -lz"
-RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
-RUN mkdir -p ${NSIS_BUILD}/Bin && \
-    cp -r build/urelease/* ${NSIS_BUILD}/ && \
-    cp ${ZLIB_W32}/bin/zlib1.dll ${NSIS_BUILD}/Bin/ && \
-    cp build/urelease/makensis/makensis ${NSIS_BUILD}/Bin/makensis.exe && \
-    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD}/Bin/makensisw.exe && \
-    find ${NSIS_BUILD} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
-
-# ----------------------
-# Build NSIS Win64
-# ----------------------
-WORKDIR ${NSIS_SRC}
-ENV CC=x86_64-w64-mingw32-gcc \
-    CXX=x86_64-w64-mingw32-g++ \
-    CFLAGS="-I${ZLIB_W64}/include" \
-    CXXFLAGS="-I${ZLIB_W64}/include" \
-    LDFLAGS="-L${ZLIB_W64}/lib -lz"
-RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all
-RUN mkdir -p ${NSIS_BUILD64}/Bin && \
-    cp -r build/urelease/* ${NSIS_BUILD64}/ && \
-    cp ${ZLIB_W64}/bin/zlib1.dll ${NSIS_BUILD64}/Bin/ && \
-    cp build/urelease/makensis/makensis ${NSIS_BUILD64}/Bin/makensis.exe && \
-    # cp build/urelease/Makensisw/makensisw.exe ${NSIS_BUILD64}/Bin/makensisw.exe && \
-    find ${NSIS_BUILD64} \( -name "*.o" -o -name "*.obj" -o -name "*.map" -o -name "*.ilk" -o -name "*.pdb" -o -name "*.a" \) -delete
-
-# ----------------------
 # Build NSIS Linux makensis
 # ----------------------
 WORKDIR ${NSIS_SRC}
-ENV CC=gcc CXX=g++
+RUN scons -c
 RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
     mkdir -p ${NSIS_BUILD_LINUX}/Bin && \
     cp build/urelease/makensis/makensis ${NSIS_BUILD_LINUX}/Bin/makensis && \
@@ -136,11 +90,8 @@ RUN scons SKIPSTUBS=all SKIPPLUGINS=all MAKENSIS_ONLY=1 SKIPUTILS=all && \
 # Bundle all NSIS artifacts
 # ----------------------
 WORKDIR /out
-RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/win64 && \
+RUN mkdir -p nsis-bundle/linux && \
     cp ${NSIS_BUILD_LINUX}/Bin/makensis nsis-bundle/linux/makensis && \
-    cp -r ${NSIS_BUILD}/* nsis-bundle/win32/ && \
-    cp -r ${NSIS_BUILD64}/* nsis-bundle/win64/ && \
-    7za a -mx=9 -mfb=64 nsis-bundle-linux-win-${NSIS_VERSION}.7z nsis-bundle
+    zip -r -9 "nsis-bundle-linux-${NSIS_VERSION}.zip" nsis-bundle
 
-WORKDIR /out/nsis-bundle
-CMD ["tree", "-L", "5"]
+CMD [ "/bin/bash", "-c", "ls -R /out && echo 'NSIS Bundle created at /out/nsis-bundle-linux-${NSIS_VERSION}.zip'" ]

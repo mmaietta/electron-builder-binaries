@@ -5,7 +5,7 @@ set -euo pipefail
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 FIXES_DIR="$BASEDIR/assets/nsis-lang-fixes"
 # Path to NSIS contrib language files
-CONTRIB_DIR="$BASEDIR/out/nsis/nsis-bundle/share/nsis/Contrib/Language files"
+CONTRIB_DIR="$BASEDIR/out/nsis/nsis-bundle/vendor/share/nsis/Contrib/Language files"
 
 # Ensure dirs exist
 if [[ ! -d "$FIXES_DIR" ]]; then

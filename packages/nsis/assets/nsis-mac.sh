@@ -71,7 +71,7 @@ rm -rf a ws.zip
 # Package up the macOS bundle with contents for NSISDIR heirarchy
 # ----------------------
 cd "${OUT_DIR}"
-7za a -mx=9 -mfb=64 ${OUT_DIR}/nsis-bundle-mac-${VERSION}.7z nsis-bundle
+zip -r9 "${OUT_DIR}/nsis-bundle-mac-${VERSION}.zip" nsis-bundle
 
 echo "✅ macOS makensis and share/nsis added to bundle:"
 echo "   $BUNDLE_DIR"
