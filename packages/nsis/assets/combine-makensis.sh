@@ -3,7 +3,7 @@ set -euo pipefail
 
 BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
 OUT_DIR=$BASEDIR/out/nsis
-VERSION="${VERSION:-3.11}"
+VERSION="${VERSION:3.11}"
 ZLIB_VERSION="${ZLIB_VERSION:-1.3.1}"
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
 
@@ -118,20 +118,18 @@ echo "📝 Writing version metadata..."
   echo "zlib Version: ${ZLIB_VERSION}"
   echo "Build Date (UTC): $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   echo "Platforms Included:"
-  [ -d "${BUNDLE_DIR}/linux" ]  && echo "  - linux"
-  [ -d "${BUNDLE_DIR}/win32" ]  && echo "  - win32"
-  [ -d "${BUNDLE_DIR}/win64" ]  && echo "  - win64"
-  [ -d "${BUNDLE_DIR}/mac" ]    && echo "  - macos"
+  [ -d "${BUNDLE_DIR}/vendor/linux" ]  && echo "  - linux"
+  [ -d "${BUNDLE_DIR}/vendor/makensis" ]  && echo "  - win32"
+  [ -d "${BUNDLE_DIR}/vendor/mac" ]    && echo "  - macos"
 } > "${BUNDLE_DIR}/VERSION.txt"
 
 # ----------------------
 # Build archive name dynamically
 # ----------------------
 PLATFORMS=()
-[ -d "${BUNDLE_DIR}/linux" ] && PLATFORMS+=("linux")
-[ -d "${BUNDLE_DIR}/win32" ] && PLATFORMS+=("win32")
-[ -d "${BUNDLE_DIR}/win64" ] && PLATFORMS+=("win64")
-[ -d "${BUNDLE_DIR}/mac" ]   && PLATFORMS+=("macos")
+[ -d "${BUNDLE_DIR}/vendor/linux" ] && PLATFORMS+=("linux")
+[ -d "${BUNDLE_DIR}/vendor/makensis" ] && PLATFORMS+=("win32")
+[ -d "${BUNDLE_DIR}/vendor/mac" ]   && PLATFORMS+=("macos")
 
 PLATFORM_STR=$(IFS=-; echo "${PLATFORMS[*]}")
 ARCHIVE_NAME="nsis-bundle-${PLATFORM_STR}-${VERSION}.zip"
