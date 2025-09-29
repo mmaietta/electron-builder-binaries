@@ -95,16 +95,16 @@ cat > "${BUNDLE_DIR}/makensis.cmd" <<'EOF'
 REM NSIS Wrapper for Windows (cmd.exe)
 set DIR=%~dp0
 set DIR=%DIR:~0,-1%
-set NSISDIR=%DIR%\vendor\share\nsis
-"%DIR%\vendor\Bin\makensis.exe" %*
+set NSISDIR=%DIR%\vendor
+"%DIR%\vendor\makensis\makensis.exe" %*
 EOF
 
 # Windows PowerShell wrapper
 cat > "${BUNDLE_DIR}/makensis.ps1" <<'EOF'
 # NSIS Wrapper for Windows (PowerShell)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$env:NSISDIR = Join-Path $ScriptDir "vendor\share\nsis"
-$Makensis = Join-Path $ScriptDir "vendor\Bin\makensis.exe"
+$env:NSISDIR = Join-Path $ScriptDir "vendor"
+$Makensis = Join-Path $ScriptDir "vendor\makensis\makensis.exe"
 & $Makensis @args
 exit $LASTEXITCODE
 EOF
