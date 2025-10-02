@@ -1,5 +1,13 @@
 # nsis
 
+## 4.0.4
+
+### Patch Changes
+
+- [#54](https://github.com/mmaietta/electron-builder-binaries/pull/54) [`fc1b655`](https://github.com/mmaietta/electron-builder-binaries/commit/fc1b6556840b30e0a8c3824f9c65b6b87e06ab87) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: rebuild windows using powershell script
+
+- [#54](https://github.com/mmaietta/electron-builder-binaries/pull/54) [`fc1b655`](https://github.com/mmaietta/electron-builder-binaries/commit/fc1b6556840b30e0a8c3824f9c65b6b87e06ab87) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: test release with sourcecode from windows
+
 ## 4.0.3
 
 ### Patch Changes
