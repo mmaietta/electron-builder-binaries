@@ -42,6 +42,15 @@ for f in "$DESINTATION_DIR"/*; do
     hashArtifact "$NAME/$(basename "$f")"
 done
 
+# nsis
+NAME="nsis"
+DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+rm -rf "$DESINTATION_DIR"
+cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+for f in "$DESINTATION_DIR"/*; do
+    hashArtifact "$NAME/$(basename "$f")"
+done
+
 # squirrel.windows
 # NAME="squirrel.windows"
 # DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
@@ -66,12 +75,6 @@ NAME="appimage"
 VERSION="13.0.1"
 ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJW6RO0kLgh5hbbJJHhPfoA/kw1hsFeq1pAyez6MxvoDyL/5/O45hX9Jaw=="
-
-# nsis
-NAME="nsis"
-VERSION="3.0.4.1"
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "VKMiizYdmNdJOWpRGz4trl4lD++BvYP2irAXpMilheUP0pc93iKlWAoP843Vlraj8YG19CVn0j+dCo/hURz9+Q=="
 
 # winCodeSign
 NAME="winCodeSign"

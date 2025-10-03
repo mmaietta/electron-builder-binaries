@@ -2,11 +2,8 @@ name: Build Squirrel.Windows
 
 on:
   workflow_call:
-    outputs:
-      artifactName:
-        description: "Squirrel artifacts"
-        value: squirrel-windows-patched
-
+  workflow_dispatch:
+    
 jobs:
   build:
     runs-on: windows-2019
