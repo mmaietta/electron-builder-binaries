@@ -1,5 +1,11 @@
 # fpm
 
+## 2.0.2
+
+### Patch Changes
+
+- [#56](https://github.com/mmaietta/electron-builder-binaries/pull/56) [`a1fee5b`](https://github.com/mmaietta/electron-builder-binaries/commit/a1fee5b8c811865390a74a929561e44877d08dda) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: resolving library import paths with RUBY_HOME and RUBYLIB
+
 ## 2.0.1
 
 ### Patch Changes
