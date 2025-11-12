@@ -1,5 +1,11 @@
 # fpm
 
+## 2.1.0
+
+### Minor Changes
+
+- [#58](https://github.com/mmaietta/electron-builder-binaries/pull/58) [`9af724b`](https://github.com/mmaietta/electron-builder-binaries/commit/9af724bc13d2ad4db8774f80bae2f8273cb24815) Thanks [@mmaietta](https://github.com/mmaietta)! - chore(fpm): updating fpm to 1.17.0
+
 ## 2.0.2
 
 ### Patch Changes
