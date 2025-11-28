@@ -6,10 +6,7 @@ on:
       - master
 
 permissions:
-  contents: write # to create release (changesets/action)
-  pull-requests: write # to create pull request (changesets/action)
-  attestations: write # to create attestation during publish step (@actions/attest)
-  id-token: write # to create OIDC token for attestation
+  contents: read
 
 jobs:
   build-artifacts:
@@ -18,13 +15,23 @@ jobs:
   release:
     runs-on: macos-latest
     needs: build-artifacts
+    permissions:
+      attestations: write # to create attestation during publish step (@actions/attest)
+      id-token: write # to create OIDC token for attestation/changesets/commits
+    environment: release
     timeout-minutes: 15
     steps:
+      - name: Enable Corepack for pnpm
+        run: |
+          corepack enable
+        shell: bash
+
       - name: Checkout code repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          # This makes Actions fetch all Git history so that Changesets can generate changelogs with the correct commits
           fetch-depth: 0
-          submodules: true
+          persist-credentials: false
 
       - name: Download new artifacts
         id: download-artifact
@@ -34,34 +41,36 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R artifacts-staging
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
-        with:
-          version: 9.4.0
-          run_install: false
   
       - name: Setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: 'pnpm'
-  
+    
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         shell: bash
+
+      - name: Generate GitHub App token
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae
+        id: generate-token
+        with:
+          export-git-user: true
+          creds: ${{ secrets.RELEASE_BOT_APP_CREDS }}
       
       - name: Create versions PR & prepare publish
         id: changesets
-        uses: changesets/action@06245a4e0a36c064a573d4150030f5ec548e4fcc # v1.4.1
+        uses: changesets/action@7af85527bb2f43a404b5823a6cad47661be255c1 # v1.5.3 - @marshallofsound fork
         with:
           version: "pnpm ci:version"
           publish: "pnpm ci:publish"
           commit: 'chore(deploy): Release'
           title: 'chore(deploy): Release'
+          setupGitUser: false
           createGithubReleases: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Create scoped releases
         if: steps.changesets.outputs.published == 'true'
@@ -69,7 +78,7 @@ jobs:
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
 
       

@@ -38,25 +38,16 @@ NAME="fpm"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+for f in "$DESINTATION_DIR"/*; do
+    hashArtifact "$NAME/$(basename "$f")"
+done
 
 # squirrel.windows
-NAME="squirrel.windows"
-DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
-rm -rf "$DESINTATION_DIR"
-cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
-
-# win-codesign
-NAME="win-codesign"
-DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
-rm -rf "$DESINTATION_DIR"
-mkdir -p "$DESINTATION_DIR"
-compressArtifact "$NAME/osslsigncode.7z" "$BUILD_OUT_DIR/out/$NAME/osslsigncode"/*
-compressArtifact "$NAME/rcedit.7z" "$BUILD_OUT_DIR/out/$NAME/rcedit"/*
-compressArtifact "$NAME/windows-toolkit.7z" "$BUILD_OUT_DIR/out/$NAME/appxAssets" "$BUILD_OUT_DIR/out/$NAME/windows-10"
-
-# ------------------------------------------------------------
-# Download and verify legacy artifacts in build flow.
-# ------------------------------------------------------------
+# NAME="squirrel.windows"
+# DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+# rm -rf "$DESINTATION_DIR"
+# cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+# hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
 
 # ztsd
 NAME="zstd"
@@ -81,6 +72,12 @@ NAME="nsis"
 VERSION="3.0.4.1"
 ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "VKMiizYdmNdJOWpRGz4trl4lD++BvYP2irAXpMilheUP0pc93iKlWAoP843Vlraj8YG19CVn0j+dCo/hURz9+Q=="
+
+# winCodeSign
+NAME="winCodeSign"
+VERSION="2.6.0"
+ARCHIVE_NAME="$NAME-$VERSION"
+downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA==" "win-codesign-$VERSION"
 
 # wine-4.0.1-mac
 NAME="wine"

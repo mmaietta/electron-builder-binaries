@@ -5,7 +5,7 @@ set -euo pipefail
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 source "$CWD/constants.sh"
 
-GEM_LIST=("fpm -v 1.16.0" "ruby-xz") # Add other gems (with or without version arg) here
+GEM_LIST=("fpm -v 1.17.0" "ruby-xz") # Add other gems (with or without version arg) here
 ENTRYPOINT_GEMS=("fpm")
 
 # ===== Prepare folders =====
@@ -23,11 +23,19 @@ RUBY_BIN="\$RUBY_DIR/bin"
 export PATH="\$RUBY_BIN:\$PATH"
 export GEM_HOME="\$RUBY_DIR/gems"
 export GEM_PATH="\$GEM_HOME"
-export RUBYLIB="\$RUBY_DIR/lib:\$RUBYLIB"
+
+# Include all necessary Ruby library paths:
+#  - Core stdlib (lib/ruby/3.x.x)
+#  - Arch-specific stdlib (lib/ruby/3.x.x/x86_64-linux or equivalent)
+#  - Vendor and site Ruby directories
+RUBY_VERSION_DIR="\$(find "\$RUBY_DIR/lib/ruby" -maxdepth 1 -type d -name '3.*' | sort | tail -n1)"
+ARCH_DIR="\$(find "\$RUBY_VERSION_DIR" -maxdepth 1 -type d -name '*-linux*' | head -n1)"
+export RUBYLIB="\${RUBY_VERSION_DIR}:\${ARCH_DIR}:\${RUBY_DIR}/lib/ruby/vendor_ruby:\${RUBY_DIR}/lib/ruby/site_ruby:\${RUBYLIB}"
+
 if [ "\$(uname)" = "Darwin" ]; then
     # Remove quarantine attribute on macOS
     # This is necessary to avoid the "ruby is damaged and can't be opened" error when running the ruby interpreter for the first time
-    if grep -q "com.apple.quarantine" <<< "\$(xattr "\$RUBY_BIN/ruby")"; then
+    if grep -q "com.apple.quarantine" <<< "\$(xattr "\$RUBY_BIN/ruby" 2>/dev/null || true)"; then
         xattr -d com.apple.quarantine "\$RUBY_BIN/ruby"
     fi
     export DYLD_LIBRARY_PATH="\$RUBY_DIR/lib\${DYLD_LIBRARY_PATH:+:\$DYLD_LIBRARY_PATH}"
@@ -193,53 +201,40 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "✅ All dylib references made portable. Autocopied missing libraries where needed."
 else
-    echo "  🐧 Patching portable Ruby bundle for Linux."
+    ALLOWLIST=(
+        libssl.so
+        libcrypto.so
+        libreadline.so
+        libz.so
+        libyaml
+        liblzma.so
+        libffi.so
+        libgmp.so
+    )
 
     echo "  ⏩️ Copying shared libraries to $LIB_DIR"
-    SHARED_LIBRARIES=(
-        "libssl.so*"
-        "libcrypto.so*"
-        "libreadline.so*"
-        "libz.so*"
-        "libyaml-cpp.so*"
-        "liblzma.so*"
-    )
-    for pattern in "${SHARED_LIBRARIES[@]}"; do
-        find /usr/lib /lib -type f -name "$pattern" 2>/dev/null | while read -r filepath; do
-            dest="$LIB_DIR/$(basename $filepath)"
-            if [[ ! -f "$dest" ]]; then
-                echo "    📝 Copying $filepath"
-                cp -a "$filepath" "$dest"
-            fi
-        done
-    done
-
-    echo "  🔍 Scanning Ruby extensions for additional shared libraries..."
-    IFS=$'\n'
-    LDD_SEARCH_PATHS=("$RUBY_PREFIX/bin/ruby" $(find "$LIB_DIR/ruby" -type f -name '*.so'))
-    unset IFS
-
-    for ext_so in "${LDD_SEARCH_PATHS[@]}"; do
-        if [[ ! -f "$ext_so" ]]; then
-            echo "  ⏩️ Skipping $ext_so (not a file)"
-            continue
-        fi
-        SO_DIR=$(dirname "$ext_so")
-        REL_RPATH=$(realpath --relative-to="$SO_DIR" "$LIB_DIR")
-        echo "    🩹 Patching $(realpath --relative-to="$RUBY_PREFIX" "$ext_so") to rpath: \$ORIGIN/$REL_RPATH"
-        patchelf --set-rpath "\$ORIGIN/$REL_RPATH" "$ext_so"
-
-        ldd "$ext_so" | awk '/=>/ { print $3 }' | while read -r dep; do
-            if [[ -f "$dep" ]]; then
-                dest="$LIB_DIR/$(basename $dep)"
+    ldd "$RUBY_PREFIX/bin/ruby" | awk '/=>/ { print $3 }' | while read -r filepath; do
+        [[ -z "$filepath" || ! -f "$filepath" ]] && continue
+        
+        filename=$(basename "$filepath")
+        
+        # explicitly skip system libraries
+        [[ "$filename" =~ ^(libc\.so|libm\.so|libdl\.so|libcrypt\.so|librt\.so|libpthread\.so|ld-linux.*\.so).* ]] && continue
+        
+        for prefix in "${ALLOWLIST[@]}"; do
+            if [[ "$filename" == "$prefix"* ]]; then
+                dest="$LIB_DIR/$filename"
                 if [[ ! -f "$dest" ]]; then
-                    echo "    📝 Copying $dep"
-                    cp -u "$dep" "$LIB_DIR/"
+                    echo "    📝 Copying $filepath"
+                    cp -aL "$filepath" "$LIB_DIR/"
                 fi
+                break
             fi
         done
     done
-    echo "✅ All shared library paths rewritten using @rpath where applicable."
+
+    echo "  🐧 Patching portable Ruby bundle for Linux"
+    patchelf --set-rpath '$ORIGIN/../lib' "$RUBY_PREFIX/bin/ruby"
 fi
 
 echo "✂️ Stripping symbols and measuring size savings..."
@@ -275,10 +270,25 @@ find "$RUBY_PREFIX" \( -name '*.dylib' -o -name '*.so' -o -name '*.so.*' -o -nam
 done
 echo "💾 Total space saved: $total_saved bytes (~$((total_saved / 1024)) KB)"
 
+if [ "$(uname)" = "Darwin" ]; then
+    # sign every dylib and the binary
+    echo "🔏 Code signing binaries and libraries..."
+    for f in "$RUBY_PREFIX"/lib/*.dylib "$RUBY_PREFIX"/bin/*; do
+    /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
+    done
+    # verify signatures (should not print errors)
+    /usr/bin/codesign -v --deep --strict "$RUBY_PREFIX"/bin/ruby || true
+fi
+
 # ===== Create VERSION file =====
 echo "🔨 Creating VERSION file..."
 RUBY_VERSION_VERBOSE="$($RUBY_PREFIX/bin/ruby --version)"
 FPM_VERSION="$($INSTALL_DIR/fpm --version | cut -d' ' -f2)"
+if [ -z "$FPM_VERSION" ]; then
+    echo "⚠️ Could not determine fpm version!"
+    exit 1
+fi
+
 echo "$RUBY_VERSION_VERBOSE" >$INSTALL_DIR/VERSION.txt
 echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
