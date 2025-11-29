@@ -3,19 +3,22 @@ const promisify = require("util").promisify;
 const fs = require("fs");
 const copy = promisify(fs.copyFile);
 
-const destination = path.resolve(__dirname, "../out/win-codesign/windows-10");
 
 const sdkBase = process.env["WINDOWS_KIT_PATH"] || "C:\\Program Files (x86)\\Windows Kits\\10\\bin";
 
-const versions = fs.readdirSync(sdkBase).filter((v) => /^10\./.test(v));
+const dirContents = fs.readdirSync(sdkBase);
+const versions = dirContents.filter((v) => /^10\./.test(v));
 const VERSION = versions?.sort().pop();
 if (!VERSION) {
-  console.error("No Windows SDK version found in", sdkBase);
-  console.error("Available versions:", fs.readdirSync(sdkBase));
+  console.error("No Windows SDK version found in directory. Contents: ", dirContents);
+  console.error("Available versions:", versions);
   process.exit(1);
 }
 console.log("Using Windows SDK version:", VERSION);
 console.log("SDK base directory:", sdkBase);
+
+const destination = path.resolve(__dirname, "../out/win-codesign", VERSION);
+
 console.log("Destination directory:", destination);
 
 // Ensure the destination directory exists

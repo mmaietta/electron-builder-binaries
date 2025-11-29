@@ -3,9 +3,10 @@ set -euo pipefail
 
 # ----------------------------
 # Configuration
+# Set these environment variables in GHA build-wincodesign.yaml
 # ----------------------------
-OSSLSIGNCODE_VER=2.9
-RCEDIT_VERSION=2.0.0
+OSSLSIGNCODE_VER="${OSSLSIGNCODE_VER:-2.9}"
+RCEDIT_VERSION="${RCEDIT_VERSION:-2.0.0}"
 # ----------------------------
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
