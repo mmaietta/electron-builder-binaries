@@ -1,13 +1,29 @@
 ARG PLATFORM_ARCH=x86_64
 
-FROM --platform=linux/${PLATFORM_ARCH} buildpack-deps:22.04-curl AS builder
+FROM --platform=linux/${PLATFORM_ARCH} debian:buster AS builder
 
-# Install cross-compilers (only used if building for arm64)
-RUN apt-get update && apt-get install -y \
-    git cmake build-essential \
-    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-    libssl-dev libcurl4-openssl-dev libgsf-1-dev \
-    p7zip-full zip \
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN dpkg --add-architecture i386
+
+RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
+    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
+    && apt-get update && apt-get install -y \
+    git \
+    cmake \
+    build-essential \
+    pkg-config \
+    curl \
+    ca-certificates \
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libgsf-1-dev \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
+    gcc-i686-linux-gnu \
+    g++-i686-linux-gnu \
+    p7zip-full \
+    zip \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone
@@ -19,15 +35,17 @@ WORKDIR /usr/src/osslsigncode/build
 
 COPY ./assets/cross-compile-flags.sh /tmp/cross-compile-flags.sh
 
-# Use CMake cross flags
+# CMake configure
 ARG PLATFORM_ARCH
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
         $(/tmp/cross-compile-flags.sh "${PLATFORM_ARCH}")
+
 RUN make -j$(nproc)
 
-# Output
+# Patch / output
 WORKDIR /out/linux
-COPY ./assets/patch-osslsigncode.sh /tmp/assets/patch-osslsigncode.sh
+COPY ./assets/patch-osslsigncode.sh /tmp/patch.sh
 
-RUN bash /tmp/assets/patch-osslsigncode.sh \
-    /usr/src/osslsigncode/build/osslsigncode /out/linux/osslsigncode
+RUN bash /tmp/patch.sh \
+    /usr/src/osslsigncode/build/osslsigncode \
+    /out/linux/osslsigncode
