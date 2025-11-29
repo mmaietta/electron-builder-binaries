@@ -17,7 +17,7 @@ if (!VERSION) {
 console.log("Using Windows SDK version:", VERSION);
 console.log("SDK base directory:", sdkBase);
 
-const destination = path.resolve(__dirname, "../out/win-codesign", VERSION);
+const destination = path.resolve(__dirname, "../out/win-codesign/windows-kits");
 
 console.log("Destination directory:", destination);
 
@@ -54,25 +54,28 @@ const files = [
 
 const sourceDir = path.resolve(sdkBase, VERSION);
 
-function copyFiles(files, archWin, archNode) {
-  fs.mkdirSync(path.join(destination, archNode), { recursive: true });
+function copyFiles(files, arch) {
+  fs.mkdirSync(path.join(destination, arch), { recursive: true });
   return files.map(async (file) => {
-    await copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file));
-    console.log("Copied:", file);
-    return file;
+    const src = path.join(sourceDir, arch, file);
+    const dest = path.join(destination, arch, file);
+    await copy(src, dest);
+    console.log(`Copied ${arch} || ${file}`);
+    return dest;
   });
 }
 
 // copy files
 console.log("Copying files...");
-Promise.all([...copyFiles(files, "x86", "x86"), ...copyFiles(files, "x64", "x64"), ...copyFiles(files, "arm64", "arm64")])
-  .then((_files) => {
-    console.log("Files copied successfully");
+Promise.all(["x86", "x64", "arm64"].flatMap(arch => copyFiles(files, arch)))
+  .then((files) => {
+    console.log("Files copied successfully. Total: ", files.length);
   })
   .catch((error) => {
     process.exitCode = 1;
     console.error(error);
   });
+
 
 // add version file
 fs.writeFileSync(path.join(destination, "VERSION.txt"), VERSION, "utf8");
