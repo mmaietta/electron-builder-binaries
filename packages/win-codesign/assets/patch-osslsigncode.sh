@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 CWD=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 OSSLSIGNCODE_SRC="${1:-${OSSLSIGNCODE_SRC:-}}"
