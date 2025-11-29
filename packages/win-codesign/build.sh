@@ -3,7 +3,6 @@ set -euo pipefail
 
 # ----------------------------
 # Configuration
-# Set these environment variables in GHA build-wincodesign.yaml
 # ----------------------------
 OSSLSIGNCODE_VER="${OSSLSIGNCODE_VER:-2.9}"
 RCEDIT_VERSION="${RCEDIT_VERSION:-2.0.0}"
@@ -14,7 +13,6 @@ TMP_DIR="$(mktemp -d)"
 OUTPUT_DIR="$CWD/out/win-codesign"
 
 # Clean up and prepare output directory
-rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/osslsigncode"
 
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
@@ -63,8 +61,10 @@ if [ "$OS_TARGET" = "linux" ]; then
     docker cp "$containerId":/osslsigncode-"$OSSLSIGNCODE_VER"-linux-static.7z .
     
     # Extract the Linux archive to output
+    rm -rf "$OUTPUT_DIR/osslsigncode/linux"
     7za x "osslsigncode-$OSSLSIGNCODE_VER-linux-static.7z" -o"$OUTPUT_DIR/osslsigncode"
     rm "osslsigncode-$OSSLSIGNCODE_VER-linux-static.7z"
+    chmod +x "$OUTPUT_DIR/osslsigncode/linux/osslsigncode"
     
     cleanup
     
@@ -73,6 +73,7 @@ if [ "$OS_TARGET" = "linux" ]; then
     # ----------------------------
     # Download and extract osslsigncode (macOS)
     # ----------------------------
+    rm -rf "$OUTPUT_DIR/osslsigncode/darwin"
     cd "$TMP_DIR"
     curl -L "https://github.com/mtrojnar/osslsigncode/releases/download/$OSSLSIGNCODE_VER/osslsigncode-$OSSLSIGNCODE_VER-macOS.zip" -o a.zip
     7za x a.zip -oa
