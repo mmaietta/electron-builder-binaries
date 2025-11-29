@@ -1,47 +1,44 @@
+# ----------------------------
+# Build osslsigncode for multiple architectures
+# ----------------------------
 ARG OSSLSIGNCODE_VER=2.9
-# ----------------------------
-# Stage 1: Build osslsigncode
-# Force platform to x86_64 to ensure consistency across build systems/nodes
-# ----------------------------
-FROM --platform=linux/x86_64 buildpack-deps:22.04-curl AS builder
+ARG PLATFORM_ARCH=x86_64
+
+FROM --platform=linux/${PLATFORM_ARCH} buildpack-deps:22.04-curl AS builder
 
 ARG OSSLSIGNCODE_VER
+ARG PLATFORM_ARCH
 
-# Install build dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    cmake \
-    build-essential \
-    libssl-dev \
-    libcurl4-openssl-dev \
-    libgsf-1-dev \
-    p7zip-full \
+    git cmake build-essential \
+    libssl-dev libcurl4-openssl-dev libgsf-1-dev \
+    p7zip-full zip \
+    qemu-user-static \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone and checkout osslsigncode
+# Clone osslsigncode
 WORKDIR /usr/src
-RUN git clone --depth 1 --branch $OSSLSIGNCODE_VER  https://github.com/mtrojnar/osslsigncode.git
+RUN git clone --depth 1 --branch $OSSLSIGNCODE_VER https://github.com/mtrojnar/osslsigncode.git
 
-# Build using CMake
+# Build
 WORKDIR /usr/src/osslsigncode/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
-    && make -j$(nproc)
 
-# Prepare output directory
-RUN mkdir -p /out/linux && \
-    cp /usr/src/osslsigncode/build/osslsigncode /out/linux/ \
-    && chmod +x /out/linux/osslsigncode \
-    && /out/linux/osslsigncode --version > /out/linux/VERSION.txt
+# Use CMake cross-compilation flags for ARM64 if needed
+RUN if [ "$PLATFORM_ARCH" = "arm64" ]; then \
+        cmake .. -DCMAKE_BUILD_TYPE=Release \
+                 -DCMAKE_SYSTEM_NAME=Linux \
+                 -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+                 -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+                 -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ ; \
+    else \
+        cmake .. -DCMAKE_BUILD_TYPE=Release ; \
+    fi
 
-# ----------------------------
-# Package as .7z
-# ----------------------------
-WORKDIR /out
-RUN 7z a /osslsigncode-${OSSLSIGNCODE_VER}-linux-static.7z linux/
+RUN make -j$(nproc)
 
-# ----------------------------
-# Final stage: deliver artifact
-# ----------------------------
-# FROM scratch
-# ARG OSSLSIGNCODE_VER
-# COPY --from=builder /osslsigncode-${OSSLSIGNCODE_VER}-linux-static.7z /
+# Output
+WORKDIR /out/linux
+COPY ./assets/patch-osslsigncode.sh /tmp/assets/patch-osslsigncode.sh
+
+RUN bash /tmp/assets/patch-osslsigncode.sh \
+    /usr/src/osslsigncode/build/osslsigncode /out/linux/osslsigncode

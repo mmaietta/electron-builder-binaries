@@ -17,7 +17,7 @@ if (!VERSION) {
 console.log("Using Windows SDK version:", VERSION);
 console.log("SDK base directory:", sdkBase);
 
-const destination = path.resolve(__dirname, "../out/win-codesign", VERSION);
+const destination = path.resolve(__dirname, "../out/win-codesign/windows-kits");
 
 console.log("Destination directory:", destination);
 
@@ -75,6 +75,7 @@ Promise.all(["x86", "x64", "arm64"].flatMap(arch => copyFiles(files, arch)))
     process.exitCode = 1;
     console.error(error);
   });
+
 
 // add version file
 fs.writeFileSync(path.join(destination, "VERSION.txt"), VERSION, "utf8");

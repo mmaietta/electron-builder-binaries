@@ -18,10 +18,9 @@ echo "  ✏️ ruby.env -> $INSTALL_DIR/ruby.env"
 cat <<EOF >"$INSTALL_DIR/ruby.env"
 #!/bin/bash
 # Portable Ruby environment setup
-RUBY_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/${RUBY_DIR_NAME}" && pwd)"
+RUBY_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/$RUBY_DIR_NAME" && pwd)"
 RUBY_BIN="\$RUBY_DIR/bin"
 export PATH="\$RUBY_BIN:\$PATH"
-
 export GEM_HOME="\$RUBY_DIR/gems"
 export GEM_PATH="\$GEM_HOME"
 
@@ -35,6 +34,7 @@ export RUBYLIB="\${RUBY_VERSION_DIR}:\${ARCH_DIR}:\${RUBY_DIR}/lib/ruby/vendor_r
 
 if [ "\$(uname)" = "Darwin" ]; then
     # Remove quarantine attribute on macOS
+    # This is necessary to avoid the "ruby is damaged and can't be opened" error when running the ruby interpreter for the first time
     if grep -q "com.apple.quarantine" <<< "\$(xattr "\$RUBY_BIN/ruby" 2>/dev/null || true)"; then
         xattr -d com.apple.quarantine "\$RUBY_BIN/ruby"
     fi
@@ -201,7 +201,7 @@ if [ "$(uname)" = "Darwin" ]; then
 
     echo "✅ All dylib references made portable. Autocopied missing libraries where needed."
 else
-    WHITELISTED_LIBS=(
+    ALLOWLIST=(
         libssl.so
         libcrypto.so
         libreadline.so
@@ -221,7 +221,7 @@ else
         # explicitly skip system libraries
         [[ "$filename" =~ ^(libc\.so|libm\.so|libdl\.so|libcrypt\.so|librt\.so|libpthread\.so|ld-linux.*\.so).* ]] && continue
         
-        for prefix in "${WHITELISTED_LIBS[@]}"; do
+        for prefix in "${ALLOWLIST[@]}"; do
             if [[ "$filename" == "$prefix"* ]]; then
                 dest="$LIB_DIR/$filename"
                 if [[ ! -f "$dest" ]]; then
@@ -270,10 +270,25 @@ find "$RUBY_PREFIX" \( -name '*.dylib' -o -name '*.so' -o -name '*.so.*' -o -nam
 done
 echo "💾 Total space saved: $total_saved bytes (~$((total_saved / 1024)) KB)"
 
+if [ "$(uname)" = "Darwin" ]; then
+    # sign every dylib and the binary
+    echo "🔏 Code signing binaries and libraries..."
+    for f in "$RUBY_PREFIX"/lib/*.dylib "$RUBY_PREFIX"/bin/*; do
+    /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
+    done
+    # verify signatures (should not print errors)
+    /usr/bin/codesign -v --deep --strict "$RUBY_PREFIX"/bin/ruby || true
+fi
+
 # ===== Create VERSION file =====
 echo "🔨 Creating VERSION file..."
 RUBY_VERSION_VERBOSE="$($RUBY_PREFIX/bin/ruby --version)"
 FPM_VERSION="$($INSTALL_DIR/fpm --version | cut -d' ' -f2)"
+if [ -z "$FPM_VERSION" ]; then
+    echo "⚠️ Could not determine fpm version!"
+    exit 1
+fi
+
 echo "$RUBY_VERSION_VERBOSE" >$INSTALL_DIR/VERSION.txt
 echo "fpm: $FPM_VERSION" >>$INSTALL_DIR/VERSION.txt
 
