@@ -6,6 +6,7 @@ set -euxo pipefail
 # ----------------------------
 export OSSLSIGNCODE_VER="${OSSLSIGNCODE_VER:-2.9}"
 export RCEDIT_VERSION="${RCEDIT_VERSION:-2.0.0}"
+export PLATFORM_ARCH="${PLATFORM_ARCH:-x86_64}"
 # ----------------------------
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,8 +17,7 @@ OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 if [ "$OS_TARGET" = "linux" ]; then
     echo "Detected Linux target."
 
-    PLATFORM_ARCH="x86_64" bash "$CWD/assets/build-linux.sh"
-    PLATFORM_ARCH="arm64" bash "$CWD/assets/build-linux.sh"
+    bash "$CWD/assets/build-linux.sh"
     
 elif [ "$OS_TARGET" = "darwin" ]; then
     echo "Detected macOS target."
