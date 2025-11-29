@@ -51,6 +51,7 @@ docker build \
 
 docker run --cidfile="$cidFile" $DOCKER_TAG
 containerId=$(cat "$cidFile")
-docker cp "$containerId":/out/linux/osslsigncode/osslsigncode-linux-$PLATFORM_ARCH.zip "$OUTPUT_DIR"
+ARCHIVE_ARCH_SUFFIX=$(echo ${PLATFORM_ARCH:-$(uname -m)} | tr -d '/' | tr '[:upper:]' '[:lower:]')
+docker cp "$containerId":/out/linux/osslsigncode/osslsigncode-linux-$ARCHIVE_ARCH_SUFFIX.zip "$OUTPUT_DIR"
 
 cleanup
