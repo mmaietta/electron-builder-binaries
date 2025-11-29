@@ -40,14 +40,42 @@ trap f ERR
 # Build and extract osslsigncode (Linux)
 # ----------------------------
 DOCKER_TAG="osslsigncode-builder-linux:$PLATFORM_ARCH"
+IMAGE_BASE=IMAGE=$( [[ "$PLATFORM_ARCH" == "arm64" ]] && echo "arm64/debian:bullseye" || ([[ "$PLATFORM_ARCH" == "i386" ]] && echo "i386/debian:bullseye" || echo "debian:bullseye") )
+
 OUT_DIR="$OUTPUT_DIR/osslsigncode/linux/$PLATFORM_ARCH"
 mkdir -p "$OUT_DIR"
 
-docker build \
---build-arg OSSLSIGNCODE_VER="$OSSLSIGNCODE_VER" \
---build-arg PLATFORM_ARCH="$PLATFORM_ARCH" \
+# Map matrix arch to docker platform
+case "${PLATFORM_ARCH}" in
+    amd64)
+        PLATFORM="amd64"
+        BASE="debian:bullseye"
+    ;;
+    i386)
+        PLATFORM="386"
+        BASE="i386/debian:bullseye"
+    ;;
+    arm64)
+        PLATFORM="arm64"
+        BASE="arm64v8/debian:bullseye"
+    ;;
+    *)
+        echo "Unsupported arch"
+        exit 1
+    ;;
+esac
+
+echo "Building for ${PLATFORM} using ${BASE}"
+
+docker buildx build \
+--platform "linux/${PLATFORM}" \
+--build-arg PLATFORM_ARCH="${PLATFORM}" \
+--build-arg OSSLSIGNCODE_VER="2.9" \
+--build-arg BASE_IMAGE="${BASE}" \
 -f "$CWD/assets/Dockerfile" \
--t ${DOCKER_TAG} "$CWD"
+-t ${DOCKER_TAG} \
+--load \
+"$CWD"
 
 docker run --cidfile="$cidFile" $DOCKER_TAG
 containerId=$(cat "$cidFile")
