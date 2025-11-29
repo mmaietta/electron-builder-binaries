@@ -245,7 +245,8 @@ chmod +x "$INSTALL_DIR/osslsigncode"
 # ================================================================
 # PACKAGING
 # ================================================================
-ARCHIVE_NAME="osslsigncode-$(uname -s | tr A-Z a-z)-$PLATFORM_ARCH.zip"
+ARCHIVE_ARCH_SUFFIX=$(echo ${PLATFORM_ARCH:-$(uname -m)} | tr -d '/' | tr '[:upper:]' '[:lower:]')
+ARCHIVE_NAME="osslsigncode-$(uname -s | tr A-Z a-z)-$ARCHIVE_ARCH_SUFFIX.zip"
 
 echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
 (
