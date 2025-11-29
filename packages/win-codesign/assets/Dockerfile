@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:experimental
-ARG PLATFORM_ARCH_BASE=amd64
-FROM ${PLATFORM_ARCH_BASE}/ubuntu:18.04
+ARG PLATFORM_ARCH=amd64
+FROM --platform=${PLATFORM_ARCH} ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
