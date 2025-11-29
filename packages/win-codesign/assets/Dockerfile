@@ -13,11 +13,27 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /usr/src
 
-ARG CMAKE_VERSION=3.27.9
-RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
- && chmod +x cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
- && ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local \
- && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+ARG CMAKE_VER=3.27.9
+# Set a variable for cmake installation path
+ENV CMAKE_INSTALL_DIR=/usr/local
+
+# Only download prebuilt Kitware CMake for amd64 host
+RUN if [ "$PLATFORM_ARCH" = "amd64" ]; then \
+        CMAKE_VER=3.27.9 && \
+        curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}-Linux-x86_64.sh && \
+        chmod +x cmake-${CMAKE_VER}-Linux-x86_64.sh && \
+        ./cmake-${CMAKE_VER}-Linux-x86_64.sh --skip-license --prefix=$CMAKE_INSTALL_DIR && \
+        rm cmake-${CMAKE_VER}-Linux-x86_64.sh ; \
+    else \
+        # Build from source for i386/arm64
+        CMAKE_VER=3.27.9 && \
+        curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}.tar.gz && \
+        tar xf cmake-${CMAKE_VER}.tar.gz && cd cmake-${CMAKE_VER} && \
+        ./bootstrap --prefix=$CMAKE_INSTALL_DIR && \
+        make -j$(nproc) && make install && cd .. && rm -rf cmake-${CMAKE_VER}* ; \
+    fi
+
+ENV PATH=$CMAKE_INSTALL_DIR/bin:$PATH
 
 ARG OSSLSIGNCODE_VER=2.9
 RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
