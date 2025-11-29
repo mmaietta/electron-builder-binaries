@@ -39,7 +39,7 @@ trap f ERR
 # ----------------------------
 # Build and extract osslsigncode (Linux)
 # ----------------------------
-DOCKER_TAG="osslsigncode-builder"
+DOCKER_TAG="osslsigncode-builder-linux:$PLATFORM_ARCH"
 OUT_DIR="$OUTPUT_DIR/osslsigncode/linux/$PLATFORM_ARCH"
 mkdir -p "$OUT_DIR"
 

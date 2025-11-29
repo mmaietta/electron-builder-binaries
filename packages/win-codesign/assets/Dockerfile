@@ -1,14 +1,12 @@
 ARG PLATFORM_ARCH=x86_64
 
-FROM --platform=linux/${PLATFORM_ARCH} debian:buster AS builder
+FROM --platform=linux/${PLATFORM_ARCH} debian:bullseye AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN dpkg --add-architecture i386
 
-RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
-    && echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until \
-    && apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
     git \
     cmake \
     build-essential \
@@ -26,20 +24,25 @@ RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /
     zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone
-ARG OSSLSIGNCODE_VER
 WORKDIR /usr/src
+
+# Install modern CMake
+ARG CMAKE_VERSION=3.27.9
+RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+ && chmod +x cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+ && ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local \
+ && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+
+# Clone source
+ARG OSSLSIGNCODE_VER
 RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} https://github.com/mtrojnar/osslsigncode.git
 
 WORKDIR /usr/src/osslsigncode/build
+COPY ./assets/cross-compile-flags.sh /tmp/compiler-flags.sh
 
-COPY ./assets/cross-compile-flags.sh /tmp/cross-compile-flags.sh
-
-# CMake configure
 ARG PLATFORM_ARCH
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
-        $(/tmp/cross-compile-flags.sh "${PLATFORM_ARCH}")
-
+      $(/tmp/compiler-flags.sh "${PLATFORM_ARCH}")
 RUN make -j$(nproc)
 
 # Patch / output
