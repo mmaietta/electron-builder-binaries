@@ -46,32 +46,30 @@ OUT_DIR="$OUTPUT_DIR/osslsigncode/linux/$PLATFORM_ARCH"
 mkdir -p "$OUT_DIR"
 
 # Map matrix arch to docker platform
-case "${PLATFORM_ARCH}" in
-    amd64)
-        PLATFORM="amd64"
-        BASE="debian:bullseye"
-    ;;
-    i386)
-        PLATFORM="386"
-        BASE="i386/debian:bullseye"
-    ;;
-    arm64)
-        PLATFORM="arm64"
-        BASE="arm64v8/debian:bullseye"
-    ;;
-    *)
-        echo "Unsupported arch"
-        exit 1
-    ;;
-esac
+# case "${PLATFORM_ARCH}" in
+#     amd64)
+#         PLATFORM="amd64"
+#         BASE="debian:bullseye"
+#     ;;
+#     i386)
+#         PLATFORM="i386"
+#         BASE="i386/debian:bullseye"
+#     ;;
+#     arm64)
+#         PLATFORM="arm64"
+#         BASE="arm64v8/debian:bullseye"
+#     ;;
+#     *)
+#         echo "Unsupported arch"
+#         exit 1
+#     ;;
+# esac
 
-echo "Building for ${PLATFORM} using ${BASE}"
+echo "Building for ${PLATFORM_ARCH}"
 
 docker buildx build \
---platform "linux/${PLATFORM}" \
---build-arg PLATFORM_ARCH="${PLATFORM}" \
---build-arg OSSLSIGNCODE_VER="2.9" \
---build-arg BASE_IMAGE="${BASE}" \
+--build-arg PLATFORM_ARCH_BASE=$PLATFORM_ARCH \
+--build-arg OSSLSIGNCODE_VER="$OSSLSIGNCODE_VER" \
 -f "$CWD/assets/Dockerfile" \
 -t ${DOCKER_TAG} \
 --load \

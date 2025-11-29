@@ -1,54 +1,37 @@
-ARG PLATFORM_ARCH=amd64
-FROM ubuntu:22.04
+# syntax=docker/dockerfile:experimental
+ARG PLATFORM_ARCH_BASE=amd64
+FROM ${PLATFORM_ARCH_BASE}/ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ----------------------------
-# Install build dependencies
-# ----------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake git pkg-config curl ca-certificates \
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    git cmake build-essential pkg-config \
     libssl-dev libcurl4-openssl-dev libgsf-1-dev \
-    p7zip-full zip \
+    p7zip-full zip curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# ----------------------------
-# Cross-compilers per arch
-# ----------------------------
-RUN if [ "$PLATFORM_ARCH" = "amd64" ]; then \
-        apt-get update && apt-get install -y gcc-multilib g++-multilib; \
-    elif [ "$PLATFORM_ARCH" = "i386" ]; then \
-        dpkg --add-architecture i386 && \
-        apt-get update && apt-get install -y gcc-multilib g++-multilib libc6-dev-i386; \
-    elif [ "$PLATFORM_ARCH" = "arm64" ]; then \
-        apt-get update && apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu; \
-    fi && rm -rf /var/lib/apt/lists/*
-
-# ----------------------------
-# Prepare workdir
-# ----------------------------
 WORKDIR /usr/src
 
-# Clone OSSLSIGNCODE
+ARG CMAKE_VERSION=3.27.9
+RUN curl -LO https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+ && chmod +x cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+ && ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix=/usr/local \
+ && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+
 ARG OSSLSIGNCODE_VER=2.9
-RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} https://github.com/mtrojnar/osslsigncode.git
+RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
+    https://github.com/mtrojnar/osslsigncode.git
 
 WORKDIR /usr/src/osslsigncode/build
-
-# Copy cross-compile flags script
 COPY ./assets/compiler-flags.sh /tmp/compiler-flags.sh
-RUN chmod +x /tmp/compiler-flags.sh
 
-# ----------------------------
-# Build
-# ----------------------------
+# CMake configure & build
 ARG PLATFORM_ARCH
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release $(/tmp/compiler-flags.sh "$PLATFORM_ARCH") \
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release $(/tmp/compiler-flags.sh "${PLATFORM_ARCH}") \
     && make -j$(nproc)
 
-# ----------------------------
 # Output
-# ----------------------------
 WORKDIR /out/linux
 COPY ./assets/patch-osslsigncode.sh /tmp/patch.sh
 RUN bash /tmp/patch.sh /usr/src/osslsigncode/build/osslsigncode /out/linux/osslsigncode
