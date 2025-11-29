@@ -16,11 +16,14 @@ permissions:
   contents: read
 
 jobs:
-  fpm:
-    uses: ./.github/workflows/build-fpm.yaml
+  # fpm:
+  #   uses: ./.github/workflows/build-fpm.yaml
 
-  nsis:
-    uses: ./.github/workflows/build-nsis.yaml
+  # nsis:
+  #   uses: ./.github/workflows/build-nsis.yaml
+  
+  wincodesign:
+    uses: ./.github/workflows/build-wincodesign.yaml
 
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
@@ -28,9 +31,10 @@ jobs:
   combine:
     runs-on: macos-latest
     needs: [
-      fpm,
-      nsis
+      # fpm,
+      # nsis
       # squirrel
+      wincodesign
     ]
     outputs:
       artifactUrl: ${{ steps.upload.outputs.artifact-url }}
