@@ -126,12 +126,14 @@ EOF
 
 # Create ZIP archive
 echo "📦 Creating ZIP archive..."
+FILE="$CWD/out/win-codesign-windows-${BUILD_ARCH}.zip"
+rm -f "$FILE"
 cd "$BUNDLE_DIR"
-zip -r -9 "$OUTPUT_DIR/win-codesign-windows-${BUILD_ARCH}.zip" .
+zip -r -9 $FILE .
 
 echo ""
 echo "✅ Build completed successfully!"
-echo "📦 Bundle: $OUTPUT_DIR/win-codesign-windows-${BUILD_ARCH}.zip"
+echo "📦 Bundle: $FILE"
 echo ""
 echo "Bundle contents:"
 ls -lh "$BUNDLE_DIR/bin"

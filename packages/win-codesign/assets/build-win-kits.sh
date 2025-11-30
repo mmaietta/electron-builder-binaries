@@ -2,12 +2,11 @@
 set -euo pipefail
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$CWD/out/win-codesign"
+OUTPUT_DIR="$CWD/out"
 
 echo "📦 Creating Windows Kits bundle..."
 
 ASSETS_BUNDLE_DIR="$OUTPUT_DIR/windows-kits-bundle"
-ASSETS_ZIP="$OUTPUT_DIR/windows-kits.zip"
 rm -rf "$ASSETS_BUNDLE_DIR"
 mkdir -p "$ASSETS_BUNDLE_DIR"
 
@@ -117,6 +116,8 @@ fi
 
 # Create ZIP archive
 echo "📦 Zipping appxAssets + windows-kits..."
+ASSETS_ZIP="$OUTPUT_DIR/windows-kits-bundle.zip"
+
 cd "$ASSETS_BUNDLE_DIR"
 zip -r -9 "$ASSETS_ZIP" .
 
