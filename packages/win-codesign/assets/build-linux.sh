@@ -18,7 +18,8 @@ case "$PLATFORM_ARCH" in
     ;;
   ia32|i386|i686)
     PLATFORM_ARCH="i386"
-    DOCKER_PLATFORM="linux/386"
+    # i386 will be built on amd64 using multilib (32-bit userspace doesn't exist for Ubuntu 20.04)
+    DOCKER_PLATFORM="linux/amd64"
     ;;
   *)
     echo "Error: Unsupported architecture: $PLATFORM_ARCH"
@@ -41,11 +42,6 @@ cleanup() {
         echo "Stopping docker container $containerId."
         docker rm -f "$containerId" || true
         rm -f "$cidFile"
-    fi
-    # Remove old buildx builder instance if exists
-    if docker buildx inspect osslsigncode-linux-builder &>/dev/null; then
-        echo "Removing existing buildx instance osslsigncode-linux-builder"
-        docker buildx rm osslsigncode-linux-builder || true
     fi
 }
 
@@ -72,11 +68,11 @@ echo "  Output:       ${OUT_DIR}"
 echo "=================================================="
 
 # Ensure buildx is set up
-if ! docker buildx ls | grep -q osslsigncode-linux-builder; then
-    docker buildx create --use --name osslsigncode-linux-builder
-else
-    docker buildx use osslsigncode-linux-builder
-fi
+# if ! docker buildx ls | grep -q osslsigncode-linux-builder; then
+#     docker buildx create --use --name osslsigncode-linux-builder
+# else
+#     docker buildx use osslsigncode-linux-builder
+# fi
 
 # Build Docker image for the target platform
 docker buildx build \

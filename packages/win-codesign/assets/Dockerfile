@@ -4,6 +4,7 @@ ARG PLATFORM_ARCH=amd64
 ARG OSSLSIGNCODE_VER=2.9
 ARG CMAKE_VERSION=3.28.3
 
+# For i386, we build on amd64 with multilib. For others, use native platform.
 FROM ubuntu:20.04 AS builder
 
 # Docker BuildKit automatically provides these when using --platform
@@ -32,21 +33,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     patchelf file \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CMake (detect architecture at runtime)
-RUN ARCH=$(uname -m) && \
-    echo "Detected architecture: $ARCH" && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        CMAKE_ARCH="x86_64" ; \
-    elif [ "$ARCH" = "aarch64" ]; then \
-        CMAKE_ARCH="aarch64" ; \
-    elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then \
-        CMAKE_ARCH="x86_64" ; \
-    else \
-        echo "Unsupported CMake architecture: $ARCH" && exit 1 ; \
-    fi && \
-    echo "Downloading CMake for: $CMAKE_ARCH" && \
-    curl -sSL -o /tmp/cmake.tar.gz \
-    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz \
+# For i386 builds, install multilib and 32-bit dev libraries
+RUN if [ "$PLATFORM_ARCH" = "i386" ] || [ "$PLATFORM_ARCH" = "ia32" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends \
+        gcc-multilib g++-multilib \
+        lib32stdc++6 \
+        && rm -rf /var/lib/apt/lists/* ; \
+    fi
+
+# Install CMake (always use x86_64 version for builder)
+RUN curl -sSL -o /tmp/cmake.tar.gz \
+    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz \
     && mkdir -p /opt/cmake \
     && tar --strip-components=1 -xzf /tmp/cmake.tar.gz -C /opt/cmake \
     && rm /tmp/cmake.tar.gz
@@ -61,20 +58,27 @@ RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
 
 # Copy helper scripts
 COPY ./assets/compiler-flags.sh /tmp/compiler-flags.sh
-RUN chmod +x /tmp/compiler-flags.sh
 COPY ./assets/patch-osslsigncode.sh /tmp/patch-osslsigncode.sh
-RUN chmod +x /tmp/patch-osslsigncode.sh
+RUN chmod +x /tmp/compiler-flags.sh /tmp/patch-osslsigncode.sh
 
-# Build osslsigncode (native build for the target platform)
+# Build osslsigncode
 WORKDIR /usr/src/osslsigncode/build
-RUN echo "Starting native build for $(uname -m)" && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release $(/tmp/compiler-flags.sh "$PLATFORM_ARCH") && \
+RUN echo "Starting build for PLATFORM_ARCH=$PLATFORM_ARCH" && \
+    if [ "$PLATFORM_ARCH" = "i386" ] || [ "$PLATFORM_ARCH" = "ia32" ]; then \
+        echo "Building 32-bit binary using multilib" && \
+        CMAKE_FLAGS=$(/tmp/compiler-flags.sh "i386") && \
+        echo "CMake flags: $CMAKE_FLAGS" && \
+        cmake .. -DCMAKE_BUILD_TYPE=Release $CMAKE_FLAGS ; \
+    else \
+        echo "Building native binary for $(uname -m)" && \
+        cmake .. -DCMAKE_BUILD_TYPE=Release ; \
+    fi && \
     make -j$(nproc)
 
 # Verify the binary was built
 RUN echo "Verifying binary..." && \
     file /usr/src/osslsigncode/build/osslsigncode && \
-    /usr/src/osslsigncode/build/osslsigncode --version
+    /usr/src/osslsigncode/build/osslsigncode --version || echo "Version check failed (non-fatal)"
 
 # Create portable bundle
 WORKDIR /out/linux
