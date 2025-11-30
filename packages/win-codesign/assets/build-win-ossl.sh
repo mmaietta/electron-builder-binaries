@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 # Configuration
 OSSLSIGNCODE_VER="${OSSLSIGNCODE_VER:-2.9}"
