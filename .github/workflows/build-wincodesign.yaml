@@ -10,7 +10,7 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -44,8 +44,35 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Enable Corepack for pnpm
+        run: |
+          corepack enable
+        shell: powershell
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
+        with: { node-version: '22' }
+      - name: Install dependencies & build
+        run: |
+          pnpm i --frozen-lockfile
+          bash ./packages/win-codesign/build.sh
+        shell: bash
+      - name: Upload win-codesign Windows artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: win-codesign-windows
+          path: packages/win-codesign/out
+          if-no-files-found: error
+          retention-days: 1
+
   mac:
     runs-on: ${{ matrix.node }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
