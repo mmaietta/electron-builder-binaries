@@ -70,6 +70,9 @@ FILES=(
 # Architectures to process
 ARCHITECTURES=("x86" "x64" "arm64")
 
+# Array to track missing files
+MISSING_FILES=()
+
 # Copy files
 echo "Copying files..."
 COPIED_COUNT=0
@@ -83,15 +86,26 @@ for ARCH in "${ARCHITECTURES[@]}"; do
         
         if [ -f "$SRC" ]; then
             cp "$SRC" "$DEST"
-            echo "Copied $ARCH || $FILE"
-            ((COPIED_COUNT++))
+            echo "✅ Copied $ARCH || $FILE"
+            COPIED_COUNT=$(( COPIED_COUNT + 1 ))
         else
-            echo "Warning: Source file not found: $SRC"
+            echo "⚠️ Warning: Source file not found: $SRC"
+            MISSING_FILES+=("$SRC")
         fi
     done
 done
 
 echo "Files copied successfully. Total: $COPIED_COUNT"
+
+# Check for missing files
+if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+    echo ""
+    echo "❌ Error: ${#MISSING_FILES[@]} file(s) were not found:"
+    for MISSING_FILE in "${MISSING_FILES[@]}"; do
+        echo "  - $MISSING_FILE"
+    done
+    exit 1
+fi
 
 # Create VERSION.txt
 {
