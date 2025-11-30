@@ -7,7 +7,7 @@ CMAKE_VERSION="${CMAKE_VERSION:-3.28.3}"
 BUILD_ARCH="${PLATFORM_ARCH:-x64}" # x64 or arm64
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$CWD/out/osslsigncode-windows"
+OUTPUT_DIR="$CWD/out/win-codesign/osslsigncode"
 BUILD_DIR="$CWD/.build/osslsigncode-windows-${BUILD_ARCH}"
 
 echo "=================================================="
@@ -55,8 +55,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; t
     echo "PATH: $PATH"
     
 else
-    echo "❌ This script must run on Windows with MSYS2/MinGW"
-    echo "For cross-compilation from Linux, use build-windows-cross.sh instead"
+    echo "❌ This script must run on Windows with MSYS2/MinGW/cygwin environment."
     exit 1
 fi
 

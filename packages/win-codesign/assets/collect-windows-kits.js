@@ -17,7 +17,8 @@ if (!VERSION) {
 console.log("Using Windows SDK version:", VERSION);
 console.log("SDK base directory:", sdkBase);
 
-const destination = path.resolve(__dirname, "../out/win-codesign/windows-kits");
+const sourceDir = path.resolve(sdkBase, VERSION);
+const destination = path.resolve(__dirname, "../out/windows-kits");
 
 console.log("Destination directory:", destination);
 
@@ -52,8 +53,6 @@ const files = [
   "pvk2pfx.exe",
 ];
 
-const sourceDir = path.resolve(sdkBase, VERSION);
-
 function copyFiles(files, arch) {
   fs.mkdirSync(path.join(destination, arch), { recursive: true });
   return files.map(async (file) => {
@@ -72,8 +71,8 @@ Promise.all(["x86", "x64", "arm64"].flatMap(arch => copyFiles(files, arch)))
     console.log("Files copied successfully. Total: ", files.length);
   })
   .catch((error) => {
-    process.exitCode = 1;
     console.error(error);
+    process.exit(1);
   });
 
 

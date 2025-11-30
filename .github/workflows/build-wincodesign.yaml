@@ -89,21 +89,18 @@ jobs:
             nodejs:p 
 
       - name: Build osslsigncode
+        shell: msys2 {0}
         run: |
           npm install -g corepack pnpm
           corepack enable
           pnpm i --frozen-lockfile
           PLATFORM_ARCH=${{ matrix.arch }} bash ./packages/win-codesign/build.sh
 
-      - name: Verify build
-        run: |
-          unzip -l out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: osslsigncode-windows-${{ matrix.arch }}
-          path: out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
+          path: ./packages/win-codesign/out
           retention-days: 1
 
   mac:
