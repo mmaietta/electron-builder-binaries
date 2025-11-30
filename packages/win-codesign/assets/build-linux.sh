@@ -49,7 +49,7 @@ mkdir -p "$OUT_DIR"
 echo "Building for ${PLATFORM_ARCH}"
 
 
-docker buildx build \
+docker build \
 --build-arg PLATFORM_ARCH=$PLATFORM_ARCH \
 --build-arg OSSLSIGNCODE_VER="$OSSLSIGNCODE_VER" \
 -f "$CWD/assets/Dockerfile" \
