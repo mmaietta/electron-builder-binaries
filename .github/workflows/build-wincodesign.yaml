@@ -45,14 +45,19 @@ jobs:
           retention-days: 1
 
   windows:
-    runs-on: windows-2025
-    timeout-minutes: 20
+    runs-on: ${{ matrix.runner }}
+    
     strategy:
       matrix:
         include:
           - arch: x64
             msystem: MINGW64
             mingw_prefix: mingw-w64-x86_64
+            runner: windows-2025
+          - arch: arm64
+            msystem: CLANGARM64
+            mingw_prefix: mingw-w64-clang-aarch64
+            runner: windows-2025-arm64
     
     defaults:
       run:
@@ -81,19 +86,19 @@ jobs:
             zlib:p
             pkgconf:p
       
-      - name: Build osslsigncode for Windows
+      - name: Build osslsigncode
         run: |
-          ./packages/win-codesign/build.sh
+          PLATFORM_ARCH=${{ matrix.arch }} bash ./packages/win-codesign/build.sh
       
       - name: Verify build
         run: |
-          unzip -l out/osslsigncode-windows/osslsigncode-windows-x64.zip
+          unzip -l out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
           
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: osslsigncode-windows-${{ matrix.arch }}
-          path: out/osslsigncode-windows/osslsigncode-windows-x64.zip
+          path: out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
           retention-days: 1
 
   mac:
