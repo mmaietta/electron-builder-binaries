@@ -210,7 +210,7 @@ done
 if [[ "$uname_s" == "Darwin" ]]; then
   # macOS ad-hoc signing (best-effort)
   echo "🔏 Code signing binaries and libraries..."
-  for f in "$LIB_DIR"/*.dylib "$BIN_DIR"/*; do
+  for f in "$BIN_DIR"/*; do
     /usr/bin/codesign --force --sign - "$f"
   done
   # verify signatures (should not print errors)
