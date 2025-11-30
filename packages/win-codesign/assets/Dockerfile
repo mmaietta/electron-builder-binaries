@@ -76,8 +76,7 @@ RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
 
 # Copy helper scripts
 COPY ./assets/compiler-flags.sh /tmp/compiler-flags.sh
-COPY ./assets/patch-osslsigncode.sh /tmp/patch-osslsigncode.sh
-RUN chmod +x /tmp/compiler-flags.sh /tmp/patch-osslsigncode.sh
+RUN chmod +x /tmp/compiler-flags.sh
 
 # Build osslsigncode
 WORKDIR /usr/src/osslsigncode/build
@@ -100,11 +99,14 @@ RUN echo "Verifying binary..." && \
     file /usr/src/osslsigncode/build/osslsigncode && \
     /usr/src/osslsigncode/build/osslsigncode --version || echo "Version check failed (non-fatal)"
 
+COPY ./assets/bundle-osslsigncode.sh /tmp/bundle-osslsigncode.sh
+COPY ./assets/bundle-osslsigncode-libs.sh /tmp/bundle-osslsigncode-libs.sh
+RUN chmod +x /tmp/bundle-osslsigncode.sh /tmp/bundle-osslsigncode-libs.sh
 # Create portable bundle
 WORKDIR /out/linux
 RUN echo "Creating portable bundle with PLATFORM_ARCH=$PLATFORM_ARCH" && \
     PLATFORM_ARCH="${PLATFORM_ARCH}" \
-    bash /tmp/patch-osslsigncode.sh \
+    bash /tmp/bundle-osslsigncode.sh \
     /usr/src/osslsigncode/build/osslsigncode \
     /out/linux/osslsigncode
 

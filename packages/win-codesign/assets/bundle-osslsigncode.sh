@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CWD=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 OSSLSIGNCODE_SRC="${1:-${OSSLSIGNCODE_SRC:-}}"
-OUTPUT_DIR="${2:-$CWD/out/osslsigncode}"
+OUTPUT_DIR="${2:-$ROOT/out/osslsigncode}"
 PLATFORM_ARCH="${PLATFORM_ARCH:-$(uname -m)}"
-
-# Prefer a sane tmpdir inside project unless TMPDIR explicitly set by user
-if [[ -z "${TMPDIR:-}" ]]; then
-  TMP_PREFIX="${CWD}/.tmp/osslsigncode-bundle-$$"
-else
-  TMP_PREFIX="${TMPDIR%/}/osslsigncode-bundle-$$"
-fi
-
-# Force system tools on macOS to avoid otool-classic issues
-OTOOL="/usr/bin/otool"
-INSTALL_NAME_TOOL="/usr/bin/install_name_tool"
+TMP_PREFIX="/tmp/osslsigncode-bundle"
 
 if [[ -z "$OSSLSIGNCODE_SRC" ]]; then
   echo "Usage: $0 /path/to/osslsigncode [output-dir]"
@@ -34,41 +24,29 @@ BIN_DIR="$INSTALL_DIR/bin"
 LIB_DIR="$INSTALL_DIR/lib"
 mkdir -p "$BIN_DIR" "$LIB_DIR"
 
+uname_s=$(uname -s)
+
 echo "🛠 Building minimal osslsigncode bundle"
 echo "  source binary: $OSSLSIGNCODE_SRC"
 echo "  working tmp:   $TMP_PREFIX"
+echo "  output dir:    $OUTPUT_DIR"
+echo "  install dir:   $INSTALL_DIR"
+echo "  platform arch: $PLATFORM_ARCH"
 
+# ================================================================
 # Copy binary
+echo "  ➕ Copying osslsigncode binary to bundle"
 cp -a "$OSSLSIGNCODE_SRC" "$BIN_DIR/osslsigncode"
 chmod +x "$BIN_DIR/osslsigncode"
 
-# --- Relative path calculator using grealpath ---
-compute_loader_rel() {
-  local file="$1"; local lib="$2"
-
-  if ! command -v grealpath >/dev/null 2>&1; then
-    echo "❌ grealpath not found. Install via: brew install coreutils"
-    exit 5
-  fi
-
-  local file_dir
-  file_dir=$(dirname "$(grealpath "$file")")
-
-  local rel
-  rel=$(grealpath --relative-to="$file_dir" "$lib")
-
-  echo "@loader_path/$rel"
-}
-
-uname_s=$(uname -s)
 
 # ================================================================
-# Linux section — AUTODETECT ALL NON-SYSTEM LIBRARIES
+# Linu
 # ================================================================
 if [[ "$uname_s" == "Linux" ]]; then
   echo "🐧 Linux detected"
 
-  ./bundle-linux-libs.sh "$BIN_DIR/osslsigncode" "$INSTALL_DIR"
+  "$ROOT/bundle-osslsigncode-libs.sh" "$BIN_DIR" "$OUTPUT_DIR"
 fi
 
 # ================================================================
@@ -136,7 +114,7 @@ EOF
 chmod +x "$WRAPPER"
 
 echo "  - Launch binary via: $WRAPPER --version"
-echo "  - Or run: LD_LIBRARY_PATH=$OUTDIR/lib OPENSSL_MODULES=$OUTDIR/lib/ossl-modules $OUTDIR/bin/osslsigncode"
+echo "  - Or run: LD_LIBRARY_PATH=$LIB_DIR OPENSSL_MODULES=$LIB_DIR/ossl-modules $BIN_DIR/osslsigncode"
 
 # ================================================================
 # PACKAGING
