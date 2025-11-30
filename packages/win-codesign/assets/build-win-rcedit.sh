@@ -28,9 +28,11 @@ curl -L "https://github.com/electron/rcedit/releases/download/v$RCEDIT_VERSION/r
     echo ""
     echo "rcedit version info:"
     echo "x64 -------------------"
-    $RCEDIT_BUNDLE_DIR/rcedit-x64.exe "$RCEDIT_BUNDLE_DIR/rcedit-x64.exe" --get-version-string "FileVersion"
+    echo ""
+    echo "$($RCEDIT_BUNDLE_DIR/rcedit-x64.exe "$RCEDIT_BUNDLE_DIR/rcedit-x64.exe" --get-version-string "FileVersion")"
     echo "x86 -------------------"
-    $RCEDIT_BUNDLE_DIR/rcedit-x64.exe "$RCEDIT_BUNDLE_DIR/rcedit-x86.exe" --get-version-string "FileVersion"
+    echo ""
+    echo "$($RCEDIT_BUNDLE_DIR/rcedit-x64.exe "$RCEDIT_BUNDLE_DIR/rcedit-x86.exe" --get-version-string "FileVersion")"
 } > "$RCEDIT_BUNDLE_DIR/VERSION.txt"
 
 echo "📦 Zipping rcedit bundle..."
