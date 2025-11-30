@@ -143,13 +143,12 @@ if [[ "$uname_s" == "Darwin" ]]; then
   done
 
   # macOS ad-hoc signing (best-effort)
-  if command -v /usr/bin/codesign >/dev/null 2>&1; then
-    echo "🔏 ad-hoc signing"
-    for f in "$BIN_DIR"/* "$LIB_DIR"/*; do
-      [[ ! -f "$f" ]] && continue
-      /usr/bin/codesign --force --sign - "$f" 2>/dev/null || true
-    done
-  fi
+  echo "🔏 Code signing binaries and libraries..."
+  for f in "$LIB_DIR"/*.dylib "$BIN_DIR"/*; do
+    /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
+  done
+  # verify signatures (should not print errors)
+  /usr/bin/codesign -v --deep --strict "$BIN_DIR/osslsigncode"
 fi
 
 
@@ -230,17 +229,26 @@ cat > "$INSTALL_DIR/osslsigncode" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 case "$(uname -s)" in
   Darwin)
+    # Remove quarantine attribute from the osslsigncode binary if present
+    if grep -q "com.apple.quarantine" <<< "$(xattr "$HERE/bin/osslsigncode" 2>/dev/null || true)"; then
+        xattr -d com.apple.quarantine "$HERE/bin/osslsigncode" || true
+    fi
+
     export DYLD_FALLBACK_LIBRARY_PATH="$HERE/lib:${DYLD_FALLBACK_LIBRARY_PATH:-}"
     ;;
   Linux|GNU*)
     export LD_LIBRARY_PATH="$HERE/lib:${LD_LIBRARY_PATH:-}"
     ;;
 esac
+
 exec "$HERE/bin/osslsigncode" "$@"
 EOF
+
 chmod +x "$INSTALL_DIR/osslsigncode"
+
 
 # ================================================================
 # PACKAGING
