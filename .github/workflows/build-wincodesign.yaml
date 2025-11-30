@@ -6,7 +6,7 @@ on:
       artifactName:
         description: "win-codesign artifacts"
         value: win-codesign-artifacts
-        
+
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -14,11 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [
-          amd64,
-          i386,
-          arm64
-          ]
+        arch: [amd64, i386, arm64]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
@@ -31,7 +27,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Setup Node.js
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: '22' }
+        with: { node-version: "22" }
       - name: Install dependencies & build (${{ matrix.arch }})
         run: |
           pnpm i --frozen-lockfile
@@ -46,7 +42,7 @@ jobs:
 
   windows:
     runs-on: ${{ matrix.runner }}
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -59,15 +55,23 @@ jobs:
             msystem: CLANGARM64
             mingw_prefix: mingw-w64-clang-aarch64
             runner: windows-2025-arm64
-    
+
     defaults:
       run:
         shell: msys2 {0}
-    
+
     steps:
+      - name: Enable Corepack for pnpm
+        run: |
+          corepack enable
+
       - name: Checkout repository
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
+        with: { node-version: "22" }
+
       - name: Setup MSYS2
         uses: msys2/setup-msys2@v2
         with:
@@ -86,15 +90,16 @@ jobs:
             libgsf:p
             zlib:p
             pkgconf:p
-      
+
       - name: Build osslsigncode
         run: |
+          pnpm i --frozen-lockfile
           PLATFORM_ARCH=${{ matrix.arch }} bash ./packages/win-codesign/build.sh
-      
+
       - name: Verify build
         run: |
           unzip -l out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
-          
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -118,7 +123,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Setup Node.js
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: '22' }
+        with: { node-version: "22" }
       - name: Install grealpath
         run: brew install coreutils
       - name: Install dependencies
