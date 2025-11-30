@@ -41,6 +41,9 @@ else
     # ----------------------------
     # Download osslsigncode artifacts (Windows)
     # ----------------------------
+    TMP_DIR=/tmp/win-codesign-osslsigncode-$$
+    mkdir -p "$TMP_DIR"
+    mkdir -p "$OUTPUT_DIR/osslsigncode/windows"
     cd "$TMP_DIR"
     curl -L "https://github.com/mtrojnar/osslsigncode/releases/download/$OSSLSIGNCODE_VER/osslsigncode-$OSSLSIGNCODE_VER-windows-x64-mingw.zip" -o a.zip
     unzip a.zip -d a
