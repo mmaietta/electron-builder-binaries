@@ -109,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: x64
+          - arch: x86_64
             node: macos-15-intel
           - arch: arm64
             node: macos-15
@@ -129,7 +129,7 @@ jobs:
         run: pnpm i --frozen-lockfile
       - name: Build for macOS
         run: |
-          bash packages/win-codesign/build.sh
+          PLATFORM_ARCH=${{ matrix.arch }} bash packages/win-codesign/build.sh
         shell: bash
       - name: Upload win-codesign macOS artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1

@@ -18,7 +18,7 @@ if [ "$OS_TARGET" = "linux" ]; then
     
     bash "$CWD/assets/build-linux.sh"
     
-    elif [ "$OS_TARGET" = "darwin" ]; then
+elif [ "$OS_TARGET" = "darwin" ]; then
     echo "Detected macOS target."
     
     bash "$CWD/assets/build-mac.sh"

@@ -142,13 +142,6 @@ if [[ "$uname_s" == "Darwin" ]]; then
     done
   done
 
-  # macOS ad-hoc signing (best-effort)
-  echo "🔏 Code signing binaries and libraries..."
-  for f in "$LIB_DIR"/*.dylib "$BIN_DIR"/*; do
-    /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
-  done
-  # verify signatures (should not print errors)
-  /usr/bin/codesign -v --deep --strict "$BIN_DIR/osslsigncode"
 fi
 
 
@@ -213,6 +206,16 @@ find "$INSTALL_DIR" -type f -print0 | while IFS= read -r -d '' f; do
     strip --strip-unneeded "$f" 2>/dev/null || true
   fi
 done
+
+if [[ "$uname_s" == "Darwin" ]]; then
+  # macOS ad-hoc signing (best-effort)
+  echo "🔏 Code signing binaries and libraries..."
+  for f in "$LIB_DIR"/*.dylib "$BIN_DIR"/*; do
+    /usr/bin/codesign --force --sign - "$f"
+  done
+  # verify signatures (should not print errors)
+  /usr/bin/codesign -v --deep --strict "$BIN_DIR/osslsigncode"
+fi
 
 # ================================================================
 # VERSION file
