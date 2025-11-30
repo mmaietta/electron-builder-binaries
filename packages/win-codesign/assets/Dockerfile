@@ -1,37 +1,28 @@
 # syntax=docker/dockerfile:1
+
 ARG PLATFORM_ARCH=amd64
-
-# ============================================
-# Stage 1: Determine Docker platform
-# ============================================
-FROM --platform=linux/amd64 alpine:3.18 AS platform-mapper
-ARG PLATFORM_ARCH
-RUN if [ "$PLATFORM_ARCH" = "amd64" ] || [ "$PLATFORM_ARCH" = "x86_64" ]; then \
-        echo "linux/amd64" > /platform ; \
-    elif [ "$PLATFORM_ARCH" = "arm64" ] || [ "$PLATFORM_ARCH" = "aarch64" ]; then \
-        echo "linux/arm64" > /platform ; \
-    elif [ "$PLATFORM_ARCH" = "i386" ] || [ "$PLATFORM_ARCH" = "ia32" ]; then \
-        echo "linux/386" > /platform ; \
-    else \
-        echo "Unsupported architecture: $PLATFORM_ARCH" && exit 1 ; \
-    fi
-
-# ============================================
-# Stage 2: Build osslsigncode natively
-# ============================================
-ARG PLATFORM_ARCH
-FROM --platform=$TARGETPLATFORM ubuntu:20.04 AS builder
-
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ARG PLATFORM_ARCH
 ARG OSSLSIGNCODE_VER=2.9
 ARG CMAKE_VERSION=3.28.3
+
+FROM ubuntu:20.04 AS builder
+
+# Docker BuildKit automatically provides these when using --platform
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+# Our custom arch parameter
+ARG PLATFORM_ARCH
+ARG OSSLSIGNCODE_VER
+ARG CMAKE_VERSION
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/opt/cmake/bin:$PATH
 
-RUN echo "Building on $BUILDPLATFORM for $TARGETPLATFORM (PLATFORM_ARCH=$PLATFORM_ARCH)"
+RUN echo "Building on $BUILDPLATFORM for $TARGETPLATFORM" && \
+    echo "PLATFORM_ARCH=$PLATFORM_ARCH TARGETARCH=$TARGETARCH"
 
 # Install base dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -41,8 +32,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     patchelf file \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CMake (use appropriate version for platform)
+# Install CMake (detect architecture at runtime)
 RUN ARCH=$(uname -m) && \
+    echo "Detected architecture: $ARCH" && \
     if [ "$ARCH" = "x86_64" ]; then \
         CMAKE_ARCH="x86_64" ; \
     elif [ "$ARCH" = "aarch64" ]; then \
@@ -50,13 +42,17 @@ RUN ARCH=$(uname -m) && \
     elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then \
         CMAKE_ARCH="x86_64" ; \
     else \
-        CMAKE_ARCH="$ARCH" ; \
+        echo "Unsupported CMake architecture: $ARCH" && exit 1 ; \
     fi && \
+    echo "Downloading CMake for: $CMAKE_ARCH" && \
     curl -sSL -o /tmp/cmake.tar.gz \
     https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz \
     && mkdir -p /opt/cmake \
     && tar --strip-components=1 -xzf /tmp/cmake.tar.gz -C /opt/cmake \
     && rm /tmp/cmake.tar.gz
+
+# Verify CMake works
+RUN cmake --version
 
 # Clone osslsigncode
 WORKDIR /usr/src
@@ -64,21 +60,26 @@ RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
     https://github.com/mtrojnar/osslsigncode.git
 
 # Copy helper scripts
+COPY ./assets/compiler-flags.sh /tmp/compiler-flags.sh
+RUN chmod +x /tmp/compiler-flags.sh
 COPY ./assets/patch-osslsigncode.sh /tmp/patch-osslsigncode.sh
 RUN chmod +x /tmp/patch-osslsigncode.sh
 
-# Build osslsigncode (native build, no cross-compilation)
+# Build osslsigncode (native build for the target platform)
 WORKDIR /usr/src/osslsigncode/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release && \
+RUN echo "Starting native build for $(uname -m)" && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release $(/tmp/compiler-flags.sh "$PLATFORM_ARCH") && \
     make -j$(nproc)
 
 # Verify the binary was built
-RUN file /usr/src/osslsigncode/build/osslsigncode && \
-    /usr/src/osslsigncode/build/osslsigncode --version || true
+RUN echo "Verifying binary..." && \
+    file /usr/src/osslsigncode/build/osslsigncode && \
+    /usr/src/osslsigncode/build/osslsigncode --version
 
 # Create portable bundle
 WORKDIR /out/linux
-RUN PLATFORM_ARCH="${PLATFORM_ARCH}" \
+RUN echo "Creating portable bundle with PLATFORM_ARCH=$PLATFORM_ARCH" && \
+    PLATFORM_ARCH="${PLATFORM_ARCH}" \
     bash /tmp/patch-osslsigncode.sh \
     /usr/src/osslsigncode/build/osslsigncode \
     /out/linux/osslsigncode
