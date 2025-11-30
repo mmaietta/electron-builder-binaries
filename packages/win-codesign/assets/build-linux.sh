@@ -93,10 +93,9 @@ containerId=$(cat "$cidFile")
 
 # Copy the built archive from container
 mkdir -p "$OUT_DIR"
-docker cp "$containerId":/out/linux/osslsigncode/osslsigncode-linux-"$ARCHIVE_ARCH_SUFFIX".zip "$OUT_DIR/"
+docker cp "$containerId":/out/linux/osslsigncode/win-codesign-linux-"$ARCHIVE_ARCH_SUFFIX".zip "$OUT_DIR/"
 
 OUTPUT_FILE="$OUTPUT_DIR/win-codesign-linux-$ARCHIVE_ARCH_SUFFIX.zip"
-mv "$OUT_DIR/osslsigncode-linux-$ARCHIVE_ARCH_SUFFIX.zip" "$OUTPUT_FILE"
 
 cleanup
 
