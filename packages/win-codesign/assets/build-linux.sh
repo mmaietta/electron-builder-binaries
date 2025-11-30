@@ -29,7 +29,7 @@ case "$PLATFORM_ARCH" in
 esac
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$CWD/out/win-codesign/osslsigncode"
+OUTPUT_DIR="$CWD/out/win-codesign"
 
 # Clean up and prepare output directory
 mkdir -p "$OUTPUT_DIR/$PLATFORM_ARCH"
@@ -95,7 +95,7 @@ containerId=$(cat "$cidFile")
 mkdir -p "$OUT_DIR"
 docker cp "$containerId":/out/linux/osslsigncode/osslsigncode-linux-"$ARCHIVE_ARCH_SUFFIX".zip "$OUT_DIR/"
 
-OUTPUT_FILE="$OUT_DIR/win-codesign-linux-$ARCHIVE_ARCH_SUFFIX.zip"
+OUTPUT_FILE="$OUTPUT_DIR/win-codesign-linux-$ARCHIVE_ARCH_SUFFIX.zip"
 mv "$OUT_DIR/osslsigncode-linux-$ARCHIVE_ARCH_SUFFIX.zip" "$OUTPUT_FILE"
 
 cleanup

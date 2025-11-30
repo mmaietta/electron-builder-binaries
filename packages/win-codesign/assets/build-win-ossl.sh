@@ -7,7 +7,7 @@ CMAKE_VERSION="${CMAKE_VERSION:-3.28.3}"
 BUILD_ARCH="${PLATFORM_ARCH:-x64}" # x64 or arm64
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$CWD/out/win-codesign/osslsigncode"
+OUTPUT_DIR="$CWD/out/win-codesign"
 BUILD_DIR="$CWD/.build/osslsigncode-windows-${BUILD_ARCH}"
 
 echo "=================================================="
@@ -127,11 +127,11 @@ EOF
 # Create ZIP archive
 echo "📦 Creating ZIP archive..."
 cd "$BUNDLE_DIR"
-zip -r -9 "$OUTPUT_DIR/osslsigncode-windows-${BUILD_ARCH}.zip" .
+zip -r -9 "$OUTPUT_DIR/win-codesign-windows-${BUILD_ARCH}.zip" .
 
 echo ""
 echo "✅ Build completed successfully!"
-echo "📦 Bundle: $OUTPUT_DIR/osslsigncode-windows-${BUILD_ARCH}.zip"
+echo "📦 Bundle: $OUTPUT_DIR/win-codesign-windows-${BUILD_ARCH}.zip"
 echo ""
 echo "Bundle contents:"
 ls -lh "$BUNDLE_DIR/bin"
