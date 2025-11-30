@@ -81,11 +81,9 @@ jobs:
             zlib:p
             pkgconf:p
       
-      - name: Build osslsigncode
-        env:
-          OSSLSIGNCODE_VER: '2.9'
+      - name: Build osslsigncode for Windows
         run: |
-          ./scripts/build-windows.sh
+          ./packages/win-codesign/build.sh
       
       - name: Verify build
         run: |
