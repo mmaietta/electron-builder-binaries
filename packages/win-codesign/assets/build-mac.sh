@@ -69,7 +69,7 @@ mkdir -p "$TMP_DIR" "$OUTPUT_DIR/osslsigncode"
     # Write version info
     "$OUT_BIN/osslsigncode" --version > "$OUT_BIN/VERSION.txt"
 
-    # Patch osslsigncode binary (existing script)
+    # Patch osslsigncode binary and zip
     bash "$ROOT_DIR/assets/patch-osslsigncode.sh" "$OUT_BIN/osslsigncode" "$OUTPUT_DIR"
     
     rm -rf "$TMP_DIR"

@@ -88,8 +88,7 @@ jobs:
             pkgconf:p
             nodejs:p 
 
-      - name: Build osslsigncode
-        shell: msys2 {0}
+      - name: Build osslsigncode (${{ matrix.arch }})
         run: |
           npm install -g corepack pnpm
           corepack enable
@@ -109,7 +108,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [macos-15-intel, macos-15]
+        include:
+          - arch: x64
+            node: macos-15-intel
+          - arch: arm64
+            node: macos-15
     steps:
       - name: Enable Corepack for pnpm
         run: |
@@ -131,7 +134,7 @@ jobs:
       - name: Upload win-codesign macOS artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
-          name: win-codesign-darwin-${{ matrix.node }}
+          name: win-codesign-darwin-${{ matrix.arch }}
           path: ./packages/win-codesign/out/**/*.zip
           if-no-files-found: error
           retention-days: 1
