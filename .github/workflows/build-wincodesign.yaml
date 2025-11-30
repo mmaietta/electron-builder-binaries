@@ -42,6 +42,7 @@ jobs:
 
   windows:
     runs-on: ${{ matrix.runner }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -54,7 +55,11 @@ jobs:
           #   msystem: CLANGARM64
           #   mingw_prefix: mingw-w64-clang-aarch64
           #   runner: windows-10-arm
-    
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -81,23 +86,16 @@ jobs:
             libgsf:p
             zlib:p
             pkgconf:p
+            nodejs:p 
 
-      - name: Install Node.js dependencies
-        shell: bash
+      - name: Build osslsigncode
         run: |
           npm install -g corepack pnpm
           corepack enable
           pnpm i --frozen-lockfile
-
-      - name: Build osslsigncode
-        shell: msys2 {0}  # Must be in MSYS2 for leveraging installed mingw packages
-        run: |
-          bash ./packages/win-codesign/build.sh
-        env:
-          PLATFORM_ARCH: ${{ matrix.arch }}
+          PLATFORM_ARCH=${{ matrix.arch }} bash ./packages/win-codesign/build.sh
 
       - name: Verify build
-        shell: msys2 {0}
         run: |
           unzip -l out/osslsigncode-windows/osslsigncode-windows-${{ matrix.arch }}.zip
 
