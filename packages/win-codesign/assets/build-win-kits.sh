@@ -116,7 +116,7 @@ fi
 
 # Create ZIP archive
 echo "📦 Zipping appxAssets + windows-kits..."
-ASSETS_ZIP="$OUTPUT_DIR/windows-kits-bundle.zip"
+ASSETS_ZIP="$OUTPUT_DIR/windows-kits-bundle-${VERSION//./_}.zip"
 
 cd "$ASSETS_BUNDLE_DIR"
 zip -r -9 "$ASSETS_ZIP" .
