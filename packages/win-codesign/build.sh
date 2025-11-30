@@ -26,8 +26,8 @@ if [ "$OS_TARGET" = "linux" ]; then
 else
     echo "Assuming Windows target."
     
+    bash "$CWD/assets/build-win-kits.sh"
     bash "$CWD/assets/build-win-rcedit.sh"
     bash "$CWD/assets/build-win-ossl.sh"
-    bash "$CWD/assets/build-win-kits.sh"
     
 fi

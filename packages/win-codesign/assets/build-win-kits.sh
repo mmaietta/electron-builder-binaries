@@ -12,7 +12,7 @@ rm -rf "$ASSETS_BUNDLE_DIR"
 mkdir -p "$ASSETS_BUNDLE_DIR"
 
 # Copy appxAssets + windows-kits
-cp -a "$OUTPUT_DIR/appxAssets" "$ASSETS_BUNDLE_DIR/appxAssets"
+cp -a "$CWD/assets/appxAssets" "$ASSETS_BUNDLE_DIR/appxAssets"
 
 # Configuration
 SDK_BASE="${WINDOWS_KIT_PATH:-C:/Program Files (x86)/Windows Kits/10/bin}"
