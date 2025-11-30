@@ -65,84 +65,84 @@ uname_s=$(uname -s)
 # ================================================================
 # macOS section
 # ================================================================
-if [[ "$uname_s" == "Darwin" ]]; then
-  echo "🍎 macOS detected"
+# if [[ "$uname_s" == "Darwin" ]]; then
+#   echo "🍎 macOS detected"
 
-  if [[ ! -x "$OTOOL" ]]; then
-    echo "❌ $OTOOL not found or not executable. Aborting."
-    exit 6
-  fi
-  if [[ ! -x "$INSTALL_NAME_TOOL" ]]; then
-    echo "❌ $INSTALL_NAME_TOOL not found or not executable. Aborting."
-    exit 7
-  fi
+#   if [[ ! -x "$OTOOL" ]]; then
+#     echo "❌ $OTOOL not found or not executable. Aborting."
+#     exit 6
+#   fi
+#   if [[ ! -x "$INSTALL_NAME_TOOL" ]]; then
+#     echo "❌ $INSTALL_NAME_TOOL not found or not executable. Aborting."
+#     exit 7
+#   fi
 
-  deps=$("$OTOOL" -L "$BIN_DIR/osslsigncode" | awk 'NR>1 {print $1}')
+#   deps=$("$OTOOL" -L "$BIN_DIR/osslsigncode" | awk 'NR>1 {print $1}')
 
-  # These are the libs we allow bundling on macOS
-  allow_prefixes=("libcrypto" "libssl" "libgmp" "libz" "liblzma" "libbz2")
+#   # These are the libs we allow bundling on macOS
+#   allow_prefixes=("libcrypto" "libssl" "libgmp" "libz" "liblzma" "libbz2")
 
-  skip_regex='^/usr/lib/|^/System/Library/|^/System/Volumes/Preboot/|^/System/Library/Frameworks/'
+#   skip_regex='^/usr/lib/|^/System/Library/|^/System/Volumes/Preboot/|^/System/Library/Frameworks/'
 
-  while read -r dep; do
-    [[ -z "$dep" ]] && continue
-    case "$dep" in
-      @rpath/*|@loader_path/*|@executable_path/*) continue ;;
-    esac
-    if [[ "$dep" =~ $skip_regex ]]; then
-      echo "  🔕 skip (system): $dep"
-      continue
-    fi
+#   while read -r dep; do
+#     [[ -z "$dep" ]] && continue
+#     case "$dep" in
+#       @rpath/*|@loader_path/*|@executable_path/*) continue ;;
+#     esac
+#     if [[ "$dep" =~ $skip_regex ]]; then
+#       echo "  🔕 skip (system): $dep"
+#       continue
+#     fi
 
-    base=$(basename "$dep")
-    should_copy=false
-    for p in "${allow_prefixes[@]}"; do
-      [[ "$base" == "$p"* ]] && should_copy=true
-    done
+#     base=$(basename "$dep")
+#     should_copy=false
+#     for p in "${allow_prefixes[@]}"; do
+#       [[ "$base" == "$p"* ]] && should_copy=true
+#     done
 
-    if $should_copy && [[ -f "$dep" ]]; then
-      dest="$LIB_DIR/$base"
-      if [[ ! -f "$dest" ]]; then
-        echo "  ➕ copy $dep -> $dest"
-        cp -a "$dep" "$dest"
-      fi
-    fi
-  done <<< "$deps"
+#     if $should_copy && [[ -f "$dep" ]]; then
+#       dest="$LIB_DIR/$base"
+#       if [[ ! -f "$dest" ]]; then
+#         echo "  ➕ copy $dep -> $dest"
+#         cp -a "$dep" "$dest"
+#       fi
+#     fi
+#   done <<< "$deps"
 
-  DEFAULT_RPATH="@executable_path/../lib"
+#   DEFAULT_RPATH="@executable_path/../lib"
 
-  if ! "$OTOOL" -l "$BIN_DIR/osslsigncode" | grep -q LC_RPATH; then
-    echo "  ➕ adding rpath $DEFAULT_RPATH"
-    "$INSTALL_NAME_TOOL" -add_rpath "$DEFAULT_RPATH" "$BIN_DIR/osslsigncode" || true
-  fi
+#   if ! "$OTOOL" -l "$BIN_DIR/osslsigncode" | grep -q LC_RPATH; then
+#     echo "  ➕ adding rpath $DEFAULT_RPATH"
+#     "$INSTALL_NAME_TOOL" -add_rpath "$DEFAULT_RPATH" "$BIN_DIR/osslsigncode" || true
+#   fi
 
-  # Patch main binary absolute deps -> local copies (if present)
-  abs_deps=$("$OTOOL" -L "$BIN_DIR/osslsigncode" | awk 'NR>1 {print $1}' | grep '^/' || true)
-  while read -r dep; do
-    [[ -z "$dep" ]] && continue
-    base=$(basename "$dep")
-    local_candidate="$LIB_DIR/$base"
-    if [[ -f "$local_candidate" ]]; then
-      rel=$(compute_loader_rel "$BIN_DIR/osslsigncode" "$local_candidate")
-      echo "  🔁 patching $dep -> $rel"
-      "$INSTALL_NAME_TOOL" -change "$dep" "$rel" "$BIN_DIR/osslsigncode" || true
-    fi
-  done <<< "$abs_deps"
+#   # Patch main binary absolute deps -> local copies (if present)
+#   abs_deps=$("$OTOOL" -L "$BIN_DIR/osslsigncode" | awk 'NR>1 {print $1}' | grep '^/' || true)
+#   while read -r dep; do
+#     [[ -z "$dep" ]] && continue
+#     base=$(basename "$dep")
+#     local_candidate="$LIB_DIR/$base"
+#     if [[ -f "$local_candidate" ]]; then
+#       rel=$(compute_loader_rel "$BIN_DIR/osslsigncode" "$local_candidate")
+#       echo "  🔁 patching $dep -> $rel"
+#       "$INSTALL_NAME_TOOL" -change "$dep" "$rel" "$BIN_DIR/osslsigncode" || true
+#     fi
+#   done <<< "$abs_deps"
 
-  # Patch copied libs internal absolute refs -> local copies
-  find "$LIB_DIR" -name '*.dylib' -print0 | while IFS= read -r -d '' f; do
-    deps=$("$OTOOL" -L "$f" | awk 'NR>1 {print $1}' | grep '^/' || true)
-    for dep in $deps; do
-      base=$(basename "$dep")
-      if [[ -f "$LIB_DIR/$base" ]]; then
-        rel=$(compute_loader_rel "$f" "$LIB_DIR/$base")
-        echo "    🔁 lib patch: $dep -> $rel"
-        "$INSTALL_NAME_TOOL" -change "$dep" "$rel" "$f" || true
-      fi
-    done
-  done
+#   # Patch copied libs internal absolute refs -> local copies
+#   find "$LIB_DIR" -name '*.dylib' -print0 | while IFS= read -r -d '' f; do
+#     deps=$("$OTOOL" -L "$f" | awk 'NR>1 {print $1}' | grep '^/' || true)
+#     for dep in $deps; do
+#       base=$(basename "$dep")
+#       if [[ -f "$LIB_DIR/$base" ]]; then
+#         rel=$(compute_loader_rel "$f" "$LIB_DIR/$base")
+#         echo "    🔁 lib patch: $dep -> $rel"
+#         "$INSTALL_NAME_TOOL" -change "$dep" "$rel" "$f" || true
+#       fi
+#     done
+#   done
 
-fi
+# fi
 
 
 # ================================================================
