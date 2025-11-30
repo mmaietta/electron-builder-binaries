@@ -42,8 +42,17 @@ for f in "$DESINTATION_DIR"/*; do
     hashArtifact "$NAME/$(basename "$f")"
 done
 
-# nsis
-NAME="nsis"
+# # nsis
+# NAME="nsis"
+# DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+# rm -rf "$DESINTATION_DIR"
+# cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+# for f in "$DESINTATION_DIR"/*; do
+#     hashArtifact "$NAME/$(basename "$f")"
+# done
+
+# winCodeSign
+NAME="win-codesign"
 DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
 rm -rf "$DESINTATION_DIR"
 cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
@@ -58,77 +67,71 @@ done
 # cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
 # hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
 
-# ztsd
-NAME="zstd"
-VERSION="1.5.5"
-ARCHIVE_NAME="linux-x64"
-downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "01M9lAhvtX50Lb0CNZ4mY3ajGTVvKwlbDNLjE/e93lg9AfYFDNG5C9twCKbvvrXjatDCT6w3eCCFw0tw5221RA=="
-ARCHIVE_NAME="mac"
-downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "hL0EMVepIyplxO4c8ZbESm6eGBs8IRMybyk81b76nLk6wHM4dXN9mi7CPmTAMa6gw06ki6Vr4w6vI69+HvIKGg=="
-ARCHIVE_NAME="win-ia32"
-downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "jddFtdnYsgXmm9qozFHYqIry8fPlr61ytnKDXV+d7w/HIe4E6kCBZholADqIrGFgcCmblhY4Nh/t8oBTLE7eYQ=="
-ARCHIVE_NAME="win-x64"
-downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" Cg/7RInWfRhfibx4TJ1SMgw5LMeFQp6lH0GA9CP1/EhlE+RomYc1yKJhwDMnO31s0841feZbqdcHTPhQTQyfDg==
+# # ztsd
+# NAME="zstd"
+# VERSION="1.5.5"
+# ARCHIVE_NAME="linux-x64"
+# downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "01M9lAhvtX50Lb0CNZ4mY3ajGTVvKwlbDNLjE/e93lg9AfYFDNG5C9twCKbvvrXjatDCT6w3eCCFw0tw5221RA=="
+# ARCHIVE_NAME="mac"
+# downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "hL0EMVepIyplxO4c8ZbESm6eGBs8IRMybyk81b76nLk6wHM4dXN9mi7CPmTAMa6gw06ki6Vr4w6vI69+HvIKGg=="
+# ARCHIVE_NAME="win-ia32"
+# downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "jddFtdnYsgXmm9qozFHYqIry8fPlr61ytnKDXV+d7w/HIe4E6kCBZholADqIrGFgcCmblhY4Nh/t8oBTLE7eYQ=="
+# ARCHIVE_NAME="win-x64"
+# downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" Cg/7RInWfRhfibx4TJ1SMgw5LMeFQp6lH0GA9CP1/EhlE+RomYc1yKJhwDMnO31s0841feZbqdcHTPhQTQyfDg==
 
-# appimage
-NAME="appimage"
-VERSION="13.0.1"
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJW6RO0kLgh5hbbJJHhPfoA/kw1hsFeq1pAyez6MxvoDyL/5/O45hX9Jaw=="
+# # appimage
+# NAME="appimage"
+# VERSION="13.0.1"
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJW6RO0kLgh5hbbJJHhPfoA/kw1hsFeq1pAyez6MxvoDyL/5/O45hX9Jaw=="
 
-# winCodeSign
-NAME="winCodeSign"
-VERSION="2.6.0"
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA==" "win-codesign-$VERSION"
+# # wine-4.0.1-mac
+# NAME="wine"
+# VERSION=4.0.1-mac
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "aCUQOyuPGlEvLMp0lPzb54D96+8IcLwmKTMElrZZqVWtEL1LQC7L9XpPv4RqaLX3BOeSifneEi4j9DpYdC1DCA=="
 
-# wine-4.0.1-mac
-NAME="wine"
-VERSION=4.0.1-mac
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "aCUQOyuPGlEvLMp0lPzb54D96+8IcLwmKTMElrZZqVWtEL1LQC7L9XpPv4RqaLX3BOeSifneEi4j9DpYdC1DCA=="
+# # snap-template-4.0
+# RELEASE_NAME="snap-template-4.0"
+# ARCHIVE_NAME="snap-template-electron-4.0.tar.7z"
+# curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
+# hashArtifact "$ARCHIVE_NAME" "bkh/IjSmCcR/QR01ed/TPDn0yKlteCREDbMyqEYGmLp/bYNp2eUaK+XDPeDF94o6MgzQv1Ugp8sqRQBcI4YCtg=="
+# RELEASE_NAME="snap-template-4.0-1"
+# ARCHIVE_NAME="snap-template-electron-4.0-1-armhf.tar.7z"
+# curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
+# hashArtifact "$ARCHIVE_NAME" "jK+E0d0kyzBEsFmTEUIsumtikH4XZp8NVs6DBtIBJqXAmVCuNHcmvDa0wcaigk8foU4uGZXsLlJtNj11X100Bg=="
+# RELEASE_NAME="snap-template-4.0-1"
+# ARCHIVE_NAME="snap-template-electron-4.0-1-amd64.tar.7z"
+# curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
+# hashArtifact "$ARCHIVE_NAME" "tt15k/jGR5IxhcsHuApOE80JxPL3RAfyqIbU7p+h5bt2sXYI5YmECbGZGzn7Fe6vmBZCDujPmAokGME/hEkf/w=="
+# RELEASE_NAME="snap-template-4.0-2"
+# ARCHIVE_NAME="snap-template-electron-4.0-2-amd64.tar.7z"
+# curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
+# hashArtifact "$ARCHIVE_NAME" "PYhiQQ5KE4ezraLE7TOT2aFPGkBNjHLRN7C8qAPaC6VckHU3H+0m+JA/Wmx683fKUT2ZBwo9Mp82EuhmQo5WOQ=="
 
-# snap-template-4.0
-RELEASE_NAME="snap-template-4.0"
-ARCHIVE_NAME="snap-template-electron-4.0.tar.7z"
-curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
-hashArtifact "$ARCHIVE_NAME" "bkh/IjSmCcR/QR01ed/TPDn0yKlteCREDbMyqEYGmLp/bYNp2eUaK+XDPeDF94o6MgzQv1Ugp8sqRQBcI4YCtg=="
-RELEASE_NAME="snap-template-4.0-1"
-ARCHIVE_NAME="snap-template-electron-4.0-1-armhf.tar.7z"
-curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
-hashArtifact "$ARCHIVE_NAME" "jK+E0d0kyzBEsFmTEUIsumtikH4XZp8NVs6DBtIBJqXAmVCuNHcmvDa0wcaigk8foU4uGZXsLlJtNj11X100Bg=="
-RELEASE_NAME="snap-template-4.0-1"
-ARCHIVE_NAME="snap-template-electron-4.0-1-amd64.tar.7z"
-curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
-hashArtifact "$ARCHIVE_NAME" "tt15k/jGR5IxhcsHuApOE80JxPL3RAfyqIbU7p+h5bt2sXYI5YmECbGZGzn7Fe6vmBZCDujPmAokGME/hEkf/w=="
-RELEASE_NAME="snap-template-4.0-2"
-ARCHIVE_NAME="snap-template-electron-4.0-2-amd64.tar.7z"
-curl -L https://github.com/electron-userland/electron-builder-binaries/releases/download/$RELEASE_NAME/$ARCHIVE_NAME > "$ARTIFACTS_DIR/$ARCHIVE_NAME"
-hashArtifact "$ARCHIVE_NAME" "PYhiQQ5KE4ezraLE7TOT2aFPGkBNjHLRN7C8qAPaC6VckHU3H+0m+JA/Wmx683fKUT2ZBwo9Mp82EuhmQo5WOQ=="
+# # nsis-resources
+# NAME="nsis-resources"
+# VERSION=3.4.1
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "Dqd6g+2buwwvoG1Vyf6BHR1b+25QMmPcwZx40atOT57gH27rkjOei1L0JTldxZu4NFoEmW4kJgZ3DlSWVON3+Q=="
 
-# nsis-resources
-NAME="nsis-resources"
-VERSION=3.4.1
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "Dqd6g+2buwwvoG1Vyf6BHR1b+25QMmPcwZx40atOT57gH27rkjOei1L0JTldxZu4NFoEmW4kJgZ3DlSWVON3+Q=="
+# # linux-tools-mac
+# NAME="linux-tools-mac"
+# VERSION=10.12.4
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "CMiM/6mWOUghHkvgB2PmJdyGoblMdlGD+VBqbxiIea51ExDDe7GrZ82/wBy3KI0d5Wrrkc1Hkd1/lWMcbWUfuA=="
 
-# linux-tools-mac
-NAME="linux-tools-mac"
-VERSION=10.12.4
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "CMiM/6mWOUghHkvgB2PmJdyGoblMdlGD+VBqbxiIea51ExDDe7GrZ82/wBy3KI0d5Wrrkc1Hkd1/lWMcbWUfuA=="
+# # wix
+# NAME="wix"
+# VERSION=4.0.0.5512.2
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "/X5poahdCc3199Vt6AP7gluTlT1nxi9cbbHhZhCMEu+ngyP1LiBMn+oZX7QAZVaKeBMc2SjVp7fJqNLqsUnPNQ=="
 
-# wix
-NAME="wix"
-VERSION=4.0.0.5512.2
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "/X5poahdCc3199Vt6AP7gluTlT1nxi9cbbHhZhCMEu+ngyP1LiBMn+oZX7QAZVaKeBMc2SjVp7fJqNLqsUnPNQ=="
+# # ran
+# NAME="ran"
+# VERSION=0.1.3
+# ARCHIVE_NAME="$NAME-$VERSION"
+# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "imfA3LtT6umMM0BuQ29MgO3CJ9uleN5zRBi3sXzcTbMOeYZ6SQeN7eKr3kXZikKnVOIwbH+DDO43wkiR/qTdkg=="
 
-# ran
-NAME="ran"
-VERSION=0.1.3
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "imfA3LtT6umMM0BuQ29MgO3CJ9uleN5zRBi3sXzcTbMOeYZ6SQeN7eKr3kXZikKnVOIwbH+DDO43wkiR/qTdkg=="
-
-sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
-echo "Artifacts compressed and checksums generated in $ARTIFACTS_DIR"
+# sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
+# echo "Artifacts compressed and checksums generated in $ARTIFACTS_DIR"

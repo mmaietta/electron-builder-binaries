@@ -7,7 +7,7 @@ const VERSION = "10.0.26100.0"
 
 const windowsKitsDir = "C:\\Program Files (x86)\\Windows Kits\\10"
 const sourceDir = path.resolve(windowsKitsDir, "bin", VERSION)
-const destination = path.join(__dirname, "../out/winCodeSign/windows-10")
+const destination = path.join(__dirname, "../out/winCodeSign/windows-kits")
 
 // noinspection SpellCheckingInspection
 const files = [
@@ -36,30 +36,28 @@ const files = [
   "pvk2pfx.exe"
 ]
 
-function copyFiles(files, archWin, archNode) {
-  fs.mkdirSync(path.join(destination, archNode), { recursive: true })
+function copyFiles(files, archWin) {
+  fs.mkdirSync(path.join(destination, archWin), { recursive: true })
   return files.map(async file => {
-    await copy(path.join(sourceDir, archWin, file), path.join(destination, archNode, file))
+    const sourceFilePath = path.join(sourceDir, archWin, file)
+    console.log(`- ${sourceFilePath}`)
+    await copy(sourceFilePath, path.join(destination, archWin, file))
     return file
   })
 }
 
 // copy files
 Promise.all([
-  ...copyFiles(files, "x86", "ia32"),
-  ...copyFiles(files, "x64", "x64"),
-  ...copyFiles(files, "arm64", "arm64"),
+  ...copyFiles(files, "x86"),
+  ...copyFiles(files, "x64"),
+  ...copyFiles(files, "arm64"),
 ])
 .then(files => {
   console.log("Files copied successfully")
-  console.log("Files copied:")
-  files.forEach(file => {
-    console.log(`- ${file}`)
-  })
 })
 .catch(error => {
-  process.exitCode = 1
   console.error(error)
+  process.exit(1)
 })
 
 // add version file
