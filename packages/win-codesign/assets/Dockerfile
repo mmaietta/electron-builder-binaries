@@ -1,64 +1,86 @@
 # syntax=docker/dockerfile:1
-
 ARG PLATFORM_ARCH=amd64
-FROM ubuntu:18.04
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV CMAKE_VERSION=3.28.3
-ENV PATH=/opt/cmake/bin:$PATH
-
-# Update sources to old-releases since 18.04 is EOL
-RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list \
-    && sed -i 's|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' /etc/apt/sources.list
-
-# Basic build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    git \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    libcurl4-openssl-dev \
-    libgsf-1-dev \
-    p7zip-full \
-    zip \
-    ca-certificates \
-    xz-utils \
-    && rm -rf /var/lib/apt/lists/*
-
-# Conditional compiler packages
-RUN if [ "$PLATFORM_ARCH" = "amd64" ]; then \
-        apt-get update && apt-get install -y gcc-multilib g++-multilib && rm -rf /var/lib/apt/lists/* ; \
-    elif [ "$PLATFORM_ARCH" = "i386" ]; then \
-        apt-get update && apt-get install -y gcc-i686-linux-gnu g++-i686-linux-gnu && rm -rf /var/lib/apt/lists/* ; \
-    elif [ "$PLATFORM_ARCH" = "arm64" ]; then \
-        apt-get update && apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu && rm -rf /var/lib/apt/lists/* ; \
+# ============================================
+# Stage 1: Determine Docker platform
+# ============================================
+FROM --platform=linux/amd64 alpine:3.18 AS platform-mapper
+ARG PLATFORM_ARCH
+RUN if [ "$PLATFORM_ARCH" = "amd64" ] || [ "$PLATFORM_ARCH" = "x86_64" ]; then \
+        echo "linux/amd64" > /platform ; \
+    elif [ "$PLATFORM_ARCH" = "arm64" ] || [ "$PLATFORM_ARCH" = "aarch64" ]; then \
+        echo "linux/arm64" > /platform ; \
+    elif [ "$PLATFORM_ARCH" = "i386" ] || [ "$PLATFORM_ARCH" = "ia32" ]; then \
+        echo "linux/386" > /platform ; \
+    else \
+        echo "Unsupported architecture: $PLATFORM_ARCH" && exit 1 ; \
     fi
 
-# Prebuilt CMake
-RUN curl -sSL -o /tmp/cmake.tar.gz \
-    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz \
+# ============================================
+# Stage 2: Build osslsigncode natively
+# ============================================
+ARG PLATFORM_ARCH
+FROM --platform=$TARGETPLATFORM ubuntu:20.04 AS builder
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG PLATFORM_ARCH
+ARG OSSLSIGNCODE_VER=2.9
+ARG CMAKE_VERSION=3.28.3
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/opt/cmake/bin:$PATH
+
+RUN echo "Building on $BUILDPLATFORM for $TARGETPLATFORM (PLATFORM_ARCH=$PLATFORM_ARCH)"
+
+# Install base dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl git build-essential pkg-config \
+    libssl-dev libcurl4-openssl-dev libgsf-1-dev \
+    p7zip-full zip ca-certificates xz-utils \
+    patchelf file \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CMake (use appropriate version for platform)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        CMAKE_ARCH="x86_64" ; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        CMAKE_ARCH="aarch64" ; \
+    elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then \
+        CMAKE_ARCH="x86_64" ; \
+    else \
+        CMAKE_ARCH="$ARCH" ; \
+    fi && \
+    curl -sSL -o /tmp/cmake.tar.gz \
+    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz \
     && mkdir -p /opt/cmake \
     && tar --strip-components=1 -xzf /tmp/cmake.tar.gz -C /opt/cmake \
     && rm /tmp/cmake.tar.gz
 
-# Setup workspace
+# Clone osslsigncode
 WORKDIR /usr/src
-ARG OSSLSIGNCODE_VER=2.9
-RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} https://github.com/mtrojnar/osslsigncode.git
+RUN git clone --depth 1 --branch ${OSSLSIGNCODE_VER} \
+    https://github.com/mtrojnar/osslsigncode.git
 
+# Copy helper scripts
+COPY ./assets/patch-osslsigncode.sh /tmp/patch-osslsigncode.sh
+RUN chmod +x /tmp/patch-osslsigncode.sh
+
+# Build osslsigncode (native build, no cross-compilation)
 WORKDIR /usr/src/osslsigncode/build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release && \
+    make -j$(nproc)
 
-# Copy cross-compile flags script
-COPY ./assets/compiler-flags.sh /tmp/compiler-flags.sh
-RUN chmod +x /tmp/compiler-flags.sh
+# Verify the binary was built
+RUN file /usr/src/osslsigncode/build/osslsigncode && \
+    /usr/src/osslsigncode/build/osslsigncode --version || true
 
-# Configure with CMake
-ARG PLATFORM_ARCH
-RUN cmake .. -DCMAKE_BUILD_TYPE=Release $(/tmp/compiler-flags.sh "${PLATFORM_ARCH}") \
-    && make -j$(nproc)
-
-# Copy patch script and output
+# Create portable bundle
 WORKDIR /out/linux
-COPY ./assets/patch-osslsigncode.sh /tmp/patch.sh
-RUN bash /tmp/patch.sh /usr/src/osslsigncode/build/osslsigncode /out/linux/osslsigncode
+RUN PLATFORM_ARCH="${PLATFORM_ARCH}" \
+    bash /tmp/patch-osslsigncode.sh \
+    /usr/src/osslsigncode/build/osslsigncode \
+    /out/linux/osslsigncode
+
+CMD ["/bin/bash"]
