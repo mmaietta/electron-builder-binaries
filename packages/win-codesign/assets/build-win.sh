@@ -4,15 +4,15 @@ set -euxo pipefail
 # Configuration
 OSSLSIGNCODE_VER="${OSSLSIGNCODE_VER:-2.9}"
 CMAKE_VERSION="${CMAKE_VERSION:-3.28.3}"
-PLATFORM_ARCH="${PLATFORM_ARCH:-x64}" # x64 or arm64
+BUILD_ARCH="${PLATFORM_ARCH:-x64}" # x64 or arm64
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="$CWD/out/osslsigncode-windows"
-BUILD_DIR="$CWD/.build/osslsigncode-windows-${PLATFORM_ARCH}"
+BUILD_DIR="$CWD/.build/osslsigncode-windows-${BUILD_ARCH}"
 
 echo "=================================================="
 echo "Building osslsigncode for Windows"
-echo "  Architecture: ${PLATFORM_ARCH}"
+echo "  Architecture: ${BUILD_ARCH}"
 echo "  Version:      ${OSSLSIGNCODE_VER}"
 echo "  Output:       ${OUTPUT_DIR}"
 echo "=================================================="
@@ -27,7 +27,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; t
     echo "✓ Detected Windows environment (OSTYPE=$OSTYPE)"
     
     # Determine the correct package prefix based on architecture
-    if [[ "$PLATFORM_ARCH" == "arm64" ]]; then
+    if [[ "$BUILD_ARCH" == "arm64" ]]; then
         PACMAN_PREFIX="mingw-w64-clang-aarch64"
         PATH_PREFIX="/clangarm64"
     else
@@ -35,7 +35,7 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; t
         PATH_PREFIX="/mingw64"
     fi
     
-    echo "📦 Installing packages for ${PLATFORM_ARCH}..."
+    echo "📦 Installing packages for ${BUILD_ARCH}..."
     # Install MSYS2 packages if not already installed
     pacman -S --noconfirm --needed \
         ${PACMAN_PREFIX}-gcc \
@@ -72,18 +72,19 @@ cd osslsigncode
 mkdir -p build
 cd build
 
+# Use Unix Makefiles generator for MSYS2 (works across all MSYS2 environments)
 cmake .. \
-    -G "MinGW Makefiles" \
+    -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$OUTPUT_DIR/install"
 
-mingw32-make -j$(nproc)
+make -j$(nproc)
 
 echo "✅ Build completed successfully!"
 
 # Create portable bundle
 echo "📦 Creating portable bundle..."
-BUNDLE_DIR="$OUTPUT_DIR/bundle-${PLATFORM_ARCH}"
+BUNDLE_DIR="$OUTPUT_DIR/bundle-${BUILD_ARCH}"
 mkdir -p "$BUNDLE_DIR/bin" "$BUNDLE_DIR/lib"
 
 # Copy the main executable
@@ -91,7 +92,7 @@ cp osslsigncode.exe "$BUNDLE_DIR/bin/"
 
 # Copy required DLLs
 echo "🔍 Detecting required DLLs..."
-if [[ "$PLATFORM_ARCH" == "arm64" ]]; then
+if [[ "$BUILD_ARCH" == "arm64" ]]; then
     GREP_PATTERN="clangarm64"
 else
     GREP_PATTERN="mingw64"
@@ -112,7 +113,7 @@ done
 # Create version file
 "$BUNDLE_DIR/bin/osslsigncode.exe" --version > "$BUNDLE_DIR/VERSION.txt" 2>&1 || true
 echo "platform: Windows" >> "$BUNDLE_DIR/VERSION.txt"
-echo "architecture: ${PLATFORM_ARCH}" >> "$BUNDLE_DIR/VERSION.txt"
+echo "architecture: ${BUILD_ARCH}" >> "$BUNDLE_DIR/VERSION.txt"
 echo "created_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$BUNDLE_DIR/VERSION.txt"
 
 # Create launcher script (optional, for convenience)
@@ -127,11 +128,11 @@ EOF
 # Create ZIP archive
 echo "📦 Creating ZIP archive..."
 cd "$BUNDLE_DIR"
-zip -r -9 "$OUTPUT_DIR/osslsigncode-windows-${PLATFORM_ARCH}.zip" .
+zip -r -9 "$OUTPUT_DIR/osslsigncode-windows-${BUILD_ARCH}.zip" .
 
 echo ""
 echo "✅ Build completed successfully!"
-echo "📦 Bundle: $OUTPUT_DIR/osslsigncode-windows-${PLATFORM_ARCH}.zip"
+echo "📦 Bundle: $OUTPUT_DIR/osslsigncode-windows-${BUILD_ARCH}.zip"
 echo ""
 echo "Bundle contents:"
 ls -lh "$BUNDLE_DIR/bin"
