@@ -26,8 +26,8 @@ elif [ "$OS_TARGET" = "darwin" ]; then
 else
     echo "Assuming Windows target."
     
+    bash "$CWD/assets/build-win-ossl.sh" # must be first, for now? I think install prefix dest wipes out dir
     bash "$CWD/assets/build-win-kits.sh"
     bash "$CWD/assets/build-win-rcedit.sh"
-    bash "$CWD/assets/build-win-ossl.sh"
     
 fi

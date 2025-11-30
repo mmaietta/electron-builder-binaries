@@ -15,7 +15,7 @@ cp -a "$CWD/assets/appxAssets" "$ASSETS_BUNDLE_DIR/appxAssets"
 
 # Configuration
 SDK_BASE="${WINDOWS_KIT_PATH:-C:/Program Files (x86)/Windows Kits/10/bin}"
-DESTINATION="$ASSETS_BUNDLE_DIR/windows-kits"
+DESTINATION="$ASSETS_BUNDLE_DIR"
 
 echo "SDK base directory: $SDK_BASE"
 
