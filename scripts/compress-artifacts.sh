@@ -51,6 +51,15 @@ for f in "$DESINTATION_DIR"/*; do
     hashArtifact "$NAME/$(basename "$f")"
 done
 
+# winCodeSign
+NAME="win-codesign"
+DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+rm -rf "$DESINTATION_DIR"
+cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+for f in "$DESINTATION_DIR"/*; do
+    hashArtifact "$NAME/$(basename "$f")"
+done
+
 # squirrel.windows
 # NAME="squirrel.windows"
 # DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
@@ -75,12 +84,6 @@ NAME="appimage"
 VERSION="13.0.1"
 ARCHIVE_NAME="$NAME-$VERSION"
 downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJW6RO0kLgh5hbbJJHhPfoA/kw1hsFeq1pAyez6MxvoDyL/5/O45hX9Jaw=="
-
-# winCodeSign
-NAME="winCodeSign"
-VERSION="2.6.0"
-ARCHIVE_NAME="$NAME-$VERSION"
-downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "6LQI2d9BPC3Xs0ZoTQe1o3tPiA28c7+PY69Q9i/pD8lY45psMtHuLwv3vRckiVr3Zx1cbNyLlBR8STwCdcHwtA==" "win-codesign-$VERSION"
 
 # wine-4.0.1-mac
 NAME="wine"
