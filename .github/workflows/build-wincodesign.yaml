@@ -54,7 +54,7 @@ jobs:
           - arch: arm64
             msystem: CLANGARM64
             mingw_prefix: mingw-w64-clang-aarch64
-            runner: windows-2025-arm64
+            runner: windows-10-arm
 
     defaults:
       run:
@@ -64,6 +64,7 @@ jobs:
       - name: Enable Corepack for pnpm
         run: |
           corepack enable
+        shell: bash
 
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
