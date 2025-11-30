@@ -99,25 +99,9 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: win-codesign-windows-${{ matrix.arch }}
-          path: ./packages/win-codesign/out/win-codesign/win-codesign-windows-${{ matrix.arch }}.zip
-          retention-days: 1
+          path: ./packages/win-codesign/out/**/*.zip
           if-no-files-found: error
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: rcedit-windows-bundle
-          path: ./packages/win-codesign/out/win-codesign/rcedit-windows.zip
           retention-days: 1
-          if-no-files-found: error
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: windows-kits-bundle
-          path: ./packages/win-codesign/out/win-codesign/windows-kits-bundle.zip
-          retention-days: 1
-          if-no-files-found: error
 
   mac:
     runs-on: ${{ matrix.node }}
