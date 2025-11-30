@@ -11,7 +11,7 @@ mkdir -p "$OUTPUT_DIR/rcedit"
 echo "📦 Creating rcedit bundle..."
 
 RCEDIT_BUNDLE_DIR="$OUTPUT_DIR/rcedit"
-RCEDIT_ZIP="$OUTPUT_DIR/rcedit-windows-$RCEDIT_VERSION.zip"
+RCEDIT_ZIP="$OUTPUT_DIR/rcedit-windows-${RCEDIT_VERSION//./_}.zip"
 
 rm -rf "$RCEDIT_BUNDLE_DIR"
 mkdir -p "$RCEDIT_BUNDLE_DIR"
