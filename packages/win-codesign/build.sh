@@ -39,18 +39,9 @@ else
     $OUTPUT_DIR/rcedit/rcedit-x64.exe "$OUTPUT_DIR/rcedit/rcedit-x64.exe" --get-version-string "FileVersion" >"$OUTPUT_DIR/rcedit/VERSION.txt"
     
     # ----------------------------
-    # Download osslsigncode artifacts (Windows)
+    # Build osslsigncode for Windows
     # ----------------------------
-    TMP_DIR=/tmp/win-codesign-osslsigncode-$$
-    mkdir -p "$TMP_DIR"
-    mkdir -p "$OUTPUT_DIR/osslsigncode/windows"
-    cd "$TMP_DIR"
-    curl -L "https://github.com/mtrojnar/osslsigncode/releases/download/$OSSLSIGNCODE_VER/osslsigncode-$OSSLSIGNCODE_VER-windows-x64-mingw.zip" -o a.zip
-    unzip a.zip -d a
-    cp -r a/bin "$OUTPUT_DIR/osslsigncode/windows"
-    rm -rf a a.zip
-    # Write version info
-    "$OUTPUT_DIR/osslsigncode/windows/osslsigncode.exe" --version >"$OUTPUT_DIR/osslsigncode/windows/VERSION.txt"
+    bash "$CWD/assets/build-win.sh"
     
     # ----------------------------
     # Copy appx assets
