@@ -34,16 +34,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # For i386 builds, install multilib and 32-bit dev libraries
+# Note: libgsf-1-dev doesn't have i386 package, but we can use the 64-bit headers
+# with 32-bit linking since we're building on amd64
 RUN if [ "$PLATFORM_ARCH" = "i386" ] || [ "$PLATFORM_ARCH" = "ia32" ]; then \
+        dpkg --add-architecture i386 && \
         apt-get update && apt-get install -y --no-install-recommends \
         gcc-multilib g++-multilib \
         lib32stdc++6 \
+        zlib1g-dev:i386 \
+        libssl-dev:i386 \
+        libcurl4-openssl-dev:i386 \
         && rm -rf /var/lib/apt/lists/* ; \
     fi
 
-# Install CMake (always use x86_64 version for builder)
-RUN curl -sSL -o /tmp/cmake.tar.gz \
-    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz \
+# Install CMake (detect architecture for ARM, use x86_64 for x86/i386)
+RUN ARCH=$(uname -m) && \
+    echo "Detected architecture: $ARCH" && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        CMAKE_ARCH="x86_64" ; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        CMAKE_ARCH="aarch64" ; \
+    elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then \
+        CMAKE_ARCH="x86_64" ; \
+    else \
+        echo "Unsupported CMake architecture: $ARCH" && exit 1 ; \
+    fi && \
+    echo "Downloading CMake for: $CMAKE_ARCH" && \
+    curl -sSL -o /tmp/cmake.tar.gz \
+    https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz \
     && mkdir -p /opt/cmake \
     && tar --strip-components=1 -xzf /tmp/cmake.tar.gz -C /opt/cmake \
     && rm /tmp/cmake.tar.gz
@@ -68,7 +86,9 @@ RUN echo "Starting build for PLATFORM_ARCH=$PLATFORM_ARCH" && \
         echo "Building 32-bit binary using multilib" && \
         CMAKE_FLAGS=$(/tmp/compiler-flags.sh "i386") && \
         echo "CMake flags: $CMAKE_FLAGS" && \
-        cmake .. -DCMAKE_BUILD_TYPE=Release $CMAKE_FLAGS ; \
+        PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib32/pkgconfig \
+        cmake .. -DCMAKE_BUILD_TYPE=Release $CMAKE_FLAGS \
+            -DCMAKE_PREFIX_PATH=/usr/lib/i386-linux-gnu ; \
     else \
         echo "Building native binary for $(uname -m)" && \
         cmake .. -DCMAKE_BUILD_TYPE=Release ; \
