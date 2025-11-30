@@ -22,8 +22,9 @@ rm -rf "$BUILD_DIR" "$OUTPUT_DIR"
 mkdir -p "$BUILD_DIR" "$OUTPUT_DIR"
 
 # Check if we're on Windows (GitHub Actions windows-2025 runner)
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    echo "✓ Detected Windows environment"
+# OSTYPE can be: msys, cygwin, or win32 depending on the shell
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+    echo "✓ Detected Windows environment (OSTYPE=$OSTYPE)"
     
     # Determine the correct package prefix based on architecture
     if [[ "$PLATFORM_ARCH" == "arm64" ]]; then
