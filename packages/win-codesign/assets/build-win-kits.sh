@@ -2,7 +2,7 @@
 set -euo pipefail
 
 CWD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$CWD/out"
+OUTPUT_DIR="$CWD/out/win-codesign"
 
 echo "📦 Creating Windows Kits bundle..."
 
