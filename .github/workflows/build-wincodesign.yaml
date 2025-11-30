@@ -89,6 +89,7 @@ jobs:
 
       - name: Build osslsigncode
         run: |
+          npm install -g corepack pnpm
           corepack enable
           pnpm i --frozen-lockfile
           PLATFORM_ARCH=${{ matrix.arch }} bash ./packages/win-codesign/build.sh
