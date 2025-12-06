@@ -19,6 +19,9 @@ jobs:
   fpm:
     uses: ./.github/workflows/build-fpm.yaml
 
+  win-codesign:
+    uses: ./.github/workflows/build-wincodesign.yaml
+
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
 
@@ -26,6 +29,7 @@ jobs:
     runs-on: macos-latest
     needs: [
       fpm,
+      win-codesign,
       # squirrel
     ]
     outputs:
