@@ -83,9 +83,9 @@ if is_x86; then
     mkdir -p "$OUT_DIR"
     
     # Copy libraries
-    cp "$LIB_DIR/libXss.so.1" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libXss.so.1 not found"
-    cp "$LIB_DIR/libXtst.so.6" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libXtst.so.6 not found"
-    cp "$LIB_DIR/libnotify.so.4" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libnotify.so.4 not found"
+    cp "$LIB_DIR/libXss.so.1" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libXss.so.1 not found"
+    cp "$LIB_DIR/libXtst.so.6" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libXtst.so.6 not found"
+    cp "$LIB_DIR/libnotify.so.4" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libnotify.so.4 not found"
     
     # Try both appindicator variants
     if cp "$LIB_DIR/libappindicator3.so.1" "$OUT_DIR/libappindicator.so.1" 2>/dev/null; then

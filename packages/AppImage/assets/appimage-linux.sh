@@ -34,7 +34,7 @@ mkdir -p $ROOT/out/AppImage
 
 # Build for each architecture separately and extract
 PLATFORMS=("linux/amd64" "linux/386" "linux/arm64" "linux/arm/v7")
-PLATFORM_NAMES=("amd64" "ia32" "arm64" "arm32")
+PLATFORM_NAMES=("amd64" "386" "arm64" "armv7")
 
 for i in "${!PLATFORMS[@]}"; do
     PLATFORM="${PLATFORMS[$i]}"
@@ -54,9 +54,10 @@ for i in "${!PLATFORMS[@]}"; do
     echo -e "${BLUE}Extracting files for ${NAME}...${NC}"
     
     # Extract the tarball from build output
-    if [ -f "${DEST}/appimage-tools.tar.gz" ]; then
-        tar xzf "${DEST}/appimage-tools.tar.gz" -C $ROOT/out/AppImage/
-        rm -rf "${DEST}"
+    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
+        mkdir $DEST/${NAME}
+        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
+        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
         echo -e "${GREEN}✓ Completed ${NAME}${NC}"
     else
         echo -e "${RED}✗ Failed to find output for ${NAME}${NC}"
