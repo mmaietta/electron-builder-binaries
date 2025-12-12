@@ -1,7 +1,7 @@
 # Multi-platform Dockerfile for building AppImage tools
 # Build with: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t appimage-builder .
 
-FROM --platform=$BUILDPLATFORM ubuntu:22.04 as builder
+FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -35,9 +35,9 @@ RUN git clone https://github.com/plougher/squashfs-tools.git && \
     git checkout 4.6.1
 
 # Copy build script and execute
-COPY ./assets/appimage-linux.sh /build/
-RUN chmod +x /build/appimage-linux.sh && \
-    /build/appimage-linux.sh
+COPY ./assets/appimage-docker.sh /build/
+RUN chmod +x /build/appimage-docker.sh && \
+    /build/appimage-docker.sh
 
 # Final stage - create minimal output image
 FROM scratch

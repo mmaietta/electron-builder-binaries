@@ -1,115 +1,85 @@
 #!/bin/bash
+
 set -e
 
-# Determine architecture directory based on platform
-get_arch_dir() {
-    case "$TARGETPLATFORM" in
-        "linux/amd64") echo "linux-x64" ;;
-        "linux/386") echo "linux-ia32" ;;
-        "linux/arm64") echo "linux-arm64" ;;
-        "linux/arm/v7") echo "linux-arm32" ;;
-        *) echo "linux-unknown" ;;
-    esac
-}
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-is_x64() { [ "$TARGETPLATFORM" = "linux/amd64" ]; }
-is_ia32() { [ "$TARGETPLATFORM" = "linux/386" ]; }
-is_arm64() { [ "$TARGETPLATFORM" = "linux/arm64" ]; }
-is_arm32() { [ "$TARGETPLATFORM" = "linux/arm/v7" ]; }
-is_x86() { is_x64 || is_ia32; }
+echo -e "${BLUE}Building AppImage tools for multiple architectures...${NC}"
+echo ""
 
-ARCH_DIR=$(get_arch_dir)
-echo "Building for $TARGETPLATFORM -> $ARCH_DIR"
+ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
-# Build squashfs-tools
-echo "Building squashfs-tools..."
-cd /build/squashfs-tools/squashfs-tools
-make -j$(nproc) GZIP_SUPPORT=1 XZ_SUPPORT=1 LZO_SUPPORT=1 LZ4_SUPPORT=1 ZSTD_SUPPORT=1
-
-mkdir -p "/output/$ARCH_DIR"
-cp mksquashfs "/output/$ARCH_DIR/"
-echo "✓ Built mksquashfs"
-
-# Copy desktop-file-validate
-if [ -f /usr/bin/desktop-file-validate ]; then
-    cp /usr/bin/desktop-file-validate "/output/$ARCH_DIR/"
-    echo "✓ Copied desktop-file-validate"
+# Check if buildx is available
+if ! docker buildx version &> /dev/null; then
+    echo -e "${RED}Error: Docker buildx is not available${NC}"
+    echo "Please install Docker buildx or use Docker Desktop which includes it"
+    exit 1
 fi
 
-# Build OpenJPEG (only for x64)
-if is_x64; then
-    echo "Building OpenJPEG..."
-    cd /build
-    wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
-    tar xzf v2.3.0.tar.gz
-    cd openjpeg-2.3.0
-    mkdir build && cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
-    make -j$(nproc) > /dev/null
-    make install DESTDIR=/output/openjpeg-install > /dev/null
-    
-    mkdir -p "/output/$ARCH_DIR/lib"
-    cp -a /output/openjpeg-install/usr/local/lib/libopenjp2.* "/output/$ARCH_DIR/lib/"
-    cp -a /output/openjpeg-install/usr/local/lib/openjpeg-2.3 "/output/$ARCH_DIR/lib/"
-    cp -a /output/openjpeg-install/usr/local/lib/pkgconfig "/output/$ARCH_DIR/lib/"
-    cp /output/openjpeg-install/usr/local/bin/opj_decompress "/output/$ARCH_DIR/"
-    
-    # Create symlinks
-    cd "/output/$ARCH_DIR/lib"
-    ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
-    ln -sf libopenjp2.so.7 libopenjp2.so
-    echo "✓ Built OpenJPEG"
+# Create a new builder instance if it doesn't exist
+if ! docker buildx ls | grep -q appimage-builder; then
+    echo -e "${BLUE}Creating buildx builder instance...${NC}"
+    docker buildx create --name appimage-builder --use
 fi
 
-# Extract runtime libraries (only for x86 architectures)
-if is_x86; then
-    echo "Installing runtime libraries..."
-    apt-get update -qq
-    apt-get install -y -qq \
-        libxss1 \
-        libxtst6 \
-        libnotify4 \
-        libappindicator3-1 2>/dev/null || \
-        apt-get install -y -qq libayatana-appindicator3-1 2>/dev/null || true
-    
-    if is_x64; then
-        LIB_DIR="/usr/lib/x86_64-linux-gnu"
-        OUT_DIR="/output/lib/x64"
-    else
-        LIB_DIR="/usr/lib/i386-linux-gnu"
-        OUT_DIR="/output/lib/ia32"
-    fi
-    
-    mkdir -p "$OUT_DIR"
-    
-    # Copy libraries
-    cp "$LIB_DIR/libXss.so.1" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libXss.so.1 not found"
-    cp "$LIB_DIR/libXtst.so.6" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libXtst.so.6 not found"
-    cp "$LIB_DIR/libnotify.so.4" "$OUT_DIR/" 2>/dev/null || echo "  ⚠ libnotify.so.4 not found"
-    
-    # Try both appindicator variants
-    if cp "$LIB_DIR/libappindicator3.so.1" "$OUT_DIR/libappindicator.so.1" 2>/dev/null; then
-        echo "  ✓ Copied libappindicator3.so.1"
-    elif cp "$LIB_DIR/libayatana-appindicator3.so.1" "$OUT_DIR/libappindicator.so.1" 2>/dev/null; then
-        echo "  ✓ Copied libayatana-appindicator3.so.1"
-    else
-        echo "  ⚠ libappindicator.so.1 not found"
-    fi
-    
-    # Try both indicator variants
-    if cp "$LIB_DIR/libindicator3.so.7" "$OUT_DIR/libindicator.so.7" 2>/dev/null; then
-        echo "  ✓ Copied libindicator3.so.7"
-    elif cp "$LIB_DIR/libayatana-indicator3.so.7" "$OUT_DIR/libindicator.so.7" 2>/dev/null; then
-        echo "  ✓ Copied libayatana-indicator3.so.7"
-    else
-        echo "  ⚠ libindicator.so.7 not found"
-    fi
-fi
+# Use the builder
+docker buildx use appimage-builder
 
-# Create tarball
-echo "Creating tarball..."
-cd /output
-tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" .
-chmod 644 /appimage-tools-*.tar.gz
+mkdir -p $ROOT/out/AppImage
 
-echo "✓ Build complete for $ARCH_DIR"
+# Build for each architecture separately and extract
+PLATFORMS=("linux/amd64" "linux/386" "linux/arm64" "linux/arm/v7")
+PLATFORM_NAMES=("amd64" "ia32" "arm64" "arm32")
+
+for i in "${!PLATFORMS[@]}"; do
+    PLATFORM="${PLATFORMS[$i]}"
+    NAME="${PLATFORM_NAMES[$i]}"
+    
+    echo ""
+    echo -e "${BLUE}Building for ${PLATFORM} (${NAME})...${NC}"
+    
+    # Build for specific platform and output to local directory
+    DEST="./out/AppImage/${NAME}"
+    docker buildx build \
+        --platform "${PLATFORM}" \
+        --output type=local,dest="${DEST}" \
+        -f "$ROOT/assets/Dockerfile" \
+        .
+    
+    echo -e "${BLUE}Extracting files for ${NAME}...${NC}"
+    
+    # Extract the tarball from build output
+    if [ -f "${DEST}/appimage-tools.tar.gz" ]; then
+        tar xzf "${DEST}/appimage-tools.tar.gz" -C $ROOT/out/AppImage/
+        rm -rf "${DEST}"
+        echo -e "${GREEN}✓ Completed ${NAME}${NC}"
+    else
+        echo -e "${RED}✗ Failed to find output for ${NAME}${NC}"
+        exit 1
+    fi
+done
+
+echo ""
+echo -e "${BLUE}Organizing directory structure...${NC}"
+
+# Verify executables have correct permissions
+echo -e "${BLUE}Verifying executable permissions...${NC}"
+chmod +x $ROOT/out/AppImage/linux-x64/mksquashfs $ROOT/out/AppImage/linux-x64/desktop-file-validate 2>/dev/null || true
+chmod +x $ROOT/out/AppImage/linux-x64/opj_decompress 2>/dev/null || true
+chmod +x $ROOT/out/AppImage/linux-ia32/mksquashfs $ROOT/out/AppImage/linux-ia32/desktop-file-validate 2>/dev/null || true
+chmod +x $ROOT/out/AppImage/linux-arm64/mksquashfs $ROOT/out/AppImage/linux-arm64/desktop-file-validate 2>/dev/null || true
+chmod +x $ROOT/out/AppImage/linux-arm32/mksquashfs 2>/dev/null || true
+echo ""
+echo -e "${GREEN}Extraction complete!${NC}"
+echo ""
+echo "Directory structure:"
+tree $ROOT/out/AppImage -L 3 2>/dev/null || find $ROOT/out/AppImage -type f
+
+echo ""
+echo -e "${GREEN}Done!${NC}"
+docker buildx rm appimage-builder

@@ -18,6 +18,9 @@ echo ""
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 OS=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
+# Create output directory if it doesn't exist
+mkdir -p $CWD/out/AppImage
+
 if [ "$OS" = "darwin" ]; then
     echo -e "${BLUE}Detected macOS - Building Darwin binaries...${NC}"
     echo ""
@@ -26,34 +29,23 @@ if [ "$OS" = "darwin" ]; then
         echo -e "${RED}Error: appimage-mac.sh not found${NC}"
         exit 1
     fi
-
-    bash $CWD/assets/appimage-mac.sh
     
-    echo ""
-    echo -e "${YELLOW}Note: To build Linux binaries, run this script on a Linux machine or use WSL${NC}"
-    
+    bash $CWD/assets/appimage-mac.sh    
 elif [ "$OS" = "linux" ]; then
     echo -e "${BLUE}Detected Linux - Building Linux binaries for all architectures...${NC}"
     echo ""
     
-    if [ ! -f "extract.sh" ]; then
-        echo -e "${RED}Error: extract.sh not found${NC}"
+    if [ ! -f "$CWD/assets/appimage-linux.sh" ]; then
+        echo -e "${RED}Error: appimage-linux.sh not found${NC}"
         exit 1
     fi
-    bash $CWD/extract.sh    
+    bash $CWD/assets/appimage-linux.sh
 else
-    echo -e "${RED}Unsupported OS: $OS${NC}"
-    echo "This script supports macOS and Linux only"
-    exit 1
+    echo -e "${BLUE}Downloading AppImage runtimes...${NC}"
+    
+    bash $CWD/assets/download-runtime.sh
 fi
 
-echo ""
-echo -e "${BLUE}Downloading AppImage runtimes...${NC}"
-
-# Create output directory if it doesn't exist
-mkdir -p $CWD/out/AppImage
-
-bash $CWD/download-runtime.sh
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
@@ -63,13 +55,5 @@ echo ""
 echo "Directory structure:"
 tree $CWD/out/AppImage -L 2 2>/dev/null || find $CWD/out/AppImage -maxdepth 2 -type f
 
-echo ""
-echo -e "${BLUE}Next steps:${NC}"
-if [ "$OS" = "Darwin" ]; then
-    echo "• Run this script on Linux to build Linux binaries"
-elif [ "$OS" = "Linux" ]; then
-    echo "• Run this script on macOS to build Darwin binaries"
-fi
-echo "• Verify all binaries are present in $CWD/out/AppImage/"
 echo ""
 echo -e "${GREEN}Done!${NC}"

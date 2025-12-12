@@ -62,7 +62,7 @@ sha256_of() {
 if [ -z "${SKIP_DOWNLOAD-}" ]; then
 	for mapping in $FILES; do
 		src=${mapping%%:*}
-		dest=${mapping##*:}
+		dest="out/${mapping##*:}"
 		url="$BASE_URL/$src"
 		echo "Downloading $url -> $dest" >&2
 		if ! curl -fL "$url" -o "$dest"; then
@@ -78,7 +78,7 @@ if [ "$MODE" = "print" ]; then
 	# Print computed checksums in the standard format for copy/paste into
 	# CHECKSUMS block. Don't modify the script automatically by default.
 	for mapping in $FILES; do
-		dest=${mapping##*:}
+		dest="out/${mapping##*:}"
 		if [ ! -f "$dest" ]; then
 			echo "Missing file $dest" >&2
 			exit 3
@@ -96,7 +96,7 @@ fi
 # Verification mode: verify each downloaded file against CHECKSUMS
 failed=0
 for mapping in $FILES; do
-	dest=${mapping##*:}
+	dest="out/${mapping##*:}"
 	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$dest" '$2==f{print $1}')"
 	if [ -z "$expected" ]; then
 		echo "Warning: no expected checksum found for $dest in CHECKSUMS; skipping" >&2
