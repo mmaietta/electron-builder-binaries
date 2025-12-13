@@ -60,14 +60,14 @@ echo "✅ All builds completed and extracted"
 
 # Verify executables have correct permissions
 echo "🔐 Verifying executable permissions..."
-chmod +x $DEST/linux-x64/mksquashfs \
-    $DEST/linux-x64/desktop-file-validate \
-    $DEST/linux-x64/opj_decompress \
-    $DEST/linux-ia32/mksquashfs \
-    $DEST/linux-ia32/desktop-file-validate \
-    $DEST/linux-arm64/mksquashfs \
-    $DEST/linux-arm64/desktop-file-validate \
-    $DEST/linux-arm32/mksquashfs
+chmod +x $DEST/x64/mksquashfs \
+    $DEST/x64/desktop-file-validate \
+    $DEST/x64/opj_decompress \
+    $DEST/ia32/mksquashfs \
+    $DEST/ia32/desktop-file-validate \
+    $DEST/arm64/mksquashfs \
+    $DEST/arm64/desktop-file-validate \
+    $DEST/arm32/mksquashfs
 
 echo ""
 echo "✨ Extraction complete!"
