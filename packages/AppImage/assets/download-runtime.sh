@@ -71,6 +71,8 @@ if [ ! -d "$INSTALL_DIR" ]; then
 	mkdir -p "$INSTALL_DIR"
 fi
 
+OUT_DIR="${OUT_DIR:-$INSTALL_DIR}"
+
 # Helper: compute sha256 of a file in a portable way
 sha256_of() {
 	file="$1"
@@ -163,3 +165,12 @@ fi
 
 echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$INSTALL_DIR/VERSION.txt"
 echo "All files verified successfully." >&2
+
+ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE.zip"
+echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
+(
+cd "$INSTALL_DIR"
+zip -r -9 "$OUT_DIR/$ARCHIVE_NAME" .
+)
+echo "✅ Done!"
+echo "Bundle at: $OUT_DIR/$ARCHIVE_NAME"

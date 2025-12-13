@@ -13,7 +13,7 @@ SRC_DIR="${SRC_DIR:-$ROOT/out/dist}"
 # ----------------------------
 # Runtime → project root
 # ----------------------------
-RUNTIME_ZIP="$SRC_DIR"/appimage-squashfs*.zip
+RUNTIME_ZIP="$SRC_DIR"/appimage-runtime*.zip
 if [[ -f $RUNTIME_ZIP ]]; then
   echo "Extracting runtime to project root"
   unzip -qo "$RUNTIME_ZIP" -d "$OUT_DIR"
