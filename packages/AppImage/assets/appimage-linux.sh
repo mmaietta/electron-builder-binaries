@@ -30,34 +30,33 @@ mkdir -p $DEST
 PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm/v7")
 PLATFORM_NAMES=("amd64" "arm64" "armv7")
 
-
-# for i in "${!PLATFORMS[@]}"; do
-#     PLATFORM="${PLATFORMS[$i]}"
-#     NAME="${PLATFORM_NAMES[$i]}"
+for i in "${!PLATFORMS[@]}"; do
+    PLATFORM="${PLATFORMS[$i]}"
+    NAME="${PLATFORM_NAMES[$i]}"
     
-#     echo ""
-#     echo "🚀 Building for ${PLATFORM} (${NAME})..."
+    echo ""
+    echo "🚀 Building for ${PLATFORM} (${NAME})..."
     
-#     # Build for specific platform and output to local directory
-#     docker buildx build \
-#         --progress=plain \
-#         --platform "${PLATFORM}" \
-#         --output type=local,dest="${DEST}" \
-#         -f "$ROOT/assets/Dockerfile" \
-#         .
+    # Build for specific platform and output to local directory
+    docker buildx build \
+        --progress=plain \
+        --platform "${PLATFORM}" \
+        --output type=local,dest="${DEST}" \
+        -f "$ROOT/assets/Dockerfile" \
+        .
     
-#     echo "📦 Extracting files for ${NAME}..."
+    echo "📦 Extracting files for ${NAME}..."
     
-#     # Extract the tarball from build output
-#     if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
-#         tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
-#         rm "${DEST}/appimage-tools-${NAME}.tar.gz"
-#         echo "✅ Completed ${NAME}"
-#     else
-#         echo "❌ Failed to find output for ${NAME}"
-#         exit 1
-#     fi
-# done
+    # Extract the tarball from build output
+    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
+        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
+        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
+        echo "✅ Completed ${NAME}"
+    else
+        echo "❌ Failed to find output for ${NAME}"
+        exit 1
+    fi
+done
 
 # Build i386 separately with i386/ prefix
 echo ""

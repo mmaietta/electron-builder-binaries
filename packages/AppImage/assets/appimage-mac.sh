@@ -58,8 +58,9 @@ mkdir -p "$OUTPUT_DIR"
 
 # Copy binaries
 echo "Copying binaries..."
-cp -a "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
-cp -a "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
+cp "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
+cp "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
+echo "✓ Binaries copied to $OUTPUT_DIR"
 
 # Verify the binaries work
 echo "Verifying binaries..."
