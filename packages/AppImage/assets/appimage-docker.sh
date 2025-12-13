@@ -43,7 +43,7 @@ echo "Verifying binaries and recording versions..."
 : > "$VERSION_FILE"
 
 # Verify mksquashfs
-if MKSQ_VER=$("$DEST/mksquashfs" -version 2>&1); then
+if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
     echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
     echo "✓ mksquashfs verified"
 else

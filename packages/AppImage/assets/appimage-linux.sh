@@ -58,9 +58,6 @@ done
 
 echo "✅ All builds completed and extracted"
 
-echo ""
-echo "📁 Organizing directory structure..."
-
 # Verify executables have correct permissions
 echo "🔐 Verifying executable permissions..."
 chmod +x $DEST/linux-x64/mksquashfs \
@@ -76,7 +73,7 @@ echo ""
 echo "✨ Extraction complete!"
 echo ""
 echo "📂 Directory structure:"
-tree $ROOT/out/AppImage -L 4 2>/dev/null || find $ROOT/out/AppImage -type f
+tree $DEST -L 4 2>/dev/null || find $DEST -type f
 
 echo ""
 echo "Creating zip archive of all builds..."
@@ -87,6 +84,7 @@ ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
 
+docker buildx rm appimage-builder
+
 echo ""
 echo "🎉 Done!"
-docker buildx rm appimage-builder

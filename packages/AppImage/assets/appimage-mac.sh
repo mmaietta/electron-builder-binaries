@@ -2,6 +2,7 @@
 set -e
 
 echo "Building AppImage tools for macOS..."
+ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -53,7 +54,8 @@ echo "✓ Found mksquashfs at: $MKSQUASHFS"
 echo "✓ Found desktop-file-validate at: $DESKTOP_FILE_VALIDATE"
 
 # Create output directory
-OUTPUT_DIR="./out/AppImage/$ARCH_DIR"
+DEST="$ROOT/out/AppImage"
+OUTPUT_DIR="$DEST/$ARCH_DIR"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
@@ -78,7 +80,7 @@ else
 fi
 
 # Verify desktop-file-validate
-if DFV_VER=$("$OUTPUT_DIR/desktop-file-validate" --version 2>&1); then
+if DFV_VER=$("$OUTPUT_DIR/desktop-file-validate" --version | head -n1 2>&1); then
     echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
     echo "✓ desktop-file-validate verified"
 else
@@ -98,7 +100,7 @@ ls -lh "$OUTPUT_DIR"
 echo "Creating zip archive..."
 ARCHIVE_NAME="appimage-tools-macos-$ARCH.zip"
 (
-    cd "$OUTPUT_DIR/.."
-    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" "$ARCH" >/dev/null
+    cd "$OUTPUT_DIR"
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" . >/dev/null
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
