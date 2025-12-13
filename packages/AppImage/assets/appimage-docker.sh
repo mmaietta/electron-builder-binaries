@@ -51,9 +51,9 @@ else
     exit 1
 fi
 
-"$DEST/desktop-file-validate" --version 
-# Verify desktop-file-validate
-if DFV_VER=$("$DEST/desktop-file-validate" --version 2>&1); then
+# Verify desktop-file-validate. (There's no --version, so we just run it to see if it works and then use dpkg-query to get version)
+"$DEST/desktop-file-validate" --help > /dev/null 2>&1
+if DFV_VER=$(dpkg-query -W -f='${Version}\n' desktop-file-utils 2>&1); then
     echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
     echo "✓ desktop-file-validate verified"
 else
@@ -183,7 +183,7 @@ fi
 
 # Create tarball
 echo "Creating tarball..."
-cd /output
+cd "$DEST/.."
 tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" .
 chmod 644 /appimage-tools-*.tar.gz
 
