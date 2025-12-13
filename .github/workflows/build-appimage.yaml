@@ -1,0 +1,49 @@
+name: Build AppImage
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    
+jobs:
+  mac:
+    runs-on: macos-15-intel
+    steps:
+      - name: Enable Corepack for pnpm
+        run: |
+          corepack enable
+        shell: bash
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
+        with: { node-version: '22' }
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Build for macOS
+        run: bash packages/AppImage/build.sh
+        shell: bash
+        env: { TARGET: darwin }
+
+      - name: Build for Linux
+        run: bash packages/AppImage/build.sh
+        shell: bash
+        env: { TARGET: linux }
+
+      - name: Download runtime
+        run: bash packages/AppImage/build.sh
+        shell: bash
+        env: { TARGET: runtime }
+
+      - name: Zip bundle
+        run: bash packages/AppImage/build.sh
+        shell: bash
+        env: { TARGET: compress }
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: appimage-${{ matrix.node }}
+          path: packages/AppImage/out/*.zip
+          if-no-files-found: error
+          retention-days: 1
