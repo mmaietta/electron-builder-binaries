@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 
 echo "Building AppImage tools for macOS..."
 
@@ -14,7 +14,7 @@ else
     exit 1
 fi
 
-echo "Building for macOS ($ARCH) -> $ARCH_DIR"
+echo "Building for macOS ($ARCH_DIR) -> $ARCH"
 
 # Check for Homebrew
 if ! command -v brew &> /dev/null; then
@@ -54,27 +54,39 @@ echo "✓ Found desktop-file-validate at: $DESKTOP_FILE_VALIDATE"
 
 # Create output directory
 OUTPUT_DIR="./out/AppImage/$ARCH_DIR"
+rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
 # Copy binaries
 echo "Copying binaries..."
-cp "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
-cp "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
+cp -aL "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
+cp -aL "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
 echo "✓ Binaries copied to $OUTPUT_DIR"
 
-# Verify the binaries work
-echo "Verifying binaries..."
-if "$OUTPUT_DIR/mksquashfs" -version &> /dev/null; then
+VERSION_FILE="$OUTPUT_DIR/VERSION.txt"
+
+echo "Verifying binaries and recording versions..."
+: > "$VERSION_FILE"
+
+# Verify mksquashfs
+if MKSQ_VER=$("$OUTPUT_DIR/mksquashfs" -version 2>&1); then
+    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
     echo "✓ mksquashfs verified"
 else
-    echo "⚠ mksquashfs verification failed (may still work)"
+    echo "❌ mksquashfs verification failed"
+    exit 1
 fi
 
-if "$OUTPUT_DIR/desktop-file-validate" --help &> /dev/null; then
+# Verify desktop-file-validate
+if DFV_VER=$("$OUTPUT_DIR/desktop-file-validate" --version 2>&1); then
+    echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
     echo "✓ desktop-file-validate verified"
 else
-    echo "⚠ desktop-file-validate verification failed (may still work)"
+    echo "❌ desktop-file-validate verification failed"
+    exit 1
 fi
+
+echo "Versions written to $VERSION_FILE"
 
 echo ""
 echo "✓ macOS build complete!"

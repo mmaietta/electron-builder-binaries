@@ -2,9 +2,6 @@
 
 set -e
 
-echo "🔨 Building AppImage tools for multiple architectures..."
-echo ""
-
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
 # Check if buildx is available
@@ -99,7 +96,7 @@ echo ""
 echo "✨ Extraction complete!"
 echo ""
 echo "📂 Directory structure:"
-tree $ROOT/out/AppImage -L 3 2>/dev/null || find $ROOT/out/AppImage -type f
+tree $ROOT/out/AppImage -L 4 2>/dev/null || find $ROOT/out/AppImage -type f
 
 echo ""
 echo "🎉 Done!"

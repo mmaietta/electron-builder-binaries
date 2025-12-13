@@ -2,7 +2,7 @@
 
 # Build script for AppImage tools for multiple platforms
 # Compile for all builds possible if on MacOS w/ docker buildx.
-# rm -rf out; OS_TARGET=linux sh build.sh && OS_TARGET=darwin sh build.sh && sh build.sh   
+# rm -rf out; OS_TARGET=runtime sh build.sh && OS_TARGET=linux sh build.sh && OS_TARGET=darwin sh build.sh
 
 set -e
 
@@ -26,7 +26,6 @@ elif [ "$OS_TARGET" = "linux" ]; then
     bash $CWD/assets/appimage-linux.sh
 else
     echo "📥 Downloading AppImage runtimes..."
-    
     bash $CWD/assets/download-runtime.sh
 fi
 

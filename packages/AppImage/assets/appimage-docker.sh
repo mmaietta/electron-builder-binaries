@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
+
 # Determine architecture directory based on platform
 get_arch_dir() {
     case "$TARGETPLATFORM" in
@@ -19,6 +21,7 @@ is_arm32() { [ "$TARGETPLATFORM" = "linux/arm/v7" ]; }
 is_x86() { is_x64 || is_ia32; }
 
 ARCH_DIR=$(get_arch_dir)
+DEST="$CWD/output/$ARCH_DIR"
 echo "Building for $TARGETPLATFORM -> $ARCH_DIR"
 
 # Build squashfs-tools
@@ -26,13 +29,37 @@ echo "Building squashfs-tools..."
 cd /build/squashfs-tools/squashfs-tools
 make -j$(nproc) GZIP_SUPPORT=1 XZ_SUPPORT=1 LZO_SUPPORT=1 LZ4_SUPPORT=1 ZSTD_SUPPORT=1
 
-mkdir -p "/output/$ARCH_DIR"
-cp mksquashfs "/output/$ARCH_DIR/"
+mkdir -p "$DEST"
+cp -aL mksquashfs "$DEST/"
 echo "✓ Built mksquashfs"
 
 # Copy desktop-file-validate
-cp /usr/bin/desktop-file-validate "/output/$ARCH_DIR/"
+cp -aL /usr/bin/desktop-file-validate "$DEST/"
 echo "✓ Copied desktop-file-validate"
+
+VERSION_FILE="$DEST/VERSION.txt"
+
+echo "Verifying binaries and recording versions..."
+: > "$VERSION_FILE"
+
+# Verify mksquashfs
+if MKSQ_VER=$("$DEST/mksquashfs" -version 2>&1); then
+    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
+    echo "✓ mksquashfs verified"
+else
+    echo "❌ mksquashfs verification failed"
+    exit 1
+fi
+
+"$DEST/desktop-file-validate" --version 
+# Verify desktop-file-validate
+if DFV_VER=$("$DEST/desktop-file-validate" --version 2>&1); then
+    echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
+    echo "✓ desktop-file-validate verified"
+else
+    echo "❌ desktop-file-validate verification failed"
+    exit 1
+fi
 
 # Build OpenJPEG (only for x64)
 if is_x64; then
@@ -44,16 +71,16 @@ if is_x64; then
     mkdir build && cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
     make -j$(nproc) > /dev/null
-    make install DESTDIR=/output/openjpeg-install > /dev/null
+    make install DESTDIR=/tmp/openjpeg-install > /dev/null
     
-    mkdir -p "/output/$ARCH_DIR/lib"
-    cp -a /output/openjpeg-install/usr/local/lib/libopenjp2.* "/output/$ARCH_DIR/lib/"
-    cp -a /output/openjpeg-install/usr/local/lib/openjpeg-2.3 "/output/$ARCH_DIR/lib/"
-    cp -a /output/openjpeg-install/usr/local/lib/pkgconfig "/output/$ARCH_DIR/lib/"
-    cp /output/openjpeg-install/usr/local/bin/opj_decompress "/output/$ARCH_DIR/"
+    mkdir -p "$DEST/lib"
+    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$DEST/lib/"
+    cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$DEST/lib/"
+    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$DEST/lib/"
+    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$DEST/"
     
     # Create symlinks
-    cd "/output/$ARCH_DIR/lib"
+    cd "$DEST/lib"
     ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
     ln -sf libopenjp2.so.7 libopenjp2.so
     echo "✓ Built OpenJPEG"

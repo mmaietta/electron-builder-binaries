@@ -28,6 +28,9 @@ e9060d37577b8a29914ec12d8740add24e19ff29012fb1fa0f60daf62db0688d  runtime-armv7l
 CHECKSUMS
 )
 
+CWD=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
+mkdir -p "$CWD/out"
+
 usage() {
 	echo "Usage: $0 [--print-checksums]"
 	echo ""
@@ -65,7 +68,7 @@ if [ -z "${SKIP_DOWNLOAD-}" ]; then
 		dest="out/${mapping##*:}"
 		url="$BASE_URL/$src"
 		echo "Downloading $url -> $dest" >&2
-		if ! curl -fL "$url" -o "$dest"; then
+		if ! curl -fL "$url" -o "$CWD/$dest"; then
 			echo "Failed to download $url" >&2
 			exit 2
 		fi
@@ -79,11 +82,11 @@ if [ "$MODE" = "print" ]; then
 	# CHECKSUMS block. Don't modify the script automatically by default.
 	for mapping in $FILES; do
 		dest="out/${mapping##*:}"
-		if [ ! -f "$dest" ]; then
+		if [ ! -f "$CWD/$dest" ]; then
 			echo "Missing file $dest" >&2
 			exit 3
 		fi
-		echo "$(sha256_of "$dest")  $dest"
+		echo "$(sha256_of "$CWD/$dest")  $dest"
 	done
 	exit 0
 fi
@@ -97,7 +100,7 @@ fi
 failed=0
 for mapping in $FILES; do
 	dest="out/${mapping##*:}"
-	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$dest" '$2==f{print $1}')"
+	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$CWD/$dest" '$2==f{print $1}')"
 	if [ -z "$expected" ]; then
 		echo "Warning: no expected checksum found for $dest in CHECKSUMS; skipping" >&2
 		continue
@@ -109,12 +112,12 @@ for mapping in $FILES; do
 			continue
 			;;
 	esac
-	if [ ! -f "$dest" ]; then
+	if [ ! -f "$CWD/$dest" ]; then
 		echo "File not found: $dest" >&2
 		failed=1
 		continue
 	fi
-	computed="$(sha256_of "$dest")"
+	computed="$(sha256_of "$CWD/$dest")"
 	if [ "$computed" != "$expected" ]; then
 		echo "Checksum mismatch for $dest" >&2
 		echo "  expected: $expected" >&2
@@ -124,6 +127,8 @@ for mapping in $FILES; do
 		echo "OK   $dest" >&2
 	fi
 done
+
+echo "AppImage/type2-runtime release: $RELEASE" > "$CWD/out/VERSION.txt"
 
 if [ "$failed" -ne 0 ]; then
 	echo "Some files failed checksum verification" >&2
