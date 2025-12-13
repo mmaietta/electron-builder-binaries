@@ -59,7 +59,7 @@ if [[ -f "$LINUX_ZIP" ]]; then
   done
 fi
 
-ARCHIVE_NAME="appimage-tools-runtime$APPIMAGE_TYPE2_RELEASE.zip"
+ARCHIVE_NAME="appimage-tools-runtime-$APPIMAGE_TYPE2_RELEASE.zip"
 echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
 (
 cd "$SRC_DIR"
