@@ -2,85 +2,106 @@
 
 set -e
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${BLUE}Building AppImage tools for multiple architectures...${NC}"
+echo "🔨 Building AppImage tools for multiple architectures..."
 echo ""
 
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
 # Check if buildx is available
 if ! docker buildx version &> /dev/null; then
-    echo -e "${RED}Error: Docker buildx is not available${NC}"
+    echo "❌ Error: Docker buildx is not available"
     echo "Please install Docker buildx or use Docker Desktop which includes it"
     exit 1
 fi
 
 # Create a new builder instance if it doesn't exist
 if ! docker buildx ls | grep -q appimage-builder; then
-    echo -e "${BLUE}Creating buildx builder instance...${NC}"
+    echo "🏗️  Creating buildx builder instance..."
     docker buildx create --name appimage-builder --use
 fi
 
 # Use the builder
 docker buildx use appimage-builder
 
-mkdir -p $ROOT/out/AppImage
+DEST="$ROOT/out/AppImage"
+mkdir -p $DEST
 
 # Build for each architecture separately and extract
-PLATFORMS=("linux/amd64" "linux/386" "linux/arm64" "linux/arm/v7")
-PLATFORM_NAMES=("amd64" "386" "arm64" "armv7")
+PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm/v7")
+PLATFORM_NAMES=("amd64" "arm64" "armv7")
 
-for i in "${!PLATFORMS[@]}"; do
-    PLATFORM="${PLATFORMS[$i]}"
-    NAME="${PLATFORM_NAMES[$i]}"
+
+# for i in "${!PLATFORMS[@]}"; do
+#     PLATFORM="${PLATFORMS[$i]}"
+#     NAME="${PLATFORM_NAMES[$i]}"
     
-    echo ""
-    echo -e "${BLUE}Building for ${PLATFORM} (${NAME})...${NC}"
+#     echo ""
+#     echo "🚀 Building for ${PLATFORM} (${NAME})..."
     
-    # Build for specific platform and output to local directory
-    DEST="./out/AppImage/${NAME}"
-    docker buildx build \
-        --platform "${PLATFORM}" \
-        --output type=local,dest="${DEST}" \
-        -f "$ROOT/assets/Dockerfile" \
-        .
+#     # Build for specific platform and output to local directory
+#     docker buildx build \
+#         --progress=plain \
+#         --platform "${PLATFORM}" \
+#         --output type=local,dest="${DEST}" \
+#         -f "$ROOT/assets/Dockerfile" \
+#         .
     
-    echo -e "${BLUE}Extracting files for ${NAME}...${NC}"
+#     echo "📦 Extracting files for ${NAME}..."
     
-    # Extract the tarball from build output
-    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
-        mkdir $DEST/${NAME}
-        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
-        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
-        echo -e "${GREEN}✓ Completed ${NAME}${NC}"
-    else
-        echo -e "${RED}✗ Failed to find output for ${NAME}${NC}"
-        exit 1
-    fi
-done
+#     # Extract the tarball from build output
+#     if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
+#         tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
+#         rm "${DEST}/appimage-tools-${NAME}.tar.gz"
+#         echo "✅ Completed ${NAME}"
+#     else
+#         echo "❌ Failed to find output for ${NAME}"
+#         exit 1
+#     fi
+# done
+
+# Build i386 separately with i386/ prefix
+echo ""
+echo "🚀 Building for linux/386 (i386)..."
+docker buildx build \
+    --progress=plain \
+    --platform linux/386 \
+    --build-arg PLATFORM_PREFIX="i386/" \
+    --build-arg TARGETPLATFORM="linux/386" \
+    --build-arg TARGETARCH="386" \
+    --output type=local,dest="${DEST}" \
+    -f "$ROOT/assets/Dockerfile" \
+    .
+
+echo "📦 Extracting files for i386..."
+if [ -f "${DEST}/appimage-tools-386.tar.gz" ]; then
+    tar xzf "${DEST}/appimage-tools-386.tar.gz" -C $DEST/.
+    rm "${DEST}/appimage-tools-386.tar.gz"
+    echo "✅ Completed 386"
+else
+    echo "❌ Failed to find output for 386"
+    exit 1
+fi
 
 echo ""
-echo -e "${BLUE}Organizing directory structure...${NC}"
+echo "📁 Organizing directory structure..."
 
 # Verify executables have correct permissions
-echo -e "${BLUE}Verifying executable permissions...${NC}"
-chmod +x $ROOT/out/AppImage/linux-x64/mksquashfs $ROOT/out/AppImage/linux-x64/desktop-file-validate 2>/dev/null || true
-chmod +x $ROOT/out/AppImage/linux-x64/opj_decompress 2>/dev/null || true
-chmod +x $ROOT/out/AppImage/linux-ia32/mksquashfs $ROOT/out/AppImage/linux-ia32/desktop-file-validate 2>/dev/null || true
-chmod +x $ROOT/out/AppImage/linux-arm64/mksquashfs $ROOT/out/AppImage/linux-arm64/desktop-file-validate 2>/dev/null || true
-chmod +x $ROOT/out/AppImage/linux-arm32/mksquashfs 2>/dev/null || true
+echo "🔐 Verifying executable permissions..."
+chmod +x $DEST/linux-x64/mksquashfs \
+    $DEST/linux-x64/desktop-file-validate \
+    $DEST/linux-x64/opj_decompress \
+    $DEST/linux-ia32/mksquashfs \
+    $DEST/linux-ia32/desktop-file-validate \
+    $DEST/linux-arm64/mksquashfs \
+    $DEST/linux-arm64/desktop-file-validate \
+    $DEST/linux-arm32/mksquashfs
+
 echo ""
-echo -e "${GREEN}Extraction complete!${NC}"
+echo "✨ Extraction complete!"
 echo ""
-echo "Directory structure:"
+echo "📂 Directory structure:"
 tree $ROOT/out/AppImage -L 3 2>/dev/null || find $ROOT/out/AppImage -type f
 
 echo ""
-echo -e "${GREEN}Done!${NC}"
+echo "🎉 Done!"
 docker buildx rm appimage-builder

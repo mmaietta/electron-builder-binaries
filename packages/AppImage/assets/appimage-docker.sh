@@ -65,12 +65,34 @@ fi
 if is_x86; then
     echo "Installing runtime libraries..."
     apt-get update -qq
-    apt-get install -y -qq \
-        libxss1 \
-        libxtst6 \
-        libnotify4 \
-        libappindicator3-1 2>/dev/null || \
-        apt-get install -y -qq libayatana-appindicator3-1 2>/dev/null || true
+    
+    # Install packages and verify they succeeded
+    echo "  Installing libxss1..."
+    apt-get install -y libxss1 || { echo "  ❌ Failed to install libxss1"; exit 1; }
+    
+    echo "  Installing libxtst6..."
+    apt-get install -y libxtst6 || { echo "  ❌ Failed to install libxtst6"; exit 1; }
+    
+    echo "  Installing libnotify4..."
+    apt-get install -y libnotify4 || { echo "  ❌ Failed to install libnotify4"; exit 1; }
+    
+    echo "  Installing libgconf-2-4..."
+    apt-get install -y libgconf-2-4 || { echo "  ❌ Failed to install libgconf-2-4"; exit 1; }
+    
+    # For i386, use libappindicator1 instead of libappindicator3-1
+    if is_ia32; then
+        echo "  Installing libappindicator1 (i386 version)..."
+        apt-get install -y libappindicator1 || { echo "  ❌ Failed to install libappindicator1"; exit 1; }
+        
+        echo "  Installing libindicator7..."
+        apt-get install -y libindicator7 || { echo "  ❌ Failed to install libindicator7"; exit 1; }
+    else
+        echo "  Installing libappindicator3-1..."
+        apt-get install -y libappindicator3-1 || { echo "  ❌ Failed to install libappindicator3-1"; exit 1; }
+        
+        echo "  Installing libindicator3-7..."
+        apt-get install -y libindicator3-7 || { echo "  ❌ Failed to install libindicator3-7"; exit 1; }
+    fi
     
     if is_x64; then
         LIB_DIR="/usr/lib/x86_64-linux-gnu"
@@ -82,28 +104,57 @@ if is_x86; then
     
     mkdir -p "$OUT_DIR"
     
-    # Copy libraries
-    cp "$LIB_DIR/libXss.so.1" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libXss.so.1 not found"
-    cp "$LIB_DIR/libXtst.so.6" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libXtst.so.6 not found"
-    cp "$LIB_DIR/libnotify.so.4" "$OUT_DIR/" 2>/dev/null # || echo "  ⚠ libnotify.so.4 not found"
+    echo "  Verifying installed libraries in $LIB_DIR:"
+    ls -la "$LIB_DIR"/libXss* "$LIB_DIR"/libXtst* "$LIB_DIR"/libnotify* "$LIB_DIR"/libgconf* "$LIB_DIR"/libappindicator* "$LIB_DIR"/libindicator* 2>/dev/null || echo "  Some libraries not found in expected location"
     
-    # Try both appindicator variants
-    if cp "$LIB_DIR/libappindicator3.so.1" "$OUT_DIR/libappindicator.so.1" 2>/dev/null; then
-        echo "  ✓ Copied libappindicator3.so.1"
-    elif cp "$LIB_DIR/libayatana-appindicator3.so.1" "$OUT_DIR/libappindicator.so.1" 2>/dev/null; then
-        echo "  ✓ Copied libayatana-appindicator3.so.1"
+    # Find and copy libraries
+    echo "  Copying libraries to $OUT_DIR"
+    
+    # Helper function to find and copy library
+    copy_lib() {
+        local libname=$1
+        local outname=${2:-$libname}
+        
+        # Try common locations in order of preference
+        local search_dirs=("$LIB_DIR" "/usr/lib/i386-linux-gnu" "/usr/lib/x86_64-linux-gnu" "/usr/lib32" "/usr/lib" "/lib/i386-linux-gnu" "/lib/x86_64-linux-gnu" "/lib32" "/lib")
+        
+        for dir in "${search_dirs[@]}"; do
+            if [ -f "$dir/$libname" ]; then
+                cp "$dir/$libname" "$OUT_DIR/$outname"
+                echo "  ✓ Copied $libname from $dir"
+                return 0
+            fi
+        done
+        
+        # If not found in standard locations, try a broader search
+        local found=$(find /usr/lib /lib -name "$libname" 2>/dev/null | head -1)
+        if [ -n "$found" ]; then
+            cp "$found" "$OUT_DIR/$outname"
+            echo "  ✓ Copied $libname from $(dirname $found)"
+            return 0
+        fi
+        
+        echo "  ❌ $libname not found in any location"
+        echo "     Searched directories: ${search_dirs[*]}"
+        return 1
+    }
+    
+    # Copy all required libraries
+    copy_lib "libXss.so.1" || exit 1
+    copy_lib "libXtst.so.6" || exit 1
+    copy_lib "libnotify.so.4" || exit 1
+    copy_lib "libgconf-2.so.4" || exit 1
+    
+    # For i386, use libappindicator1 library names
+    if is_ia32; then
+        copy_lib "libappindicator.so.1" "libappindicator.so.1" || exit 1
+        copy_lib "libindicator.so.7" "libindicator.so.7" || exit 1
     else
-        echo "  ⚠ libappindicator.so.1 not found"
+        copy_lib "libappindicator3.so.1" "libappindicator.so.1" || exit 1
+        copy_lib "libindicator3.so.7" "libindicator.so.7" || exit 1
     fi
     
-    # Try both indicator variants
-    if cp "$LIB_DIR/libindicator3.so.7" "$OUT_DIR/libindicator.so.7" 2>/dev/null; then
-        echo "  ✓ Copied libindicator3.so.7"
-    elif cp "$LIB_DIR/libayatana-indicator3.so.7" "$OUT_DIR/libindicator.so.7" 2>/dev/null; then
-        echo "  ✓ Copied libayatana-indicator3.so.7"
-    else
-        echo "  ⚠ libindicator.so.7 not found"
-    fi
+    echo "  ✅ All required libraries copied"
 fi
 
 # Create tarball

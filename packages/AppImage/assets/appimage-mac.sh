@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 echo "Building AppImage tools for macOS..."
 
@@ -58,12 +58,8 @@ mkdir -p "$OUTPUT_DIR"
 
 # Copy binaries
 echo "Copying binaries..."
-cp "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
-cp "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
-
-# Make sure they're executable
-chmod +x "$OUTPUT_DIR/mksquashfs"
-chmod +x "$OUTPUT_DIR/desktop-file-validate"
+cp -a "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
+cp -a "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
 
 # Verify the binaries work
 echo "Verifying binaries..."

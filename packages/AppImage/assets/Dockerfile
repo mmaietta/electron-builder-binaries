@@ -1,7 +1,10 @@
 # Multi-platform Dockerfile for building AppImage tools
 # Build with: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t appimage-builder .
 
-FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS builder
+ARG TARGETPLATFORM
+ARG PLATFORM_PREFIX=
+
+FROM ${PLATFORM_PREFIX}ubuntu:20.04 AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
