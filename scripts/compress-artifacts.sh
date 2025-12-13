@@ -34,13 +34,13 @@ downloadArtifact()
 }
 
 # fpm
-NAME="fpm"
-DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
-rm -rf "$DESINTATION_DIR"
-cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
-for f in "$DESINTATION_DIR"/*; do
-    hashArtifact "$NAME/$(basename "$f")"
-done
+# NAME="fpm"
+# DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+# rm -rf "$DESINTATION_DIR"
+# cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+# for f in "$DESINTATION_DIR"/*; do
+#     hashArtifact "$NAME/$(basename "$f")"
+# done
 
 # # nsis
 # NAME="nsis"
@@ -52,13 +52,13 @@ done
 # done
 
 # winCodeSign
-NAME="win-codesign"
-DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
-rm -rf "$DESINTATION_DIR"
-cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
-for f in "$DESINTATION_DIR"/*; do
-    hashArtifact "$NAME/$(basename "$f")"
-done
+# NAME="win-codesign"
+# DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+# rm -rf "$DESINTATION_DIR"
+# cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+# for f in "$DESINTATION_DIR"/*; do
+#     hashArtifact "$NAME/$(basename "$f")"
+# done
 
 # squirrel.windows
 # NAME="squirrel.windows"
@@ -66,6 +66,14 @@ done
 # rm -rf "$DESINTATION_DIR"
 # cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
 # hashArtifact "$NAME/$(basename "$DESINTATION_DIR")"
+
+NAME="AppImage"
+DESINTATION_DIR="$ARTIFACTS_DIR/$NAME"
+rm -rf "$DESINTATION_DIR"
+cp -a "$BUILD_OUT_DIR/$NAME" "$DESINTATION_DIR"
+for f in "$DESINTATION_DIR"/*; do
+    hashArtifact "$NAME/$(basename "$f")"
+done
 
 # # ztsd
 # NAME="zstd"
@@ -78,12 +86,6 @@ done
 # downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" "jddFtdnYsgXmm9qozFHYqIry8fPlr61ytnKDXV+d7w/HIe4E6kCBZholADqIrGFgcCmblhY4Nh/t8oBTLE7eYQ=="
 # ARCHIVE_NAME="win-x64"
 # downloadArtifact "$NAME-$VERSION" "$NAME-v$VERSION-$ARCHIVE_NAME" Cg/7RInWfRhfibx4TJ1SMgw5LMeFQp6lH0GA9CP1/EhlE+RomYc1yKJhwDMnO31s0841feZbqdcHTPhQTQyfDg==
-
-# # appimage
-# NAME="appimage"
-# VERSION="13.0.1"
-# ARCHIVE_NAME="$NAME-$VERSION"
-# downloadArtifact "$ARCHIVE_NAME" "$ARCHIVE_NAME" "ZG8U7K9Bk71cvP1VDlP+L7hO+HhRTJW6RO0kLgh5hbbJJHhPfoA/kw1hsFeq1pAyez6MxvoDyL/5/O45hX9Jaw=="
 
 # # wine-4.0.1-mac
 # NAME="wine"
