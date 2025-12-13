@@ -20,8 +20,8 @@ CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 TARGET=${TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 OUTPUT_DIR="$CWD/out"
-DEST="$OUTPUT_DIR/dist"
-mkdir -p $DEST
+DEST="$CWD/dist"
+mkdir -p $DEST $OUTPUT_DIR
 
 if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."

@@ -123,5 +123,5 @@ jobs:
         with:
           name: appimage-bundle
           if-no-files-found: error
-          path: packages/AppImage/out
+          path: packages/AppImage/out/**/*.zip
           retention-days: 1
