@@ -2,6 +2,8 @@
 
 set -e
 
+SQUASHFS_TOOLS_VERSION_TAG=${SQUASHFS_TOOLS_VERSION_TAG:-"4.6.1"}
+
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
 # Check if buildx is available
@@ -38,6 +40,7 @@ for i in "${!PLATFORMS[@]}"; do
     docker buildx build \
         --progress=plain \
         --platform "${PLATFORM}" \
+        --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
         --output type=local,dest="${DEST}" \
         -f "$ROOT/assets/Dockerfile" \
         .
@@ -64,6 +67,7 @@ docker buildx build \
     --build-arg PLATFORM_PREFIX="i386/" \
     --build-arg TARGETPLATFORM="linux/386" \
     --build-arg TARGETARCH="386" \
+    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --output type=local,dest="${DEST}" \
     -f "$ROOT/assets/Dockerfile" \
     .

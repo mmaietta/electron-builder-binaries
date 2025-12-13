@@ -11,8 +11,10 @@ set -eu
 # --print-checksums to compute the correct checksums (copy the output into the
 # CHECKSUMS block and commit to source control).
 
-RELEASE="20251108"
-BASE_URL="https://github.com/AppImage/type2-runtime/releases/download/${RELEASE}"
+# note: "20251108" match checksums hardcoded below
+APPIMAGE_TYPE2_RELEASE="${APPIMAGE_TYPE2_RELEASE:-20251108}"
+
+BASE_URL="https://github.com/AppImage/type2-runtime/releases/download/${APPIMAGE_TYPE2_RELEASE}"
 
 FILES="runtime-x86_64:runtime-x64 runtime-i686:runtime-ia32 runtime-aarch64:runtime-arm64 runtime-armhf:runtime-armv7l"
 
@@ -86,7 +88,7 @@ if [ "$MODE" = "print" ]; then
 			echo "Missing file $dest" >&2
 			exit 3
 		fi
-		echo "$(sha256_of "$CWD/$dest")  $dest"
+		echo "$(sha256_of "$CWD/$dest")  $CWD/$dest"
 	done
 	exit 0
 fi
@@ -100,7 +102,7 @@ fi
 failed=0
 for mapping in $FILES; do
 	dest="out/${mapping##*:}"
-	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$CWD/$dest" '$2==f{print $1}')"
+	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$dest" '$2==f{print $1}')"
 	if [ -z "$expected" ]; then
 		echo "Warning: no expected checksum found for $dest in CHECKSUMS; skipping" >&2
 		continue
@@ -128,7 +130,7 @@ for mapping in $FILES; do
 	fi
 done
 
-echo "AppImage/type2-runtime release: $RELEASE" > "$CWD/out/VERSION.txt"
+echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$CWD/out/VERSION.txt"
 
 if [ "$failed" -ne 0 ]; then
 	echo "Some files failed checksum verification" >&2

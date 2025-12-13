@@ -11,12 +11,17 @@ echo "║  🔧 AppImage Tools Build Script       ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
+# VERSIONS
+export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
+export APPIMAGE_TYPE2_RELEASE="20251108"
+
 # Detect OS
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 # Create output directory if it doesn't exist
-mkdir -p $CWD/out/AppImage
+OUTPUT_DIR="$CWD/out/AppImage"
+mkdir -p $OUTPUT_DIR
 
 if [ "$OS_TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
@@ -24,9 +29,18 @@ if [ "$OS_TARGET" = "darwin" ]; then
 elif [ "$OS_TARGET" = "linux" ]; then
     echo "🐧 Detected Linux target - Building Linux binaries for all architectures..."
     bash $CWD/assets/appimage-linux.sh
-else
-    echo "📥 Downloading AppImage runtimes..."
+elif [ "$OS_TARGET" = "runtime" ]; then
+    echo "📥 Downloading AppImage runtimes into bundle..."
     bash $CWD/assets/download-runtime.sh
+else
+    ARCHIVE_NAME="appimage-tools-runtime-bundle.zip"
+    echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
+    (
+    cd "$CWD/out/AppImage"
+    zip -r -9 "$CWD/$ARCHIVE_NAME" . >/dev/null
+    )
+    echo "✅ Done!"
+    echo "Bundle at: $OUTPUT_DIR/$ARCHIVE_NAME"
 fi
 
 
@@ -36,7 +50,6 @@ echo "║  ✅ Build Complete!                    ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 echo "📂 Directory structure:"
-tree $CWD/out/AppImage -L 2 2>/dev/null || find $CWD/out/AppImage -maxdepth 2 -type f
+tree $OUTPUT_DIR -L 3 2>/dev/null || find $OUTPUT_DIR -maxdepth 3 -type f
 
-echo ""
-echo "🎉 Done!"
+

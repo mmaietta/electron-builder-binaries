@@ -33,9 +33,10 @@ RUN apt-get update -yq && apt-get install -y \
 
 # Clone squashfs-tools
 WORKDIR /build
+ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
 RUN git clone https://github.com/plougher/squashfs-tools.git && \
     cd squashfs-tools/squashfs-tools && \
-    git checkout 4.6.1
+    git checkout $SQUASHFS_TOOLS_VERSION_TAG
 
 # Copy build script and execute
 COPY ./assets/appimage-docker.sh /build/
