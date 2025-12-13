@@ -34,11 +34,11 @@ downloadArtifact()
 
 
 NAMES=(
-  fpm
-  ran
-  nsis
-  win-codesign
-  squirrel.windows
+#   fpm
+#   ran
+#   nsis
+#   win-codesign
+#   squirrel.windows
   AppImage
 )
 
