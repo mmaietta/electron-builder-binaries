@@ -31,10 +31,8 @@ cp mksquashfs "/output/$ARCH_DIR/"
 echo "✓ Built mksquashfs"
 
 # Copy desktop-file-validate
-if [ -f /usr/bin/desktop-file-validate ]; then
-    cp /usr/bin/desktop-file-validate "/output/$ARCH_DIR/"
-    echo "✓ Copied desktop-file-validate"
-fi
+cp /usr/bin/desktop-file-validate "/output/$ARCH_DIR/"
+echo "✓ Copied desktop-file-validate"
 
 # Build OpenJPEG (only for x64)
 if is_x64; then
@@ -79,35 +77,30 @@ if is_x86; then
     echo "  Installing libgconf-2-4..."
     apt-get install -y libgconf-2-4 || { echo "  ❌ Failed to install libgconf-2-4"; exit 1; }
     
-    # For i386, use libappindicator1 instead of libappindicator3-1
-    if is_ia32; then
-        echo "  Installing libappindicator1 (i386 version)..."
-        apt-get install -y libappindicator1 || { echo "  ❌ Failed to install libappindicator1"; exit 1; }
-        
-        echo "  Installing libindicator7..."
-        apt-get install -y libindicator7 || { echo "  ❌ Failed to install libindicator7"; exit 1; }
-    else
+    # libappindicator3-1 only available for x64 in Ubuntu 20.04
+    # For i386: we'll download the .deb from Ubuntu 18.04 archives
+    if is_x64; then
         echo "  Installing libappindicator3-1..."
         apt-get install -y libappindicator3-1 || { echo "  ❌ Failed to install libappindicator3-1"; exit 1; }
         
         echo "  Installing libindicator3-7..."
         apt-get install -y libindicator3-7 || { echo "  ❌ Failed to install libindicator3-7"; exit 1; }
-    fi
-    
-    if is_x64; then
+        
         LIB_DIR="/usr/lib/x86_64-linux-gnu"
         OUT_DIR="/output/lib/x64"
     else
+        echo "  Downloading libappindicator1 from Ubuntu 18.04 archive (not available in 20.04 i386)..."
+        cd /tmp
+        wget -q http://archive.ubuntu.com/ubuntu/pool/universe/liba/libappindicator/libappindicator1_12.10.1+18.04.20180322.1-0ubuntu1_i386.deb
+        wget -q http://archive.ubuntu.com/ubuntu/pool/universe/libi/libindicator/libindicator7_16.10.0+18.04.20180321.1-0ubuntu1_i386.deb
+        dpkg -x libappindicator1_12.10.1+18.04.20180322.1-0ubuntu1_i386.deb /tmp/appind
+        dpkg -x libindicator7_16.10.0+18.04.20180321.1-0ubuntu1_i386.deb /tmp/ind
         LIB_DIR="/usr/lib/i386-linux-gnu"
         OUT_DIR="/output/lib/ia32"
     fi
     
     mkdir -p "$OUT_DIR"
     
-    echo "  Verifying installed libraries in $LIB_DIR:"
-    ls -la "$LIB_DIR"/libXss* "$LIB_DIR"/libXtst* "$LIB_DIR"/libnotify* "$LIB_DIR"/libgconf* "$LIB_DIR"/libappindicator* "$LIB_DIR"/libindicator* 2>/dev/null || echo "  Some libraries not found in expected location"
-    
-    # Find and copy libraries
     echo "  Copying libraries to $OUT_DIR"
     
     # Helper function to find and copy library
@@ -115,8 +108,22 @@ if is_x86; then
         local libname=$1
         local outname=${2:-$libname}
         
-        # Try common locations in order of preference
-        local search_dirs=("$LIB_DIR" "/usr/lib/i386-linux-gnu" "/usr/lib/x86_64-linux-gnu" "/usr/lib32" "/usr/lib" "/lib/i386-linux-gnu" "/lib/x86_64-linux-gnu" "/lib32" "/lib")
+        # For i386 appindicator, check extracted .deb first
+        if is_ia32 && [[ "$libname" == "libappindicator"* || "$libname" == "libindicator"* ]]; then
+            if [ -f "/tmp/appind/usr/lib/i386-linux-gnu/$libname" ]; then
+                cp "/tmp/appind/usr/lib/i386-linux-gnu/$libname" "$OUT_DIR/$outname"
+                echo "  ✓ Copied $libname from extracted .deb"
+                return 0
+            fi
+            if [ -f "/tmp/ind/usr/lib/i386-linux-gnu/$libname" ]; then
+                cp "/tmp/ind/usr/lib/i386-linux-gnu/$libname" "$OUT_DIR/$outname"
+                echo "  ✓ Copied $libname from extracted .deb"
+                return 0
+            fi
+        fi
+        
+        # Try common locations
+        local search_dirs=("$LIB_DIR" "/usr/lib/i386-linux-gnu" "/usr/lib/x86_64-linux-gnu")
         
         for dir in "${search_dirs[@]}"; do
             if [ -f "$dir/$libname" ]; then
@@ -126,16 +133,7 @@ if is_x86; then
             fi
         done
         
-        # If not found in standard locations, try a broader search
-        local found=$(find /usr/lib /lib -name "$libname" 2>/dev/null | head -1)
-        if [ -n "$found" ]; then
-            cp "$found" "$OUT_DIR/$outname"
-            echo "  ✓ Copied $libname from $(dirname $found)"
-            return 0
-        fi
-        
-        echo "  ❌ $libname not found in any location"
-        echo "     Searched directories: ${search_dirs[*]}"
+        echo "  ❌ $libname not found"
         return 1
     }
     
@@ -145,13 +143,12 @@ if is_x86; then
     copy_lib "libnotify.so.4" || exit 1
     copy_lib "libgconf-2.so.4" || exit 1
     
-    # For i386, use libappindicator1 library names
-    if is_ia32; then
-        copy_lib "libappindicator.so.1" "libappindicator.so.1" || exit 1
-        copy_lib "libindicator.so.7" "libindicator.so.7" || exit 1
-    else
+    if is_x64; then
         copy_lib "libappindicator3.so.1" "libappindicator.so.1" || exit 1
         copy_lib "libindicator3.so.7" "libindicator.so.7" || exit 1
+    else
+        copy_lib "libappindicator.so.1" || exit 1
+        copy_lib "libindicator.so.7" || exit 1
     fi
     
     echo "  ✅ All required libraries copied"
