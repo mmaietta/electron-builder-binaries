@@ -24,45 +24,22 @@ docker buildx use appimage-builder
 
 DEST="$ROOT/out/AppImage"
 mkdir -p $DEST
-
-# Build for each architecture separately and extract
+# Build all architectures in one command
 PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm/v7")
-PLATFORM_NAMES=("amd64" "arm64" "armv7")
+PLATFORM_NAMES=("amd64" "arm64" "armv7" "386") # 386 will be built separately
 
-for i in "${!PLATFORMS[@]}"; do
-    PLATFORM="${PLATFORMS[$i]}"
-    NAME="${PLATFORM_NAMES[$i]}"
-    
-    echo ""
-    echo "🚀 Building for ${PLATFORM} (${NAME})..."
-    
-    # Build for specific platform and output to local directory
-    docker buildx build \
-        --progress=plain \
-        --platform "${PLATFORM}" \
-        --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-        --output type=local,dest="${DEST}" \
-        -f "$ROOT/assets/Dockerfile" \
-        .
-    
-    echo "📦 Extracting files for ${NAME}..."
-    
-    # Extract the tarball from build output
-    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
-        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C $DEST/.
-        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
-        echo "✅ Completed ${NAME}"
-    else
-        echo "❌ Failed to find output for ${NAME}"
-        exit 1
-    fi
-done
+echo "🚀 Building for all platforms..."
+docker buildx build \
+    --platform "$(IFS=,; echo "${PLATFORMS[*]}")" \
+    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
+    --output type=local,dest="${DEST}" \
+    -f "$ROOT/assets/Dockerfile" \
+    .
 
 # Build i386 separately with i386/ prefix
 echo ""
 echo "🚀 Building for linux/386 (i386)..."
 docker buildx build \
-    --progress=plain \
     --platform linux/386 \
     --build-arg PLATFORM_PREFIX="i386/" \
     --build-arg TARGETPLATFORM="linux/386" \
@@ -72,15 +49,20 @@ docker buildx build \
     -f "$ROOT/assets/Dockerfile" \
     .
 
-echo "📦 Extracting files for i386..."
-if [ -f "${DEST}/appimage-tools-386.tar.gz" ]; then
-    tar xzf "${DEST}/appimage-tools-386.tar.gz" -C $DEST/.
-    rm "${DEST}/appimage-tools-386.tar.gz"
-    echo "✅ Completed 386"
-else
-    echo "❌ Failed to find output for 386"
-    exit 1
-fi
+# Extract files for each architecture
+for NAME in "${PLATFORM_NAMES[@]}"; do
+    echo ""
+    echo "📦 Extracting files for ${NAME}..."
+    
+    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
+        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C "${DEST}/."
+        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
+        echo "✅ Completed ${NAME}"
+    else
+        echo "❌ Failed to find output for ${NAME}"
+        exit 1
+    fi
+done
 
 echo ""
 echo "📁 Organizing directory structure..."
