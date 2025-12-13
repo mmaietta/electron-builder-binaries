@@ -8,6 +8,7 @@ jobs:
   mac:
     runs-on: ${{ matrix.node }}
     strategy:
+      fail-fast: false
       matrix:
         node: [macos-15-intel, macos-15]
     steps:
@@ -27,8 +28,9 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Build for macOS
-        run: bash packages/AppImage/build.sh
+        run: bash ./build.sh
         shell: bash
+        working-directory: ./packages/AppImage
         env: { TARGET: darwin }
 
       - name: Upload AppImage artifact
@@ -62,8 +64,9 @@ jobs:
         run: pnpm i --frozen-lockfile
 
       - name: Build for Linux
-        run: bash packages/AppImage/build.sh
+        run: bash ./build.sh
         shell: bash
+        working-directory: ./packages/AppImage
         env: { TARGET: linux }
 
       - name: Upload AppImage artifact
