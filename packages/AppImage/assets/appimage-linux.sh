@@ -31,7 +31,7 @@ docker buildx build \
     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --output type=local,dest="${DEST}" \
     -f "$ROOT/assets/Dockerfile" \
-    .
+    $ROOT
 
 # Build i386 separately with i386/ prefix
 echo ""
@@ -44,7 +44,7 @@ docker buildx build \
     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --output type=local,dest="${DEST}/linux_386" \
     -f "$ROOT/assets/Dockerfile" \
-    .
+    $ROOT
 
 echo ""
 echo "📦 Extracting all tarballs..."
@@ -83,9 +83,9 @@ echo "Creating zip archive of all builds..."
 ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
 (
     cd "$DEST"
-    zip -r -9 "../$ARCHIVE_NAME" . >/dev/null
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" . >/dev/null
 )
-echo "✓ Archive created: $ROOT/out/AppImage/$ARCHIVE_NAME"
+echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
 
 echo ""
 echo "🎉 Done!"

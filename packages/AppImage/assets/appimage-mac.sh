@@ -99,6 +99,6 @@ echo "Creating zip archive..."
 ARCHIVE_NAME="appimage-tools-macos-$ARCH.zip"
 (
     cd "$OUTPUT_DIR/.."
-    zip -r -9 "../$ARCHIVE_NAME" "$ARCH" >/dev/null
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" "$ARCH" >/dev/null
 )
-echo "✓ Archive created: ./out/AppImage/$ARCHIVE_NAME"
+echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
