@@ -7,9 +7,9 @@ ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 # Detect architecture
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
-    ARCH_DIR="darwin/x86_64"
+    ARCH_DIR="x86_64"
 elif [ "$ARCH" = "arm64" ]; then
-    ARCH_DIR="darwin/arm64"
+    ARCH_DIR="arm64"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1

@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 OUT_DIR="${OUT_DIR:-$ROOT/out}"
 
+mkdir -p "$OUT_DIR"
+
 # Input directory containing the zip files
 SRC_DIR="${SRC_DIR:-$ROOT/out/dist}"
 
@@ -60,8 +62,8 @@ fi
 ARCHIVE_NAME="appimage-tools-runtime$APPIMAGE_TYPE2_RELEASE.zip"
 echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
 (
-cd "$OUT_DIR"
-zip -r -9 "$OUT_DIR/$ARCHIVE_NAME" AppImage >/dev/null
+cd "$SRC_DIR"
+zip -r -9 "$OUT_DIR/$ARCHIVE_NAME" .
 )
 echo "✅ Done!"
 echo "Bundle at: $OUT_DIR/$ARCHIVE_NAME"

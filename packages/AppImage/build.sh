@@ -11,24 +11,24 @@ echo "║  🔧 AppImage Tools Build Script       ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
+# VERSIONS
+export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
+export APPIMAGE_TYPE2_RELEASE="20251108"
+
 # Detect OS
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 TARGET=${TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
-# VERSIONS
 OUTPUT_DIR="$CWD/out"
-export DEST="$OUTPUT_DIR/dist" # must be exported
-export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
-export APPIMAGE_TYPE2_RELEASE="20251108"
-
+DEST="$OUTPUT_DIR/dist"
 mkdir -p $DEST
 
 if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
-    bash $CWD/assets/appimage-mac.sh    
+    DEST="$DEST/darwin" bash $CWD/assets/appimage-mac.sh    
 elif [ "$TARGET" = "linux" ]; then
     echo "🐧 Detected Linux target - Building Linux binaries for all architectures..."
-    bash $CWD/assets/appimage-linux.sh
+    DEST="$DEST/linux" bash $CWD/assets/appimage-linux.sh
 elif [ "$TARGET" = "runtime" ]; then
     echo "📥 Downloading AppImage runtimes into bundle..."
     bash $CWD/assets/download-runtime.sh --install-directory $DEST
