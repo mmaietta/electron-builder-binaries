@@ -4,7 +4,8 @@ set -eu
 # Download pinned AppImage runtimes and verify SHA256 checksums.
 #
 # Usage:
-#   download-runtime.sh               # download and verify (default)
+#   download-runtime.sh               # download and verify to current directory (default)
+#   download-runtime.sh --install-directory /path/to/dir  # download to specified directory
 #   download-runtime.sh --print-checksums  # download and print sha256 lines for check-in
 #
 # The expected checksums live below in the CHECKSUMS variable. Use
@@ -30,22 +31,44 @@ e9060d37577b8a29914ec12d8740add24e19ff29012fb1fa0f60daf62db0688d  runtime-armv7l
 CHECKSUMS
 )
 
-CWD=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
-mkdir -p "$CWD/out"
-
 usage() {
-	echo "Usage: $0 [--print-checksums]"
+	echo "Usage: $0 [OPTIONS]"
 	echo ""
 	echo "Options:"
-	echo "  --print-checksums   Download files and print sha256 lines suitable for copy/paste into this script's CHECKSUMS block."
+	echo "  --install-directory DIR  Download files to the specified directory (default: current directory)"
+	echo "  --print-checksums        Download files and print sha256 lines suitable for copy/paste into this script's CHECKSUMS block."
 	exit 1
 }
 
 MODE="verify"
-if [ "$#" -gt 0 ] && [ "$1" = "--print-checksums" ]; then
-	MODE="print"
-elif [ "$#" -gt 0 ]; then
-	usage
+INSTALL_DIR="."
+
+# Parse arguments
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		--print-checksums)
+			MODE="print"
+			shift
+			;;
+		--install-directory)
+			if [ "$#" -lt 2 ]; then
+				echo "Error: --install-directory requires a directory argument" >&2
+				exit 1
+			fi
+			INSTALL_DIR="$2"
+			shift 2
+			;;
+		*)
+			echo "Error: unknown argument: $1" >&2
+			usage
+			;;
+	esac
+done
+
+# Create install directory if it doesn't exist
+if [ ! -d "$INSTALL_DIR" ]; then
+	echo "Creating directory: $INSTALL_DIR" >&2
+	mkdir -p "$INSTALL_DIR"
 fi
 
 # Helper: compute sha256 of a file in a portable way
@@ -67,10 +90,11 @@ sha256_of() {
 if [ -z "${SKIP_DOWNLOAD-}" ]; then
 	for mapping in $FILES; do
 		src=${mapping%%:*}
-		dest="out/${mapping##*:}"
+		dest=${mapping##*:}
+		dest_path="$INSTALL_DIR/$dest"
 		url="$BASE_URL/$src"
-		echo "Downloading $url -> $dest" >&2
-		if ! curl -fL "$url" -o "$CWD/$dest"; then
+		echo "Downloading $url -> $dest_path" >&2
+		if ! curl -fL "$url" -o "$dest_path"; then
 			echo "Failed to download $url" >&2
 			exit 2
 		fi
@@ -83,12 +107,13 @@ if [ "$MODE" = "print" ]; then
 	# Print computed checksums in the standard format for copy/paste into
 	# CHECKSUMS block. Don't modify the script automatically by default.
 	for mapping in $FILES; do
-		dest="out/${mapping##*:}"
-		if [ ! -f "$CWD/$dest" ]; then
-			echo "Missing file $dest" >&2
+		dest=${mapping##*:}
+		dest_path="$INSTALL_DIR/$dest"
+		if [ ! -f "$dest_path" ]; then
+			echo "Missing file $dest_path" >&2
 			exit 3
 		fi
-		echo "$(sha256_of "$CWD/$dest")  $CWD/$dest"
+		echo "$(sha256_of "$dest_path")  $dest"
 	done
 	exit 0
 fi
@@ -101,7 +126,8 @@ fi
 # Verification mode: verify each downloaded file against CHECKSUMS
 failed=0
 for mapping in $FILES; do
-	dest="out/${mapping##*:}"
+	dest=${mapping##*:}
+	dest_path="$INSTALL_DIR/$dest"
 	expected="$(printf '%s\n' "$CHECKSUMS" | awk -v f="$dest" '$2==f{print $1}')"
 	if [ -z "$expected" ]; then
 		echo "Warning: no expected checksum found for $dest in CHECKSUMS; skipping" >&2
@@ -114,27 +140,26 @@ for mapping in $FILES; do
 			continue
 			;;
 	esac
-	if [ ! -f "$CWD/$dest" ]; then
-		echo "File not found: $dest" >&2
+	if [ ! -f "$dest_path" ]; then
+		echo "File not found: $dest_path" >&2
 		failed=1
 		continue
 	fi
-	computed="$(sha256_of "$CWD/$dest")"
+	computed="$(sha256_of "$dest_path")"
 	if [ "$computed" != "$expected" ]; then
 		echo "Checksum mismatch for $dest" >&2
 		echo "  expected: $expected" >&2
 		echo "  computed: $computed" >&2
 		failed=1
 	else
-		echo "OK   $dest" >&2
+		echo "OK   $dest_path" >&2
 	fi
 done
-
-echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$CWD/out/VERSION.txt"
 
 if [ "$failed" -ne 0 ]; then
 	echo "Some files failed checksum verification" >&2
 	exit 4
 fi
 
+echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$INSTALL_DIR/VERSION.txt"
 echo "All files verified successfully." >&2

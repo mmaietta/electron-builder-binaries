@@ -2,7 +2,7 @@
 
 # Build script for AppImage tools for multiple platforms
 # Compile for all builds possible if on MacOS w/ docker buildx.
-# rm -rf out; OS_TARGET=runtime sh build.sh && OS_TARGET=linux sh build.sh && OS_TARGET=darwin sh build.sh
+# rm -rf out; TARGET=linux sh build.sh && TARGET=darwin sh build.sh && TARGET=runtime sh build.sh && TARGET=compress sh build.sh
 
 set -e
 
@@ -17,32 +17,34 @@ export APPIMAGE_TYPE2_RELEASE="20251108"
 
 # Detect OS
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
-OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
+TARGET=${TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
 # Create output directory if it doesn't exist
 OUTPUT_DIR="$CWD/out/AppImage"
 mkdir -p $OUTPUT_DIR
 
-if [ "$OS_TARGET" = "darwin" ]; then
+if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
     bash $CWD/assets/appimage-mac.sh    
-elif [ "$OS_TARGET" = "linux" ]; then
+elif [ "$TARGET" = "linux" ]; then
     echo "🐧 Detected Linux target - Building Linux binaries for all architectures..."
     bash $CWD/assets/appimage-linux.sh
-elif [ "$OS_TARGET" = "runtime" ]; then
+elif [ "$TARGET" = "runtime" ]; then
     echo "📥 Downloading AppImage runtimes into bundle..."
-    bash $CWD/assets/download-runtime.sh
-else
-    ARCHIVE_NAME="appimage-tools-runtime-bundle.zip"
+    bash $CWD/assets/download-runtime.sh --install-directory "$OUTPUT_DIR"
+elif [ "$TARGET" = "compress" ]; then
+    ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE-squashfs-$SQUASHFS_TOOLS_VERSION_TAG.zip"
     echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
     (
-    cd "$CWD/out/AppImage"
+    cd "$OUTPUT_DIR"
     zip -r -9 "$CWD/$ARCHIVE_NAME" . >/dev/null
     )
     echo "✅ Done!"
     echo "Bundle at: $OUTPUT_DIR/$ARCHIVE_NAME"
+else
+    echo "❌ Unsupported TARGET: $TARGET"
+    exit 1
 fi
-
 
 echo ""
 echo "╔════════════════════════════════════════╗"
