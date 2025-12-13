@@ -24,13 +24,10 @@ docker buildx use appimage-builder
 
 DEST="$ROOT/out/AppImage"
 mkdir -p $DEST
-# Build all architectures in one command
-PLATFORMS=("linux/amd64" "linux/arm64" "linux/arm/v7")
-PLATFORM_NAMES=("amd64" "arm64" "armv7" "386") # 386 will be built separately
 
 echo "🚀 Building for all platforms..."
 docker buildx build \
-    --platform "$(IFS=,; echo "${PLATFORMS[*]}")" \
+    --platform "linux/amd64,linux/arm64,linux/arm/v7" \
     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --output type=local,dest="${DEST}" \
     -f "$ROOT/assets/Dockerfile" \
@@ -45,24 +42,21 @@ docker buildx build \
     --build-arg TARGETPLATFORM="linux/386" \
     --build-arg TARGETARCH="386" \
     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-    --output type=local,dest="${DEST}" \
+    --output type=local,dest="${DEST}/linux_386" \
     -f "$ROOT/assets/Dockerfile" \
     .
 
-# Extract files for each architecture
-for NAME in "${PLATFORM_NAMES[@]}"; do
-    echo ""
-    echo "📦 Extracting files for ${NAME}..."
-    
-    if [ -f "${DEST}/appimage-tools-${NAME}.tar.gz" ]; then
-        tar xzf "${DEST}/appimage-tools-${NAME}.tar.gz" -C "${DEST}/."
-        rm "${DEST}/appimage-tools-${NAME}.tar.gz"
-        echo "✅ Completed ${NAME}"
-    else
-        echo "❌ Failed to find output for ${NAME}"
-        exit 1
-    fi
+echo ""
+echo "📦 Extracting all tarballs..."
+
+# Find and extract all .tar.gz files to DEST root
+find "${DEST}" -name "*.tar.gz" -type f | while read -r tarball; do
+    echo "  Extracting $(basename "$tarball")..."
+    tar xzf "$tarball" -C "${DEST}"
+    rm -r "$(dirname "$tarball")"
 done
+
+echo "✅ All builds completed and extracted"
 
 echo ""
 echo "📁 Organizing directory structure..."

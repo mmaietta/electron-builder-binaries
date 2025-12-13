@@ -33,11 +33,11 @@ elif [ "$TARGET" = "runtime" ]; then
     echo "📥 Downloading AppImage runtimes into bundle..."
     bash $CWD/assets/download-runtime.sh --install-directory "$OUTPUT_DIR"
 elif [ "$TARGET" = "compress" ]; then
-    ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE-squashfs-$SQUASHFS_TOOLS_VERSION_TAG.zip"
+    ARCHIVE_NAME="appimage-squashfs$SQUASHFS_TOOLS_VERSION_TAG-runtime$APPIMAGE_TYPE2_RELEASE.zip"
     echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
     (
     cd "$OUTPUT_DIR"
-    zip -r -9 "$CWD/$ARCHIVE_NAME" . >/dev/null
+    zip -r -9 "$CWD/out/$ARCHIVE_NAME" . >/dev/null
     )
     echo "✅ Done!"
     echo "Bundle at: $OUTPUT_DIR/$ARCHIVE_NAME"
