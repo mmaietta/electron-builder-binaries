@@ -22,7 +22,7 @@ fi
 # Use the builder
 docker buildx use appimage-builder
 
-DEST="$ROOT/out/AppImage"
+DEST="${DEST:-$ROOT/out/dist}"
 mkdir -p $DEST
 
 echo "🚀 Building for all platforms..."

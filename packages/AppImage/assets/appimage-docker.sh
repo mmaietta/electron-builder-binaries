@@ -6,10 +6,10 @@ CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 # Determine architecture directory based on platform
 get_arch_dir() {
     case "$TARGETPLATFORM" in
-        "linux/amd64") echo "linux-x64" ;;
-        "linux/386") echo "linux-ia32" ;;
-        "linux/arm64") echo "linux-arm64" ;;
-        "linux/arm/v7") echo "linux-arm32" ;;
+        "linux/amd64") echo "x64" ;;
+        "linux/386") echo "ia32" ;;
+        "linux/arm64") echo "arm64" ;;
+        "linux/arm/v7") echo "arm32" ;;
         *) echo "linux-unknown" ;;
     esac
 }

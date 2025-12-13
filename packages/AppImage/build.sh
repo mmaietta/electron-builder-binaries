@@ -11,17 +11,17 @@ echo "║  🔧 AppImage Tools Build Script       ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
-# VERSIONS
-export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
-export APPIMAGE_TYPE2_RELEASE="20251108"
-
 # Detect OS
 CWD=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 TARGET=${TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
-# Create output directory if it doesn't exist
-OUTPUT_DIR="$CWD/out/AppImage"
-mkdir -p $OUTPUT_DIR
+# VERSIONS
+OUTPUT_DIR="$CWD/out"
+export DEST="$OUTPUT_DIR/dist" # must be exported
+export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
+export APPIMAGE_TYPE2_RELEASE="20251108"
+
+mkdir -p $DEST
 
 if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
@@ -31,16 +31,10 @@ elif [ "$TARGET" = "linux" ]; then
     bash $CWD/assets/appimage-linux.sh
 elif [ "$TARGET" = "runtime" ]; then
     echo "📥 Downloading AppImage runtimes into bundle..."
-    bash $CWD/assets/download-runtime.sh --install-directory "$OUTPUT_DIR"
+    bash $CWD/assets/download-runtime.sh --install-directory $DEST
 elif [ "$TARGET" = "compress" ]; then
-    ARCHIVE_NAME="appimage-squashfs$SQUASHFS_TOOLS_VERSION_TAG-runtime$APPIMAGE_TYPE2_RELEASE.zip"
-    echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
-    (
-    cd "$OUTPUT_DIR"
-    zip -r -9 "$CWD/out/$ARCHIVE_NAME" . >/dev/null
-    )
-    echo "✅ Done!"
-    echo "Bundle at: $OUTPUT_DIR/$ARCHIVE_NAME"
+    echo "📦 Creating package hierarchy of all AppImage tools and runtimes..."
+    OUT_DIR="$OUTPUT_DIR/AppImage" SRC_DIR="$DEST" bash $CWD/assets/bundle-and-compress.sh
 else
     echo "❌ Unsupported TARGET: $TARGET"
     exit 1
