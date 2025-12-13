@@ -79,5 +79,14 @@ echo "📂 Directory structure:"
 tree $ROOT/out/AppImage -L 4 2>/dev/null || find $ROOT/out/AppImage -type f
 
 echo ""
+echo "Creating zip archive of all builds..."
+ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
+(
+    cd "$DEST"
+    zip -r -9 "../$ARCHIVE_NAME" . >/dev/null
+)
+echo "✓ Archive created: $ROOT/out/AppImage/$ARCHIVE_NAME"
+
+echo ""
 echo "🎉 Done!"
 docker buildx rm appimage-builder

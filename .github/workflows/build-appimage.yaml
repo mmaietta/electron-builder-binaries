@@ -6,7 +6,10 @@ on:
     
 jobs:
   mac:
-    runs-on: macos-15-intel
+    runs-on: ${{ matrix.node }}
+    strategy:
+      matrix:
+        node: [macos-15-intel, macos-15]
     steps:
       - name: Enable Corepack for pnpm
         run: |
@@ -31,8 +34,8 @@ jobs:
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
-          name: appimage-temp-macos
-          path: packages/AppImage/out/**/*.tar.gz
+          name: appimage-temp-macos-${{ matrix.node }}
+          path: packages/AppImage/out/*.zip
           if-no-files-found: error
           retention-days: 1
   linux:
@@ -67,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: appimage-temp-linux
-          path: packages/AppImage/out/**/*.tar.gz
+          path: packages/AppImage/out/*.zip
           if-no-files-found: error
           retention-days: 1
 

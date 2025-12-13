@@ -6,9 +6,9 @@ echo "Building AppImage tools for macOS..."
 # Detect architecture
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
-    ARCH_DIR="darwin"
+    ARCH_DIR="darwin/x86_64"
 elif [ "$ARCH" = "arm64" ]; then
-    ARCH_DIR="darwin"
+    ARCH_DIR="darwin/arm64"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1
@@ -94,3 +94,11 @@ echo "Output: $OUTPUT_DIR"
 echo ""
 echo "Files created:"
 ls -lh "$OUTPUT_DIR"
+
+echo "Creating zip archive..."
+ARCHIVE_NAME="appimage-tools-macos-$ARCH.zip"
+(
+    cd "$OUTPUT_DIR/.."
+    zip -r -9 "../$ARCHIVE_NAME" "$ARCH" >/dev/null
+)
+echo "✓ Archive created: ./out/AppImage/$ARCHIVE_NAME"
