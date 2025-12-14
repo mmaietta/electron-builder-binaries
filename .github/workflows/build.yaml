@@ -16,11 +16,14 @@ permissions:
   contents: read
 
 jobs:
-  fpm:
-    uses: ./.github/workflows/build-fpm.yaml
+  # fpm:
+  #   uses: ./.github/workflows/build-fpm.yaml
 
-  win-codesign:
-    uses: ./.github/workflows/build-wincodesign.yaml
+  # win-codesign:
+  #   uses: ./.github/workflows/build-wincodesign.yaml
+  
+  appimage:
+    uses: ./.github/workflows/build-appimage.yaml
 
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
@@ -28,8 +31,9 @@ jobs:
   combine:
     runs-on: macos-latest
     needs: [
-      fpm,
-      win-codesign,
+      # fpm,
+      # win-codesign,
+      appimage,
       # squirrel
     ]
     outputs:

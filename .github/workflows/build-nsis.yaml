@@ -8,6 +8,7 @@ jobs:
   nsis-unix:
     runs-on: ${{ matrix.node }}
     strategy:
+      fail-fast: false
       matrix:
         node: [ubuntu-latest, macos-latest]
     steps:
