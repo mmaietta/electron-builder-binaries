@@ -1,0 +1,5 @@
+---
+"appimage": patch
+---
+
+chore: redeploy
