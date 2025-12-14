@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.1
+
+### Patch Changes
+
+- [`1ce8566`](https://github.com/mmaietta/electron-builder-binaries/commit/1ce8566b5ea3ce6e307d628cdd58557c49bbb170) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: redeploy
+
 ## 1.0.0
 
 ### Major Changes
