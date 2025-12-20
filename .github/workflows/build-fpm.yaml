@@ -48,7 +48,10 @@ jobs:
     runs-on: ${{ matrix.node }}
     strategy:
       matrix:
-        node: [macos-13, macos-15]
+        node: [
+          macos-15-intel, # intel
+          macos-15 # arm64
+        ]
     steps:
       - name: Enable Corepack for pnpm
         run: |

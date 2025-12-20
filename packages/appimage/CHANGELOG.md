@@ -1,13 +1,7 @@
 # appimage
 
-## 1.0.1
-
-### Patch Changes
-
-- [`1ce8566`](https://github.com/mmaietta/electron-builder-binaries/commit/1ce8566b5ea3ce6e307d628cdd58557c49bbb170) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: redeploy
-
 ## 1.0.0
 
 ### Major Changes
 
-- [#62](https://github.com/mmaietta/electron-builder-binaries/pull/62) [`52ce9f6`](https://github.com/mmaietta/electron-builder-binaries/commit/52ce9f60cddc907e95db3200d573fd8d8f6a15c8) Thanks [@mmaietta](https://github.com/mmaietta)! - chore(appimage): upgrading runtime to 20251108 and related toolsets for mac/linux per-arch
+- [#103](https://github.com/electron-userland/electron-builder-binaries/pull/103) [`02d5141`](https://github.com/electron-userland/electron-builder-binaries/commit/02d514185f10660a0ba651ad1af821c017a32ab1) Thanks [@mmaietta](https://github.com/mmaietta)! - chore(appimage): upgrading runtime to 20251108 and related toolsets for mac/linux per-arch
