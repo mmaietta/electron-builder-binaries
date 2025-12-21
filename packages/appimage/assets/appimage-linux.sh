@@ -22,7 +22,7 @@ fi
 # Use the builder
 docker buildx use appimage-builder
 
-DEST="${DEST:-$ROOT/out/dist/linux}"
+DEST="${DEST:-$ROOT/out/build/linux}"
 mkdir -p $DEST
 
 echo "🚀 Building for all platforms..."
@@ -80,7 +80,7 @@ echo "Creating zip archive of all builds..."
 ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
 (
     cd "$DEST"
-    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" . >/dev/null
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
 
