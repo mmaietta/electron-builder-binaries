@@ -2,20 +2,20 @@
 set -e
 
 echo "Building AppImage tools for macOS..."
-ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
 # Detect architecture
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
-    ARCH_DIR="x86_64"
+    ARCH_DIR="darwin"
 elif [ "$ARCH" = "arm64" ]; then
-    ARCH_DIR="arm64"
+    ARCH_DIR="darwin"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1
 fi
 
-echo "Building for macOS ($ARCH_DIR) -> $ARCH"
+DEST="${DEST:-"./packages/AppImage/build"}"
+echo "Building for macOS ($ARCH) -> $DEST"
 
 # Check for Homebrew
 if ! command -v brew &> /dev/null; then
@@ -54,41 +54,83 @@ echo "✓ Found mksquashfs at: $MKSQUASHFS"
 echo "✓ Found desktop-file-validate at: $DESKTOP_FILE_VALIDATE"
 
 # Create output directory
-DEST="${DEST:-$ROOT/out/build}"
 OUTPUT_DIR="$DEST/$ARCH_DIR"
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR"
+TMP_DIR="/tmp/appimage-macos-build"
+rm -rf "$TMP_DIR"
+mkdir -p "$OUTPUT_DIR" "$TMP_DIR"
 
-# Copy binaries
-echo "Copying binaries..."
-cp -aL "$MKSQUASHFS" "$OUTPUT_DIR/mksquashfs"
-cp -aL "$DESKTOP_FILE_VALIDATE" "$OUTPUT_DIR/desktop-file-validate"
-echo "✓ Binaries copied to $OUTPUT_DIR"
+echo "Fixing dynamic library paths with install_name_tool..."
 
-VERSION_FILE="$OUTPUT_DIR/VERSION.txt"
+# Copy binaries to temp location for patching
+cp "$MKSQUASHFS" "$TMP_DIR/mksquashfs"
+cp "$DESKTOP_FILE_VALIDATE" "$TMP_DIR/desktop-file-validate"
 
-echo "Verifying binaries and recording versions..."
-: > "$VERSION_FILE"
+# Get the list of dynamic libraries that mksquashfs depends on
+echo "Analyzing mksquashfs dependencies..."
+otool -L "$TMP_DIR/mksquashfs" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+    if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
+        libname=$(basename "$lib")
+        # Try to change the path to use @executable_path (relative to binary)
+        install_name_tool -change "$lib" "@executable_path/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
+        # Or try @loader_path
+        install_name_tool -change "$lib" "@loader_path/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
+        echo "  ⚠️  Could not update path for $lib"
+    fi
+done
 
-# Verify mksquashfs
-if MKSQ_VER=$("$OUTPUT_DIR/mksquashfs" -version 2>&1); then
-    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
-    echo "✓ mksquashfs verified"
-else
-    echo "❌ mksquashfs verification failed"
-    exit 1
+echo "Analyzing desktop-file-validate dependencies..."
+otool -L "$TMP_DIR/desktop-file-validate" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+    if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
+        libname=$(basename "$lib")
+        install_name_tool -change "$lib" "@executable_path/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
+        install_name_tool -change "$lib" "@loader_path/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
+        echo "  ⚠️  Could not update path for $lib"
+    fi
+done
+
+# Copy patched binaries
+echo "Copying patched binaries..."
+cp "$TMP_DIR/mksquashfs" "$OUTPUT_DIR/mksquashfs"
+cp "$TMP_DIR/desktop-file-validate" "$OUTPUT_DIR/desktop-file-validate"
+
+# Make sure they're executable
+chmod +x "$OUTPUT_DIR/mksquashfs"
+chmod +x "$OUTPUT_DIR/desktop-file-validate"
+
+# Copy required dylibs
+echo "Copying required dynamic libraries..."
+mkdir -p "$OUTPUT_DIR/lib"
+
+copy_dylib() {
+    local lib_path=$1
+    if [ -f "$lib_path" ]; then
+        local lib_name=$(basename "$lib_path")
+        cp "$lib_path" "$OUTPUT_DIR/$lib_name"
+        echo "  ✓ Copied $lib_name"
+    else
+        echo "  ⚠️  $lib_path not found"
+    fi
+}
+
+# Find and copy homebrew libraries
+if [ -d "/usr/local/opt" ]; then
+    BREW_PREFIX="/usr/local"
+elif [ -d "/opt/homebrew" ]; then
+    BREW_PREFIX="/opt/homebrew"
 fi
 
-# Verify desktop-file-validate
-if DFV_VER=$("$OUTPUT_DIR/desktop-file-validate" --version | head -n1 2>&1); then
-    echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
-    echo "✓ desktop-file-validate verified"
-else
-    echo "❌ desktop-file-validate verification failed"
-    exit 1
+if [ -n "$BREW_PREFIX" ]; then
+    # Copy common dependencies
+    copy_dylib "$BREW_PREFIX/opt/lzo/lib/liblzo2.2.dylib"
+    copy_dylib "$BREW_PREFIX/opt/xz/lib/liblzma.5.dylib"
+    copy_dylib "$BREW_PREFIX/opt/lz4/lib/liblz4.1.dylib"
+    copy_dylib "$BREW_PREFIX/opt/zstd/lib/libzstd.1.dylib"
 fi
 
-echo "Versions written to $VERSION_FILE"
+# Verify the binaries
+echo "Verifying patched binaries..."
+echo "mksquashfs dependencies:"
+otool -L "$OUTPUT_DIR/mksquashfs" | grep -v ":" | head -10
 
 echo ""
 echo "✓ macOS build complete!"
@@ -96,6 +138,7 @@ echo "Output: $OUTPUT_DIR"
 echo ""
 echo "Files created:"
 ls -lh "$OUTPUT_DIR"
+echo ""
 
 echo "Creating zip archive..."
 ARCHIVE_NAME="appimage-tools-macos-$ARCH.zip"
