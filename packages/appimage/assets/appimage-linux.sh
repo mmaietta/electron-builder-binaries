@@ -22,16 +22,8 @@ fi
 # Use the builder
 docker buildx use appimage-builder
 
-DEST="${DEST:-$ROOT/out/dist/linux}"
+DEST="${DEST:-$ROOT/out/build}"
 mkdir -p $DEST
-
-echo "🚀 Building for all platforms..."
-docker buildx build \
-    --platform "linux/amd64,linux/arm64,linux/arm/v7" \
-    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-    --output type=local,dest="${DEST}" \
-    -f "$ROOT/assets/Dockerfile" \
-    $ROOT
 
 # Build i386 separately with i386/ prefix
 echo ""
@@ -45,6 +37,15 @@ docker buildx build \
     --output type=local,dest="${DEST}/linux_386" \
     -f "$ROOT/assets/Dockerfile" \
     $ROOT
+
+echo "🚀 Building for amd64, arm64, armv7 platforms..."
+docker buildx build \
+    --platform "linux/amd64,linux/arm64,linux/arm/v7" \
+    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
+    --output type=local,dest="${DEST}" \
+    -f "$ROOT/assets/Dockerfile" \
+    $ROOT
+
 
 echo ""
 echo "📦 Extracting all tarballs..."
@@ -60,14 +61,14 @@ echo "✅ All builds completed and extracted"
 
 # Verify executables have correct permissions
 echo "🔐 Verifying executable permissions..."
-chmod +x $DEST/x64/mksquashfs \
-    $DEST/x64/desktop-file-validate \
-    $DEST/x64/opj_decompress \
-    $DEST/ia32/mksquashfs \
-    $DEST/ia32/desktop-file-validate \
-    $DEST/arm64/mksquashfs \
-    $DEST/arm64/desktop-file-validate \
-    $DEST/arm32/mksquashfs
+chmod +x $DEST/linux/x64/mksquashfs \
+    $DEST/linux/x64/desktop-file-validate \
+    $DEST/linux/x64/opj_decompress \
+    $DEST/linux/ia32/mksquashfs \
+    $DEST/linux/ia32/desktop-file-validate \
+    $DEST/linux/arm64/mksquashfs \
+    $DEST/linux/arm64/desktop-file-validate \
+    $DEST/linux/arm32/mksquashfs
 
 echo ""
 echo "✨ Extraction complete!"
@@ -80,7 +81,7 @@ echo "Creating zip archive of all builds..."
 ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
 (
     cd "$DEST"
-    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" . >/dev/null
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
 
