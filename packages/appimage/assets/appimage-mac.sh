@@ -6,9 +6,9 @@ echo "Building AppImage tools for macOS..."
 # Detect architecture
 ARCH=$(uname -m)
 if [ "$ARCH" = "x86_64" ]; then
-    ARCH_DIR="darwin"
+    ARCH_DIR="x86_64"
 elif [ "$ARCH" = "arm64" ]; then
-    ARCH_DIR="darwin"
+    ARCH_DIR="arm64"
 else
     echo "Unsupported architecture: $ARCH"
     exit 1
@@ -71,9 +71,9 @@ otool -L "$TMP_DIR/mksquashfs" | grep -v ":" | grep -v "@" | awk '{print $1}' | 
     if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
         libname=$(basename "$lib")
         # Try to change the path to use @executable_path (relative to binary)
-        install_name_tool -change "$lib" "@executable_path/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
+        install_name_tool -change "$lib" "@executable_path/lib/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
         # Or try @loader_path
-        install_name_tool -change "$lib" "@loader_path/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
+        install_name_tool -change "$lib" "@loader_path/lib/$libname" "$TMP_DIR/mksquashfs" 2>/dev/null || \
         echo "  ⚠️  Could not update path for $lib"
     fi
 done
@@ -82,8 +82,8 @@ echo "Analyzing desktop-file-validate dependencies..."
 otool -L "$TMP_DIR/desktop-file-validate" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
     if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
         libname=$(basename "$lib")
-        install_name_tool -change "$lib" "@executable_path/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
-        install_name_tool -change "$lib" "@loader_path/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
+        install_name_tool -change "$lib" "@executable_path/lib/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
+        install_name_tool -change "$lib" "@loader_path/lib/$libname" "$TMP_DIR/desktop-file-validate" 2>/dev/null || \
         echo "  ⚠️  Could not update path for $lib"
     fi
 done
@@ -105,10 +105,11 @@ copy_dylib() {
     local lib_path=$1
     if [ -f "$lib_path" ]; then
         local lib_name=$(basename "$lib_path")
-        cp "$lib_path" "$OUTPUT_DIR/$lib_name"
+        cp "$lib_path" "$OUTPUT_DIR/lib/$lib_name"
         echo "  ✓ Copied $lib_name"
     else
         echo "  ⚠️  $lib_path not found"
+        exit 1
     fi
 }
 
