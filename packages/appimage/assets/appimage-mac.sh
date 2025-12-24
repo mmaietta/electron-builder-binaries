@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
+
 echo "Building AppImage tools for macOS..."
 
 # Detect architecture
@@ -15,6 +17,8 @@ else
 fi
 
 DEST="${DEST:-"./packages/AppImage/build"}"
+rm -rf "$DEST/$ARCH_DIR"
+mkdir -p "$DEST/$ARCH_DIR"
 echo "Building for macOS ($ARCH) -> $DEST"
 
 # Check for Homebrew
@@ -143,8 +147,8 @@ echo ""
 
 echo "Creating zip archive..."
 ARCHIVE_NAME="appimage-tools-macos-$ARCH.zip"
-(
-    cd "$OUTPUT_DIR"
-    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" . >/dev/null
-)
+# (
+    cd "$DEST"
+    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
+# )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
