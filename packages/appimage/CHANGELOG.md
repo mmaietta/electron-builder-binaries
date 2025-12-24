@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.2
+
+### Patch Changes
+
+- [#65](https://github.com/mmaietta/electron-builder-binaries/pull/65) [`391e30a`](https://github.com/mmaietta/electron-builder-binaries/commit/391e30acb33b6c58d7417fb8b31635b11292ee29) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: resolve @executable_path on darwin binaries
+
 ## 1.0.1
 
 ### Patch Changes
