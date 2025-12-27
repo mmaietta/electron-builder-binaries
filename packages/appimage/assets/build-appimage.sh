@@ -81,7 +81,7 @@ else
     
     # Verify required brew packages are installed
     echo "🔍 Checking Homebrew dependencies..."
-    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils" "meson" "ninja")
+    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils" "meson" "ninja" "tree")
     MISSING_DEPS=()
     
     for dep in "${REQUIRED_DEPS[@]}"; do
@@ -391,8 +391,8 @@ cd "$CWD"
 if [ "$OS" = "linux" ]; then
     # Create tarball for Linux
     tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" \
-        "$(basename "$LIB_DIR")" \
-        "$(basename "$OUTPUT_DIR")"
+        "$(basename "$OUTPUT_DIR")" \
+        # "$LIB_DIR" \
     chmod 644 /appimage-tools-*.tar.gz
     
     echo ""
@@ -417,7 +417,7 @@ else
     echo "   Archive: $CWD/out/$ARCHIVE_NAME"
     echo ""
     echo "Files created:"
-    ls -lh "$DEST"
+    tree $DEST -L 4 2>/dev/null || find $DEST -type f
     
     # Cleanup build directory
     if [ -d "$BUILD_DIR" ]; then

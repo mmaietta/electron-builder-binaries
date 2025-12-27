@@ -64,8 +64,6 @@ RUN rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build
-
 RUN set -eux; \
     case "$TARGETPLATFORM" in \
       "linux/386") \
@@ -98,11 +96,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && ln -sf /usr/local/bin/meson /usr/bin/meson \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && meson --version
-    
+
+WORKDIR /build
+
 ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
-COPY ./assets/build-appimage.sh /build/
-RUN chmod +x /build/build-appimage.sh && \
-    /build/build-appimage.sh
+COPY ./assets/build-appimage.sh /project/build/
+RUN chmod +x /project/build/build-appimage.sh && \
+    /project/build/build-appimage.sh
 
 # Final stage - create minimal output image
 FROM scratch
