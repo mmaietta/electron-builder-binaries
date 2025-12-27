@@ -25,7 +25,7 @@ mkdir -p $BUILD_DIR $OUTPUT_DIR
 
 if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
-    DEST="$BUILD_DIR/darwin" bash $ROOT/assets/appimage-mac.sh    
+    DEST="$BUILD_DIR/darwin" bash $ROOT/assets/build-appimage.sh  
 elif [ "$TARGET" = "linux" ]; then
     echo "🐧 Detected Linux target - Building Linux binaries for all architectures..."
     # output to BUILD_DIR because it also extracts lib/

@@ -27,16 +27,16 @@ mkdir -p $DEST
 
 # Build i386 separately with i386/ prefix
 echo ""
-echo "🚀 Building for linux/386 (i386)..."
-docker buildx build \
-    --platform linux/386 \
-    --build-arg PLATFORM_PREFIX="i386/" \
-    --build-arg TARGETPLATFORM="linux/386" \
-    --build-arg TARGETARCH="386" \
-    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-    --output type=local,dest="${DEST}/linux_386" \
-    -f "$ROOT/assets/Dockerfile" \
-    $ROOT
+# echo "🚀 Building for linux/386 (i386)..."
+# docker buildx build \
+#     --platform linux/386 \
+#     --build-arg PLATFORM_PREFIX="i386/" \
+#     --build-arg TARGETPLATFORM="linux/386" \
+#     --build-arg TARGETARCH="386" \
+#     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
+#     --output type=local,dest="${DEST}/linux_386" \
+#     -f "$ROOT/assets/Dockerfile" \
+#     $ROOT
 
 echo "🚀 Building for amd64, arm64, armv7 platforms..."
 docker buildx build \
