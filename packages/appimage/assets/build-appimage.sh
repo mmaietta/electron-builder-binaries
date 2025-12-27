@@ -87,13 +87,14 @@ else
     for dep in "${REQUIRED_DEPS[@]}"; do
         if ! brew list "$dep" &> /dev/null; then
             MISSING_DEPS+=("$dep")
+        else
+            echo "   ✅ $dep is installed"
         fi
     done
     
     if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
         echo "❌ Missing required Homebrew packages: ${MISSING_DEPS[*]}"
-        echo "   Install with: brew install ${MISSING_DEPS[*]}"
-        exit 1
+        brew install "${MISSING_DEPS[*]}"
     fi
     echo "   ✅ All required packages installed"
 fi

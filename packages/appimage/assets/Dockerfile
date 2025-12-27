@@ -1,9 +1,6 @@
 # Multi-platform Dockerfile for building AppImage tools
 # Build with: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t appimage-builder .
 
-ARG TARGETPLATFORM
-ARG PLATFORM_PREFIX=
-
 FROM buildpack-deps:18.04 AS builder
 
 ARG TARGETPLATFORM
@@ -103,8 +100,7 @@ WORKDIR /project/build
 
 ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
 COPY ./assets/build-appimage.sh /project/build/build-appimage.sh
-RUN chmod +x /project/build/build-appimage.sh && \
-    /project/build/build-appimage.sh
+RUN bash /project/build/build-appimage.sh
 
 # Final stage - create minimal output image
 FROM scratch
