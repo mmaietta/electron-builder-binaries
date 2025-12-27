@@ -97,10 +97,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && meson --version
 
-WORKDIR /build
+RUN mkdir -p /project/build
+
+WORKDIR /project/build
 
 ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
-COPY ./assets/build-appimage.sh /project/build/
+COPY ./assets/build-appimage.sh /project/build/build-appimage.sh
 RUN chmod +x /project/build/build-appimage.sh && \
     /project/build/build-appimage.sh
 

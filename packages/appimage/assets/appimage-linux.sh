@@ -21,6 +21,7 @@ fi
 
 # Use the builder
 docker buildx use appimage-builder
+trap "docker buildx rm appimage-builder" EXIT
 
 DEST="${DEST:-$ROOT/out/build}"
 mkdir -p $DEST
@@ -73,8 +74,6 @@ ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
     zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
-
-docker buildx rm appimage-builder
 
 echo ""
 echo "🎉 Done!"
