@@ -1,5 +1,5 @@
-#!/bin/bash
-set -ex
+#!/bin/env bash
+set -euo pipefail
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
@@ -190,13 +190,16 @@ if [ "$OS" = "macos" ]; then
     echo ""
     echo "🔧 Patching macOS binaries for portability..."
     
+    mkdir -p "$DEST/lib"
     for binary in mksquashfs desktop-file-validate; do
         echo "   🔧 Patching $binary..."
         otool -L "$DEST/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
             if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
                 libname=$(basename "$lib")
-                install_name_tool -change "$lib" "@executable_path/$libname" "$DEST/$binary" 2>/dev/null || \
-                install_name_tool -change "$lib" "@loader_path/$libname" "$DEST/$binary" 2>/dev/null || \
+                cp "$lib" "$DEST/lib/$libname"
+                echo "      ✅ Copied $libname"
+                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$DEST/$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$DEST/$binary" 2>/dev/null || \
                 echo "      ⚠️  Could not update path for $lib"
             fi
         done
@@ -212,13 +215,13 @@ echo ""
 echo "🔍 Verifying binaries and recording versions..."
 : > "$VERSION_FILE"
 
-# if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
-#     echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
-#     echo "   ✅ mksquashfs verified: $MKSQ_VER"
-# else
-#     echo "   ❌ mksquashfs verification failed"
-#     exit 1
-# fi
+if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
+    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
+    echo "   ✅ mksquashfs verified: $MKSQ_VER"
+else
+    echo "   ❌ mksquashfs verification failed"
+    exit 1
+fi
 
 if "$DEST/desktop-file-validate" --help > /dev/null 2>&1; then
     if [ "$OS" = "linux" ]; then
@@ -348,7 +351,7 @@ else
     BREW_PREFIX=$(brew --prefix)
     
     # Collect all Homebrew dylibs needed by both binaries
-    declare -A dylibs_needed
+    declare dylibs_needed=()
     
     for binary in mksquashfs desktop-file-validate; do
         while IFS= read -r lib; do
