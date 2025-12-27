@@ -40,7 +40,7 @@ echo ""
 
 echo "🚀 Building for amd64, arm64, armv7 platforms..."
 docker buildx build \
-    --platform "linux/amd64,linux/arm64,linux/arm/v7" \
+    --platform "linux/amd64,linux/arm64,linux/arm/v7,linux/386" \
     --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --output type=local,dest="${DEST}" \
     -f "$ROOT/assets/Dockerfile" \

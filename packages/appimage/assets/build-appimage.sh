@@ -81,7 +81,7 @@ else
     
     # Verify required brew packages are installed
     echo "🔍 Checking Homebrew dependencies..."
-    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils")
+    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils" "meson" "ninja")
     MISSING_DEPS=()
     
     for dep in "${REQUIRED_DEPS[@]}"; do
@@ -99,7 +99,7 @@ else
 fi
 
 # Setup directories
-OUTPUT_DIR=${DEST:-"$CWD/out"}
+OUTPUT_DIR=${DEST:-"$CWD/linux"}
 DEST="$OUTPUT_DIR/$ARCH_DIR"
 LIB_DIR="$OUTPUT_DIR/lib"
 LIB_DEST="$LIB_DIR/$ARCH_DIR"
@@ -121,7 +121,6 @@ git clone https://gitlab.freedesktop.org/xdg/desktop-file-utils.git
 cd $BUILD_DIR/desktop-file-utils
 git checkout $DESKTOP_UTILS_DEPS_VERSION_TAG
 echo "   ✅ desktop-file-utils cloned"
-
 
 # =============================================================================
 # BUILD SQUASHFS-TOOLS
@@ -173,12 +172,6 @@ fi
 echo ""
 echo "📦 Building desktop-file-utils..."
 cd "$BUILD_DIR/desktop-file-utils"
-tree .
-# Run autogen if configure doesn't exist
-# if [ ! -f configure ]; then
-#     echo "   🔧 Running autogen.sh..."
-#     ./autogen.sh > /dev/null 2>&1
-# fi
 
 BUILD=$BUILD_DIR/desktop-file-utils/build
 meson setup "$BUILD" \
@@ -187,36 +180,8 @@ meson setup "$BUILD" \
 ninja -C "$BUILD"
 DESTDIR="$BUILD" ninja -C "$BUILD" install
 cp -aL "$BUILD/usr/bin/desktop-file-validate" "$DEST/"
-
-
-# if [ "$OS" = "linux" ]; then
-    
-#     echo "   🔧 Configuring..."
-#     ./configure --prefix=/usr/local > /dev/null 2>&1
-    
-#     echo "   🔨 Compiling..."
-#     make -j$(nproc) > /dev/null 2>&1
-    
-#     # Install to temporary location
-#     make install DESTDIR=/tmp/desktop-file-utils-install > /dev/null 2>&1
-    
-#     cp -aL /tmp/desktop-file-utils-install/usr/local/bin/desktop-file-validate "$DEST/"
-#     echo "   ✅ Built and copied desktop-file-validate"
-# else
-#     echo "   🔧 Configuring..."
-#     BREW_PREFIX=$(brew --prefix)
-#     PKG_CONFIG_PATH="${BREW_PREFIX}/lib/pkgconfig" \
-#     CFLAGS="-I${BREW_PREFIX}/include" \
-#     LDFLAGS="-L${BREW_PREFIX}/lib" \
-#     ./configure --prefix=/usr/local > /dev/null 2>&1
-    
-#     echo "   🔨 Compiling..."
-#     make -j$(sysctl -n hw.ncpu) > /dev/null 2>&1
-    
-#     cp src/desktop-file-validate "$DEST/"
-#     chmod +x "$DEST/desktop-file-validate"
-#     echo "   ✅ Built and copied desktop-file-validate"
-# fi
+chmod +x "$DEST/desktop-file-validate"
+echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
 # PATCH MACOS BINARIES

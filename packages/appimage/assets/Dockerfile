@@ -1,10 +1,10 @@
 # Multi-platform Dockerfile for building AppImage tools
 # Build with: docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t appimage-builder .
 
-ARG TARGETPLATFORM=linux/amd64
+ARG TARGETPLATFORM
 ARG PLATFORM_PREFIX=
 
-FROM --platform=amd64 buildpack-deps:22.04 AS builder
+FROM buildpack-deps:18.04 AS builder
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -20,7 +20,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 #   /etc/apt/sources.list
 
 # Replace sources.list with archive.ubuntu.com
-RUN sed -i 's|http://ports.ubuntu.com/ubuntu-ports|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list && \
+RUN set -eux; \
+    if [ "$TARGETARCH" = "arm64" ] || [ "$TARGETARCH" = "arm" ]; then \
+        echo "🔧 Using ports.ubuntu.com for ARM"; \
+        sed -i 's|http://archive.ubuntu.com/ubuntu|http://ports.ubuntu.com/ubuntu-ports|g' /etc/apt/sources.list; \
+    else \
+        echo "🔧 Using archive.ubuntu.com for x86"; \
+        sed -i 's|http://ports.ubuntu.com/ubuntu-ports|http://archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list; \
+    fi; \
     apt-get update || true && \
     apt-get install -y --no-install-recommends ubuntu-keyring gnupg ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -82,7 +89,16 @@ RUN set -eux; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*;
 
-
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-setuptools \
+    python3-wheel \
+ && pip3 install --no-cache-dir "meson>=0.61" \
+ && ln -sf /usr/local/bin/meson /usr/bin/meson \
+ && apt-get clean && rm -rf /var/lib/apt/lists/* \
+ && meson --version
+    
 ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
 COPY ./assets/build-appimage.sh /build/
 RUN chmod +x /build/build-appimage.sh && \
