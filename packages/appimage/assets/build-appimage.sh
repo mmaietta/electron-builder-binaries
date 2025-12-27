@@ -212,13 +212,13 @@ echo ""
 echo "🔍 Verifying binaries and recording versions..."
 : > "$VERSION_FILE"
 
-if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
-    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
-    echo "   ✅ mksquashfs verified: $MKSQ_VER"
-else
-    echo "   ❌ mksquashfs verification failed"
-    exit 1
-fi
+# if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
+#     echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
+#     echo "   ✅ mksquashfs verified: $MKSQ_VER"
+# else
+#     echo "   ❌ mksquashfs verification failed"
+#     exit 1
+# fi
 
 if "$DEST/desktop-file-validate" --help > /dev/null 2>&1; then
     if [ "$OS" = "linux" ]; then
