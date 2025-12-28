@@ -1,50 +1,51 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 
 # Root of the project (can be overridden by caller)
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
-BUILD_DIR="${BUILD_DIR:-$ROOT/build}"
 OUT_DIR="${OUT_DIR:-$ROOT/out}"
 
+BUILD_DIR="/tmp/appimage-bundle-and-compress"
+rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
 # Input directory containing the zip files
-SRC_DIR="${SRC_DIR:-$ROOT/out/build}"
+ZIP_DIR="${ZIP_DIR:-$ROOT/out/build}"
 
-tree $SRC_DIR -L 5 2>/dev/null || find $SRC_DIR -maxdepth 5 -type f
+tree $ZIP_DIR -L 2 2>/dev/null || find $ZIP_DIR -maxdepth 2 -type f
+
+if [ -z "$(ls -A "$ZIP_DIR"/appimage-*.zip 2>/dev/null)" ]; then
+    echo "❌ No input zip files found in $ZIP_DIR"
+    exit 1
+fi
 
 # ----------------------------
 # Runtime → project root
 # ----------------------------
-echo "Extracting runtime to project root"
-unzip -qo "$SRC_DIR"/appimage-runtime*.zip -d "$BUILD_DIR"
-rm -f "$SRC_DIR"/appimage-runtime*.zip
+echo "Extracting runtime to project root → $BUILD_DIR"
+unzip -qo "$ZIP_DIR"/appimage-runtime*.zip -d "$BUILD_DIR"
+rm -f "$ZIP_DIR"/appimage-runtime*.zip
 
 # ----------------------------
 # macOS → darwin/<arch>
 # ----------------------------
-for zip in "$SRC_DIR"/appimage-tools-macos-*.zip; do
+for zip in "$ZIP_DIR"/appimage-tools-darwin-*.zip; do
     [[ -e "$zip" ]] || continue
-    
-    arch="$(basename "$zip" .zip | sed 's/.*-macos-//')"
-    dest="$BUILD_DIR/darwin/$arch"
-    
-    echo "Extracting macOS ($arch) → $dest"
-    rm -rf "$dest"
-    mkdir -p "$dest"
-    unzip -qo "$zip" -d "$dest"
+    echo "Extracting macOS → $BUILD_DIR/darwin"
+    unzip -qo "$zip" -d "$BUILD_DIR"
     rm -f "$zip"
 done
 
 # ----------------------------
 # Linux (all architectures) → linux/<arch>
 # ----------------------------
-LINUX_ZIP="$SRC_DIR/appimage-tools-linux-all-architectures.zip"
-echo "Extracting Linux (all architectures)"
+LINUX_ZIP="$ZIP_DIR/appimage-tools-linux-all-architectures.zip"
+echo "Extracting Linux (all architectures) → $BUILD_DIR/linux"
 unzip -qo "$LINUX_ZIP" -d "$BUILD_DIR"
 rm -f "$LINUX_ZIP"
 
 ARCHIVE_NAME="appimage-tools-runtime-$APPIMAGE_TYPE2_RELEASE.zip"
+rm -f "$OUT_DIR/$ARCHIVE_NAME"
 echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
 (
     cd "$BUILD_DIR"
@@ -52,3 +53,5 @@ echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
 )
 echo "✅ Done!"
 echo "Bundle at: $OUT_DIR/$ARCHIVE_NAME"
+
+rm -rf "$BUILD_DIR"
