@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 
 # Root of the project (can be overridden by caller)
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)

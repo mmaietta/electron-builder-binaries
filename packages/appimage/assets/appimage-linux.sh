@@ -21,31 +21,22 @@ fi
 
 # Use the builder
 docker buildx use appimage-builder
+trap "docker buildx rm appimage-builder" EXIT
 
 DEST="${DEST:-$ROOT/out/build}"
 mkdir -p $DEST
 
-# Build i386 separately with i386/ prefix
+# ,linux/arm64,linux/arm/v7,linux/386
 echo ""
-echo "🚀 Building for linux/386 (i386)..."
+echo "🚀 Building for amd64, arm64, armv7, i386 platforms..."
 docker buildx build \
-    --platform linux/386 \
-    --build-arg PLATFORM_PREFIX="i386/" \
-    --build-arg TARGETPLATFORM="linux/386" \
-    --build-arg TARGETARCH="386" \
-    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-    --output type=local,dest="${DEST}/linux_386" \
-    -f "$ROOT/assets/Dockerfile" \
-    $ROOT
-
-echo "🚀 Building for amd64, arm64, armv7 platforms..."
-docker buildx build \
-    --platform "linux/amd64,linux/arm64,linux/arm/v7" \
-    --build-arg SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
-    --output type=local,dest="${DEST}" \
-    -f "$ROOT/assets/Dockerfile" \
-    $ROOT
-
+    --platform   "linux/amd64,linux/arm64,linux/arm/v7,linux/386" \
+    --build-arg  SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
+    --cache-from type=local,src=.buildx-cache \
+    --cache-to   type=local,dest=.buildx-cache,mode=max \
+    --output     type=local,dest="${DEST}" \
+    -f           "$ROOT/assets/Dockerfile" \
+                 $ROOT
 
 echo ""
 echo "📦 Extracting all tarballs..."
@@ -84,8 +75,6 @@ ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
     zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
 )
 echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
-
-docker buildx rm appimage-builder
 
 echo ""
 echo "🎉 Done!"

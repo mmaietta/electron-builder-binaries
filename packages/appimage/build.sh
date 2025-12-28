@@ -2,7 +2,7 @@
 
 # Build script for AppImage tools for multiple platforms
 # Compile for all builds possible if on MacOS w/ docker buildx.
-# rm -rf out; TARGET=linux sh build.sh && TARGET=darwin sh build.sh && TARGET=runtime sh build.sh && TARGET=compress sh build.sh
+# rm -rf build out; TARGET=darwin sh build.sh && TARGET=linux sh build.sh && TARGET=runtime sh build.sh && TARGET=compress sh build.sh
 
 set -e
 
@@ -25,7 +25,7 @@ mkdir -p $BUILD_DIR $OUTPUT_DIR
 
 if [ "$TARGET" = "darwin" ]; then
     echo "🍎 Detected macOS target - Building Darwin binaries..."
-    DEST="$BUILD_DIR/darwin" bash $ROOT/assets/appimage-mac.sh    
+    DEST="$BUILD_DIR/darwin" bash $ROOT/assets/build-appimage.sh  
 elif [ "$TARGET" = "linux" ]; then
     echo "🐧 Detected Linux target - Building Linux binaries for all architectures..."
     # output to BUILD_DIR because it also extracts lib/
