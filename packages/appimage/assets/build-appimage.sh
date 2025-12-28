@@ -12,7 +12,7 @@ case "$(uname -s)" in
         OS="linux"
         ;;
     Darwin*)
-        OS="macos"
+        OS="darwin"
         ;;
     *)
         echo "❌ Unsupported OS: $(uname -s)"
@@ -102,8 +102,8 @@ fi
 # Setup directories
 OUTPUT_DIR=${DEST:-"$CWD"}
 # build tools
-LINUX_OUTPUT="$OUTPUT_DIR/linux"
-DEST="$LINUX_OUTPUT/$ARCH_DIR"
+OS_OUTPUT="$OUTPUT_DIR/$OS"
+DEST="$OS_OUTPUT/$ARCH_DIR"
 
 # lib for runtimes go at root
 LIB_DIR="$OUTPUT_DIR/lib"
@@ -191,7 +191,7 @@ echo "   ✅ Built desktop-file-validate"
 # =============================================================================
 # PATCH MACOS BINARIES
 # =============================================================================
-if [ "$OS" = "macos" ]; then
+if [ "$OS" = "darwin" ]; then
     echo ""
     echo "🔧 Patching macOS binaries for portability..."
     
@@ -275,8 +275,6 @@ fi
 echo ""
 echo "📚 Copying runtime libraries..."
 
-mkdir -p "$LIB_DEST"
-
 if [ "$OS" = "linux" ]; then
     # Determine system library directory
     if is_ia32; then
@@ -327,6 +325,8 @@ if [ "$OS" = "linux" ]; then
     }
     
     # Copy required libraries
+    mkdir -p "$LIB_DEST"
+        
     copy_lib "libXss.so.1" || exit 1
     copy_lib "libXtst.so.6" || exit 1
     copy_lib "libnotify.so.4" || exit 1
@@ -402,7 +402,7 @@ if [ "$OS" = "linux" ]; then
 
     # Create tarball for Linux extraction from docker container
     tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" \
-        "$(basename "$LINUX_OUTPUT")" \
+        "$(basename "$OS_OUTPUT")" \
         "$(basename "$LIB_DIR")"
     chmod 644 /appimage-tools-*.tar.gz
     
@@ -415,7 +415,7 @@ if [ "$OS" = "linux" ]; then
     echo "   Archive: /appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz"
 else
     # Create zip for macOS
-    ARCHIVE_NAME="appimage-tools-macos-${TARGETARCH}.zip"
+    ARCHIVE_NAME="appimage-tools-darwin-${TARGETARCH}.zip"
     mkdir -p "$CWD/out"
     
     (

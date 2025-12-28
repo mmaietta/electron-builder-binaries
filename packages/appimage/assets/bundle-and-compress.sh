@@ -23,10 +23,10 @@ rm -f "$SRC_DIR"/appimage-runtime*.zip
 # ----------------------------
 # macOS → darwin/<arch>
 # ----------------------------
-for zip in "$SRC_DIR"/appimage-tools-macos-*.zip; do
+for zip in "$SRC_DIR"/appimage-tools-darwin-*.zip; do
     [[ -e "$zip" ]] || continue
     
-    arch="$(basename "$zip" .zip | sed 's/.*-macos-//')"
+    arch="$(basename "$zip" .zip | sed 's/.*-darwin-//')"
     dest="$BUILD_DIR/darwin/$arch"
     
     echo "Extracting macOS ($arch) → $dest"
