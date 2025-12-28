@@ -254,7 +254,7 @@ if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     
     mkdir -p "$DEST/lib"
     cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$DEST/lib/"
-    cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$DEST/lib/"
+    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$DEST/lib/"
     cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$DEST/lib/"
     cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$DEST/"
     
@@ -393,7 +393,7 @@ echo "📦 Creating archive..."
 cd "$CWD"
 
 if [ "$OS" = "linux" ]; then
-    # Create tarball for Linux
+    # Create tarball for Linux extraction from docker container
     tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" \
         "$(basename "$OUTPUT_DIR")" \
         # "$LIB_DIR" \
