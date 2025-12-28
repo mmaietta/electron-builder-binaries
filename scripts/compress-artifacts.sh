@@ -34,8 +34,8 @@ downloadArtifact()
 
 
 NAMES=(
-  # fpm
-  # win-codesign
+  fpm
+  win-codesign
   appimage
 )
 

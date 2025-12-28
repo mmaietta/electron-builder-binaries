@@ -2,7 +2,7 @@
 
 # Build script for AppImage tools for multiple platforms
 # Compile for all builds possible if on MacOS w/ docker buildx.
-# rm -rf out; TARGET=linux sh build.sh && TARGET=darwin sh build.sh && TARGET=runtime sh build.sh && TARGET=compress sh build.sh
+# rm -rf build out; TARGET=darwin sh build.sh && TARGET=linux sh build.sh && TARGET=runtime sh build.sh && TARGET=compress sh build.sh
 
 set -e
 

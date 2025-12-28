@@ -62,7 +62,7 @@ else
     # macOS: use uname
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then
-        ARCH_DIR="x86_64"
+        ARCH_DIR="x64" # map to NodeJS process.arch
     elif [ "$ARCH" = "arm64" ]; then
         ARCH_DIR="arm64"
     else

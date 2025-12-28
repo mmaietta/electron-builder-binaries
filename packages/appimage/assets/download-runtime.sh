@@ -164,6 +164,7 @@ if [ "$failed" -ne 0 ]; then
 fi
 
 echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$INSTALL_DIR/VERSION.txt"
+echo "$CHECKSUMS" >> "$INSTALL_DIR/VERSION.txt"
 echo "All files verified successfully." >&2
 
 ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE.zip"
