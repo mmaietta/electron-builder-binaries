@@ -94,7 +94,7 @@ else
     
     if [ ${#MISSING_DEPS[@]} -gt 0 ]; then
         echo "❌ Missing required Homebrew packages: ${MISSING_DEPS[*]}"
-        brew install "${MISSING_DEPS[*]}"
+        brew install ${MISSING_DEPS[*]}
     fi
     echo "   ✅ All required packages installed"
 fi
