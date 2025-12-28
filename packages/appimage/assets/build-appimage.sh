@@ -100,8 +100,12 @@ else
 fi
 
 # Setup directories
-OUTPUT_DIR=${DEST:-"$CWD/linux"}
-DEST="$OUTPUT_DIR/$ARCH_DIR"
+OUTPUT_DIR=${DEST:-"$CWD"}
+# build tools
+LINUX_OUTPUT="$OUTPUT_DIR/linux"
+DEST="$LINUX_OUTPUT/$ARCH_DIR"
+
+# lib for runtimes go at root
 LIB_DIR="$OUTPUT_DIR/lib"
 LIB_DEST="$LIB_DIR/$ARCH_DIR"
 
@@ -390,13 +394,16 @@ echo "   ✅ All libraries copied successfully"
 echo ""
 echo "📦 Creating archive..."
 
-cd "$CWD"
-
 if [ "$OS" = "linux" ]; then
+    cd "$OUTPUT_DIR"
+
+    echo "   📦 Creating tarball for Linux @ ${TARGETARCH}${TARGETVARIANT}"
+    tree . -L 5 2>/dev/null || find . -maxdepth 5 -type f
+
     # Create tarball for Linux extraction from docker container
     tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" \
-        "$(basename "$OUTPUT_DIR")" \
-        # "$LIB_DIR" \
+        "$(basename "$LINUX_OUTPUT")" \
+        "$(basename "$LIB_DIR")"
     chmod 644 /appimage-tools-*.tar.gz
     
     echo ""
