@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.3
+
+### Patch Changes
+
+- [#67](https://github.com/mmaietta/electron-builder-binaries/pull/67) [`dfe29ee`](https://github.com/mmaietta/electron-builder-binaries/commit/dfe29eec037f698d52f2dde252ad29e1dacde670) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: mac dylib rewrites. compile from source
+
 ## 1.0.2
 
 ### Patch Changes
