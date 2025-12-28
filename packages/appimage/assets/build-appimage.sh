@@ -103,7 +103,7 @@ fi
 OUTPUT_DIR=${DEST:-"$CWD"}
 # build tools
 OS_OUTPUT="$OUTPUT_DIR/$OS"
-DEST="$OS_OUTPUT/$ARCH_DIR"
+ARCH_OUTPUT_DIR="$OS_OUTPUT/$ARCH_DIR"
 
 # lib for runtimes go at root
 LIB_DIR="$OUTPUT_DIR/lib"
@@ -145,8 +145,8 @@ if [ "$OS" = "linux" ]; then
         LZ4_STATIC=1 \
         ZSTD_STATIC=1
     
-    mkdir -p "$DEST"
-    cp -aL mksquashfs "$DEST/"
+    mkdir -p "$ARCH_OUTPUT_DIR"
+    cp -aL mksquashfs "$ARCH_OUTPUT_DIR/"
     echo "   ✅ Built mksquashfs with static compression libraries"
 else
     cd $BUILD_DIR/squashfs-tools/squashfs-tools
@@ -165,9 +165,9 @@ else
         EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
         EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
     
-    mkdir -p "$DEST"
-    cp mksquashfs "$DEST/"
-    chmod +x "$DEST/mksquashfs"
+    mkdir -p "$ARCH_OUTPUT_DIR"
+    cp mksquashfs "$ARCH_OUTPUT_DIR/"
+    chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
     echo "   ✅ Built mksquashfs with static compression libraries"
 fi
 
@@ -184,8 +184,8 @@ meson setup "$BUILD" \
   --buildtype=release
 ninja -C "$BUILD"
 DESTDIR="$BUILD" ninja -C "$BUILD" install
-cp -aL "$BUILD/usr/bin/desktop-file-validate" "$DEST/"
-chmod +x "$DEST/desktop-file-validate"
+cp -aL "$BUILD/usr/bin/desktop-file-validate" "$ARCH_OUTPUT_DIR/"
+chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
@@ -195,16 +195,16 @@ if [ "$OS" = "darwin" ]; then
     echo ""
     echo "🔧 Patching macOS binaries for portability..."
     
-    mkdir -p "$DEST/lib"
+    mkdir -p "$ARCH_OUTPUT_DIR/lib"
     for binary in mksquashfs desktop-file-validate; do
         echo "   🔧 Patching $binary..."
-        otool -L "$DEST/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+        otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
             if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
                 libname=$(basename "$lib")
-                cp "$lib" "$DEST/lib/$libname"
+                cp "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
                 echo "      ✅ Copied $libname"
-                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$DEST/$binary" 2>/dev/null || \
-                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$DEST/$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
                 echo "      ⚠️  Could not update path for $lib"
             fi
         done
@@ -215,12 +215,12 @@ fi
 # =============================================================================
 # VERIFY BINARIES
 # =============================================================================
-VERSION_FILE="$DEST/VERSION.txt"
+VERSION_FILE="$ARCH_OUTPUT_DIR/VERSION.txt"
 echo ""
 echo "🔍 Verifying binaries and recording versions..."
 : > "$VERSION_FILE"
 
-if MKSQ_VER=$("$DEST/mksquashfs" -version | head -n1 2>&1); then
+if MKSQ_VER=$("$ARCH_OUTPUT_DIR/mksquashfs" -version | head -n1 2>&1); then
     echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
     echo "   ✅ mksquashfs verified: $MKSQ_VER"
 else
@@ -228,7 +228,7 @@ else
     exit 1
 fi
 
-if "$DEST/desktop-file-validate" --help > /dev/null 2>&1; then
+if "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
     if [ "$OS" = "linux" ]; then
         DFV_VER=$(dpkg-query -W -f='${Version}\n' desktop-file-utils 2>&1) || DFV_VER="unknown"
     else
@@ -256,14 +256,14 @@ if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     make -j$(nproc) > /dev/null
     make install DESTDIR=/tmp/openjpeg-install > /dev/null
     
-    mkdir -p "$DEST/lib"
-    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$DEST/lib/"
-    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$DEST/lib/"
-    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$DEST/lib/"
-    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$DEST/"
+    mkdir -p "$ARCH_OUTPUT_DIR/lib"
+    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
+    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$ARCH_OUTPUT_DIR/lib/"
+    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
+    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
     
     # Create symlinks
-    cd "$DEST/lib"
+    cd "$ARCH_OUTPUT_DIR/lib"
     ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
     ln -sf libopenjp2.so.7 libopenjp2.so
     echo "   ✅ Built OpenJPEG"
@@ -347,11 +347,11 @@ else
     echo "   🔍 Checking for remaining dynamic dependencies..."
     echo ""
     echo "   mksquashfs dependencies:"
-    otool -L "$DEST/mksquashfs" | grep -v ":" | head -10
+    otool -L "$ARCH_OUTPUT_DIR/mksquashfs" | grep -v ":" | head -10
     
     echo ""
     echo "   desktop-file-validate dependencies:"
-    otool -L "$DEST/desktop-file-validate" | grep -v ":" | head -10
+    otool -L "$ARCH_OUTPUT_DIR/desktop-file-validate" | grep -v ":" | head -10
     
     BREW_PREFIX=$(brew --prefix)
     
@@ -364,7 +364,7 @@ else
                 lib_name=$(basename "$lib")
                 dylibs_needed["$lib"]="$lib_name"
             fi
-        done < <(otool -L "$DEST/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}')
+        done < <(otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}')
     done
     
     # Copy all needed dylibs
@@ -374,7 +374,7 @@ else
         for lib_path in "${!dylibs_needed[@]}"; do
             lib_name="${dylibs_needed[$lib_path]}"
             if [ -f "$lib_path" ]; then
-                cp "$lib_path" "$DEST/$lib_name"
+                cp "$lib_path" "$ARCH_OUTPUT_DIR/$lib_name"
                 echo "      ✅ $lib_name"
             else
                 echo "      ⚠️  $lib_path not found"
@@ -428,7 +428,7 @@ else
     echo "   Archive: $CWD/out/$ARCHIVE_NAME"
     echo ""
     echo "Files created:"
-    tree $DEST -L 4 2>/dev/null || find $DEST -type f
+    tree $ARCH_OUTPUT_DIR -L 4 2>/dev/null || find $ARCH_OUTPUT_DIR -type f
     
     # Cleanup build directory
     if [ -d "$BUILD_DIR" ]; then
