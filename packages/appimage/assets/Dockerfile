@@ -9,14 +9,9 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
 
-# Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
-# RUN sed -i \
-#   -e 's|http://archive.ubuntu.com/ubuntu|https://snapshot.ubuntu.com/archive.ubuntu.com/ubuntu/20240101T000000Z|g' \
-#   -e 's|http://security.ubuntu.com/ubuntu|https://snapshot.ubuntu.com/archive.ubuntu.com/ubuntu/20240101T000000Z|g' \
-#   /etc/apt/sources.list
 
-# Replace sources.list with archive.ubuntu.com
+# Reset apt sources to update old package signatures (issues on ARM)
 RUN set -eux; \
     if [ "$TARGETARCH" = "arm64" ] || [ "$TARGETARCH" = "arm" ]; then \
         echo "🔧 Using ports.ubuntu.com for ARM"; \
@@ -58,6 +53,7 @@ RUN rm -rf /var/lib/apt/lists/* \
     tree \
     wget \
     zlib1g-dev \    
+    zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -98,12 +94,17 @@ RUN mkdir -p /project/build
 
 WORKDIR /project/build
 
-ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
-COPY ./assets/build-appimage.sh /project/build/build-appimage.sh
-RUN bash /project/build/build-appimage.sh
+ARG DESKTOP_UTILS_DEPS_VERSION_TAG="0.28"
+ENV DESKTOP_UTILS_DEPS_VERSION_TAG=${DESKTOP_UTILS_DEPS_VERSION_TAG}
 
-# Final stage - create minimal output image
+ARG SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
+ENV SQUASHFS_TOOLS_VERSION_TAG=${SQUASHFS_TOOLS_VERSION_TAG}
+
+COPY ./assets/build-appimage.sh /project/build/build-appimage.sh
+RUN DEST=/ bash /project/build/build-appimage.sh
+
+# Final stage - create minimal output image for caching (specifically for local dev)
 FROM scratch
 ARG TARGETARCH
 ARG TARGETVARIANT
-COPY --from=builder /appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz /appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz
+COPY --from=builder /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip

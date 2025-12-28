@@ -23,8 +23,12 @@ fi
 docker buildx use appimage-builder
 trap "docker buildx rm appimage-builder" EXIT
 
+
 DEST="${DEST:-$ROOT/out/build}"
-mkdir -p $DEST
+TMP_DOCKER_CONTEXT="/tmp/appimage-docker-context"
+TMP_DIR="/tmp/appimage-build-linux"
+rm -rf $TMP_DIR "$TMP_DOCKER_CONTEXT"
+mkdir -p $TMP_DIR "$TMP_DOCKER_CONTEXT"
 
 # ,linux/arm64,linux/arm/v7,linux/386
 echo ""
@@ -34,47 +38,49 @@ docker buildx build \
     --build-arg  SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --cache-from type=local,src=.buildx-cache \
     --cache-to   type=local,dest=.buildx-cache,mode=max \
-    --output     type=local,dest="${DEST}" \
+    --output     type=local,dest="${TMP_DOCKER_CONTEXT}" \
     -f           "$ROOT/assets/Dockerfile" \
                  $ROOT
 
 echo ""
 echo "📦 Extracting all tarballs..."
 
-# Find and extract all .tar.gz files to DEST root
-find "${DEST}" -name "*.tar.gz" -type f | while read -r tarball; do
-    echo "  Extracting $(basename "$tarball")..."
-    tar xzf "$tarball" -C "${DEST}"
-    rm -r "$(dirname "$tarball")"
+# Find and extract all .zip files to TMP_DIR root
+find "${TMP_DOCKER_CONTEXT}" -name "*.zip" -type f | while read -r zipfile; do
+    echo "  Extracting $(basename "$zipfile")..."
+    unzip -q "$zipfile" -d "${TMP_DIR}"
+    rm -f "$zipfile"
 done
+
 
 echo "✅ All builds completed and extracted"
 
 # Verify executables have correct permissions
 echo "🔐 Verifying executable permissions..."
-chmod +x $DEST/linux/x64/mksquashfs \
-    $DEST/linux/x64/desktop-file-validate \
-    $DEST/linux/x64/opj_decompress \
-    $DEST/linux/ia32/mksquashfs \
-    $DEST/linux/ia32/desktop-file-validate \
-    $DEST/linux/arm64/mksquashfs \
-    $DEST/linux/arm64/desktop-file-validate \
-    $DEST/linux/arm32/mksquashfs
+chmod +x $TMP_DIR/linux/x64/mksquashfs \
+    $TMP_DIR/linux/x64/desktop-file-validate \
+    $TMP_DIR/linux/x64/opj_decompress \
+    $TMP_DIR/linux/ia32/mksquashfs \
+    $TMP_DIR/linux/ia32/desktop-file-validate \
+    $TMP_DIR/linux/arm64/mksquashfs \
+    $TMP_DIR/linux/arm64/desktop-file-validate \
+    $TMP_DIR/linux/arm32/mksquashfs
 
 echo ""
 echo "✨ Extraction complete!"
 echo ""
 echo "📂 Directory structure:"
-tree $DEST -L 4 2>/dev/null || find $DEST -type f
+tree $TMP_DIR -L 4 2>/dev/null || find $TMP_DIR -type f
 
 echo ""
 echo "Creating zip archive of all builds..."
 ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
 (
-    cd "$DEST"
-    zip -r -9 "$ROOT/out/$ARCHIVE_NAME" .
+    cd "$TMP_DIR"
+    zip -r -9 "$DEST/$ARCHIVE_NAME" .
 )
-echo "✓ Archive created: $ROOT/out/$ARCHIVE_NAME"
+echo "✓ Archive created: $DEST/$ARCHIVE_NAME"
 
+rm -rf "$TMP_DIR" "$TMP_DOCKER_CONTEXT"
 echo ""
 echo "🎉 Done!"

@@ -26,7 +26,6 @@ echo ""
 BUILD_DIR="/tmp/appimage-build"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
-trap "rm -rf $BUILD_DIR" EXIT
 
 # =============================================================================
 # Architecture Detection
@@ -56,9 +55,9 @@ if [ "$OS" = "linux" ]; then
     fi
     
     TARGETARCH="${TARGETARCH:-unknown}"
-    TARGETVARIANT="${TARGETVARIANT:-}"
 
 else
+
     # macOS: use uname
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then
@@ -98,15 +97,24 @@ else
     fi
     echo "   ✅ All required packages installed"
 fi
+echo "   Building Target: $TARGETARCH"
+echo ""
+TARGETVARIANT="${TARGETVARIANT:-}"
 
+# =============================================================================
 # Setup directories
-OUTPUT_DIR=${DEST:-"$CWD"}
+DEST="${DEST:-$CWD/out/build}"
+
+TMP_DIR=${TMP_DIR:-"/tmp/appimage-output"}
+rm -rf "$TMP_DIR"
+mkdir -p "$TMP_DIR"
+
 # build tools
-OS_OUTPUT="$OUTPUT_DIR/$OS"
+OS_OUTPUT="$TMP_DIR/$OS"
 ARCH_OUTPUT_DIR="$OS_OUTPUT/$ARCH_DIR"
 
 # lib for runtimes go at root
-LIB_DIR="$OUTPUT_DIR/lib"
+LIB_DIR="$TMP_DIR/lib"
 LIB_DEST="$LIB_DIR/$ARCH_DIR"
 
 echo "🏗️  Building for $OS/$ARCH_DIR"
@@ -394,46 +402,19 @@ echo "   ✅ All libraries copied successfully"
 echo ""
 echo "📦 Creating archive..."
 
-if [ "$OS" = "linux" ]; then
-    cd "$OUTPUT_DIR"
+ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.zip"
+mkdir -p "$DEST"
 
-    echo "   📦 Creating tarball for Linux @ ${TARGETARCH}${TARGETVARIANT}"
-    tree . -L 5 2>/dev/null || find . -maxdepth 5 -type f
+(
+    cd "$TMP_DIR"
+    zip -r -9 "$DEST/$ARCHIVE_NAME" "$(basename "$OS_OUTPUT")" "$(basename "$LIB_DIR")"
+)
 
-    # Create tarball for Linux extraction from docker container
-    tar czf "/appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz" \
-        "$(basename "$OS_OUTPUT")" \
-        "$(basename "$LIB_DIR")"
-    chmod 644 /appimage-tools-*.tar.gz
-    
-    echo ""
-    echo "📂 Final output structure:"
-    tree "$CWD" -L 5 2>/dev/null || find "$CWD" -maxdepth 5 -type f
-    
-    echo ""
-    echo "🎉 Build complete!"
-    echo "   Archive: /appimage-tools-${TARGETARCH}${TARGETVARIANT}.tar.gz"
-else
-    # Create zip for macOS
-    ARCHIVE_NAME="appimage-tools-darwin-${TARGETARCH}.zip"
-    mkdir -p "$CWD/out"
-    
-    (
-        cd "$OUTPUT_DIR/.."
-        zip -r -9 "$CWD/out/$ARCHIVE_NAME" "$(basename "$OUTPUT_DIR")"
-    )
-    
-    echo ""
-    echo "🎉 Build complete!"
-    echo "   Archive: $CWD/out/$ARCHIVE_NAME"
-    echo ""
-    echo "Files created:"
-    tree $ARCH_OUTPUT_DIR -L 4 2>/dev/null || find $ARCH_OUTPUT_DIR -type f
-    
-    # Cleanup build directory
-    if [ -d "$BUILD_DIR" ]; then
-        echo ""
-        echo "🧹 Cleaning up build directory..."
-        rm -rf "$BUILD_DIR"
-    fi
-fi
+echo ""
+echo "🎉 Build complete!"
+echo "   Archive: $DEST/$ARCHIVE_NAME"
+echo ""
+echo "Files created:"
+tree $ARCH_OUTPUT_DIR -L 4 2>/dev/null || find $ARCH_OUTPUT_DIR -type f
+
+rm -rf "$TMP_DIR" "$BUILD_DIR"
