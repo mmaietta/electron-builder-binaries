@@ -31,8 +31,8 @@ jobs:
   combine:
     runs-on: macos-latest
     needs: [
-      # fpm,
-      # win-codesign,
+      fpm,
+      win-codesign,
       appimage,
       # squirrel
     ]
