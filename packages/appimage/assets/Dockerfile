@@ -48,6 +48,7 @@ RUN rm -rf /var/lib/apt/lists/* \
     libzstd-dev \
     meson \
     ninja-build \
+    patchelf \
     pkg-config \
     tar \
     tree \
@@ -104,7 +105,7 @@ COPY ./assets/build-appimage.sh /project/build/build-appimage.sh
 RUN DEST=/ bash /project/build/build-appimage.sh
 
 # Final stage - create minimal output image for caching (specifically for local dev)
-FROM scratch
-ARG TARGETARCH
-ARG TARGETVARIANT
-COPY --from=builder /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip
+# FROM scratch
+# ARG TARGETARCH
+# ARG TARGETVARIANT
+# COPY --from=builder /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip

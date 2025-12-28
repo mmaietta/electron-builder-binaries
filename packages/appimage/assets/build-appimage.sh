@@ -10,14 +10,14 @@ DESKTOP_UTILS_DEPS_VERSION_TAG=${DESKTOP_UTILS_DEPS_VERSION_TAG:-"0.28"}
 case "$(uname -s)" in
     Linux*)
         OS="linux"
-        ;;
+    ;;
     Darwin*)
         OS="darwin"
-        ;;
+    ;;
     *)
         echo "❌ Unsupported OS: $(uname -s)"
         exit 1
-        ;;
+    ;;
 esac
 
 echo "🏗️  AppImage Tools Compiler for $OS"
@@ -55,14 +55,14 @@ if [ "$OS" = "linux" ]; then
     fi
     
     TARGETARCH="${TARGETARCH:-unknown}"
-
+    
 else
-
+    
     # macOS: use uname
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then
         ARCH_DIR="x64" # map to NodeJS process.arch
-    elif [ "$ARCH" = "arm64" ]; then
+        elif [ "$ARCH" = "arm64" ]; then
         ARCH_DIR="arm64"
     else
         echo "❌ Unsupported architecture: $ARCH"
@@ -80,7 +80,7 @@ else
     
     # Verify required brew packages are installed
     echo "🔍 Checking Homebrew dependencies..."
-    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils" "meson" "ninja" "tree")
+    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "meson" "ninja" "tree")
     MISSING_DEPS=()
     
     for dep in "${REQUIRED_DEPS[@]}"; do
@@ -143,40 +143,40 @@ echo "📦 Building squashfs-tools..."
 if [ "$OS" = "linux" ]; then
     cd $BUILD_DIR/squashfs-tools/squashfs-tools
     make -j$(nproc) \
-        GZIP_SUPPORT=1 \
-        XZ_SUPPORT=1 \
-        LZO_SUPPORT=1 \
-        LZ4_SUPPORT=1 \
-        ZSTD_SUPPORT=1 \
-        XZ_STATIC=1 \
-        LZO_STATIC=1 \
-        LZ4_STATIC=1 \
-        ZSTD_STATIC=1
+    GZIP_SUPPORT=1 \
+    XZ_SUPPORT=1 \
+    LZO_SUPPORT=1 \
+    LZ4_SUPPORT=1 \
+    ZSTD_SUPPORT=1 \
+    XZ_STATIC=1 \
+    LZO_STATIC=1 \
+    LZ4_STATIC=1 \
+    ZSTD_STATIC=1
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp -aL mksquashfs "$ARCH_OUTPUT_DIR/"
     echo "   ✅ Built mksquashfs with static compression libraries"
 else
     cd $BUILD_DIR/squashfs-tools/squashfs-tools
-
+    
     BREW_PREFIX=$(brew --prefix)
     make -j$(sysctl -n hw.ncpu) \
-        GZIP_SUPPORT=1 \
-        XZ_SUPPORT=1 \
-        LZO_SUPPORT=1 \
-        LZ4_SUPPORT=1 \
-        ZSTD_SUPPORT=1 \
-        XZ_STATIC=1 \
-        LZO_STATIC=1 \
-        LZ4_STATIC=1 \
-        ZSTD_STATIC=1 \
-        EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
-        EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
+    GZIP_SUPPORT=1 \
+    XZ_SUPPORT=1 \
+    LZO_SUPPORT=1 \
+    LZ4_SUPPORT=1 \
+    ZSTD_SUPPORT=1 \
+    XZ_STATIC=1 \
+    LZO_STATIC=1 \
+    LZ4_STATIC=1 \
+    ZSTD_STATIC=1 \
+    EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
+    EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp mksquashfs "$ARCH_OUTPUT_DIR/"
     chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
-    echo "   ✅ Built mksquashfs with static compression libraries"
+    echo "   ✅ Built mksquashfs"
 fi
 
 # =============================================================================
@@ -188,8 +188,8 @@ cd "$BUILD_DIR/desktop-file-utils"
 
 BUILD=$BUILD_DIR/desktop-file-utils/build
 meson setup "$BUILD" \
-  --prefix=/usr \
-  --buildtype=release
+--prefix=/usr \
+--buildtype=release
 ninja -C "$BUILD"
 DESTDIR="$BUILD" ninja -C "$BUILD" install
 cp -aL "$BUILD/usr/bin/desktop-file-validate" "$ARCH_OUTPUT_DIR/"
@@ -217,7 +217,102 @@ if [ "$OS" = "darwin" ]; then
             fi
         done
     done
-    echo "   ✅ Binaries patched"
+    echo ""
+    echo "🧪 Validating macOS binary portability..."
+    
+    for binary in mksquashfs desktop-file-validate; do
+        echo "   🔍 $binary"
+        
+        otool -L "$ARCH_OUTPUT_DIR/$binary" \
+        | grep -v ":" \
+        | awk '{print $1}' \
+        | while read -r lib; do
+            case "$lib" in
+                @executable_path/*|@loader_path/*)
+                    echo "      ✅ $lib"
+                ;;
+                /usr/lib/*)
+                    # system libraries are allowed
+                ;;
+                *)
+                    echo "      ❌ Non-portable dependency: $lib"
+                    exit 1
+                ;;
+            esac
+        done
+    done
+    
+    echo "   ✅ macOS binaries are portable"
+    
+else
+    echo ""
+    echo "🔧 Patching Linux binaries for portability..."
+    
+    mkdir -p "$ARCH_OUTPUT_DIR/lib"
+    
+    for binary in mksquashfs desktop-file-validate; do
+        echo "   🔧 Patching $binary..."
+        
+        ldd "$ARCH_OUTPUT_DIR/$binary" \
+        | awk '/=> \// { print $3 }' \
+        | while read -r lib; do
+            libname=$(basename "$lib")
+            
+            # Skip glibc + loader (must remain system-provided)
+            case "$libname" in
+                libc.so.*|ld-linux*.so.*|libpthread.so.*|librt.so.*|libdl.so.*)
+                    continue
+                ;;
+            esac
+            
+            if [ ! -f "$ARCH_OUTPUT_DIR/lib/$libname" ]; then
+                cp -a "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
+                echo "      ✅ Copied $libname"
+            fi
+        done
+        
+        # Make the binary hermetic
+        patchelf --remove-rpath "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || true
+        patchelf --set-rpath '$ORIGIN/../lib' "$ARCH_OUTPUT_DIR/$binary"
+    done
+    
+    echo ""
+    echo "🧪 Validating Linux binary portability..."
+    
+    for binary in mksquashfs desktop-file-validate; do
+        echo "   🔍 $binary"
+        
+        ldd "$ARCH_OUTPUT_DIR/$binary" | while read -r line; do
+            case "$line" in
+                *"=> not found"*)
+                    echo "      ❌ Missing dependency: $line"
+                    exit 1
+                ;;
+                *"=> $ARCH_OUTPUT_DIR/lib/"*)
+                    lib=$(echo "$line" | awk '{print $1}')
+                    echo "      ✅ $lib (local)"
+                ;;
+                *"=> /lib/"*|*"=> /usr/lib/"*)
+                    # system libs are allowed
+                ;;
+                linux-vdso.so*|/lib64/ld-linux*|/lib/*/ld-linux*)
+                    # loader / vdso are allowed
+                ;;
+                *)
+                    # Catch anything else (leak)
+                    echo "      ❌ Non-portable dependency: $line"
+                    exit 1
+                ;;
+            esac
+        done
+    done
+    LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version > /dev/null 2>&1 || {
+        echo "      ❌ mksquashfs failed to run"
+        exit 1
+    }
+    
+    echo "   ✅ Linux binaries are hermetic"
+    
 fi
 
 # =============================================================================
@@ -237,13 +332,8 @@ else
 fi
 
 if "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
-    if [ "$OS" = "linux" ]; then
-        DFV_VER=$(dpkg-query -W -f='${Version}\n' desktop-file-utils 2>&1) || DFV_VER="unknown"
-    else
-        DFV_VER=$(brew list --versions desktop-file-utils | awk '{print $2}')
-    fi
-    echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
-    echo "   ✅ desktop-file-validate verified: $DFV_VER"
+    echo "desktop-file-validate: $DESKTOP_UTILS_DEPS_VERSION_TAG" >> "$VERSION_FILE"
+    echo "   ✅ desktop-file-validate verified: $DESKTOP_UTILS_DEPS_VERSION_TAG"
 else
     echo "   ❌ desktop-file-validate verification failed"
     exit 1
@@ -287,11 +377,11 @@ if [ "$OS" = "linux" ]; then
     # Determine system library directory
     if is_ia32; then
         SYS_LIB_DIR="/usr/lib/i386-linux-gnu"
-    elif is_x64; then
+        elif is_x64; then
         SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-    elif is_arm64; then
+        elif is_arm64; then
         SYS_LIB_DIR="/usr/lib/aarch64-linux-gnu"
-    elif is_arm32; then
+        elif is_arm32; then
         SYS_LIB_DIR="/usr/lib/arm-linux-gnueabihf"
     fi
     
@@ -334,7 +424,7 @@ if [ "$OS" = "linux" ]; then
     
     # Copy required libraries
     mkdir -p "$LIB_DEST"
-        
+    
     copy_lib "libXss.so.1" || exit 1
     copy_lib "libXtst.so.6" || exit 1
     copy_lib "libnotify.so.4" || exit 1
@@ -346,51 +436,6 @@ if [ "$OS" = "linux" ]; then
     else
         copy_lib "libappindicator3.so.1" "libappindicator.so.1" || exit 1
         copy_lib "libindicator3.so.7" "libindicator.so.7" || exit 1
-    fi
-    
-else
-    # macOS - copy only remaining dynamic dependencies
-    # Both binaries should have compression libs statically linked
-    
-    echo "   🔍 Checking for remaining dynamic dependencies..."
-    echo ""
-    echo "   mksquashfs dependencies:"
-    otool -L "$ARCH_OUTPUT_DIR/mksquashfs" | grep -v ":" | head -10
-    
-    echo ""
-    echo "   desktop-file-validate dependencies:"
-    otool -L "$ARCH_OUTPUT_DIR/desktop-file-validate" | grep -v ":" | head -10
-    
-    BREW_PREFIX=$(brew --prefix)
-    
-    # Collect all Homebrew dylibs needed by both binaries
-    declare dylibs_needed=()
-    
-    for binary in mksquashfs desktop-file-validate; do
-        while IFS= read -r lib; do
-            if [[ "$lib" == ${BREW_PREFIX}/* ]]; then
-                lib_name=$(basename "$lib")
-                dylibs_needed["$lib"]="$lib_name"
-            fi
-        done < <(otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}')
-    done
-    
-    # Copy all needed dylibs
-    if [ ${#dylibs_needed[@]} -gt 0 ]; then
-        echo ""
-        echo "   📚 Copying ${#dylibs_needed[@]} required dynamic libraries..."
-        for lib_path in "${!dylibs_needed[@]}"; do
-            lib_name="${dylibs_needed[$lib_path]}"
-            if [ -f "$lib_path" ]; then
-                cp "$lib_path" "$ARCH_OUTPUT_DIR/$lib_name"
-                echo "      ✅ $lib_name"
-            else
-                echo "      ⚠️  $lib_path not found"
-            fi
-        done
-    else
-        echo ""
-        echo "   ✅ No Homebrew dependencies needed (fully static or system libs only)"
     fi
 fi
 
