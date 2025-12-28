@@ -284,6 +284,9 @@ else
         
         ldd "$ARCH_OUTPUT_DIR/$binary" | while read -r line; do
             case "$line" in
+                linux-gate.so*|linux-vdso.so*)
+                    # kernel-provided VDSO — always allowed
+                ;;
                 *"=> not found"*)
                     echo "      ❌ Missing dependency: $line"
                     exit 1
