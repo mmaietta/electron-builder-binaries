@@ -243,7 +243,7 @@ if [ "$OS" = "darwin" ]; then
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     
-    find "$ARCH_OUTPUT_DIR" -type f -executable | while read -r binary; do
+    find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
         
         if [[ " ${EXECS_TO_PATCH[*]} " == *"$(basename "$binary")"* ]]; then
             continue
@@ -286,15 +286,13 @@ else
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     
-    
-    
     # Recursively find all ELF binaries in a directory
-    find "$ARCH_OUTPUT_DIR" -type f -executable | while read -r binary; do
+    find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
         
-        # note: limit to only mksquashfs. (smaller scope for packaging)
-        if [ "$(basename "$binary")" != "mksquashfs" ]; then
+        if [[ " ${EXECS_TO_PATCH[*]} " == *"$(basename "$binary")"* ]]; then
             continue
         fi
+        
         
         echo "   🔧 Patching $(basename "$binary")..."
         
@@ -494,9 +492,14 @@ echo "📦 Creating archive..."
 ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.tar.gz"
 mkdir -p "$DEST"
 
+items=( "$(basename "$OS_OUTPUT")" )
+
+if [ -d "$LIB_DIR" ]; then
+    items+=( "$(basename "$LIB_DIR")" )
+fi
 (
     cd "$TEMP_DIR"
-    tar czf "$DEST/$ARCHIVE_NAME" "$(basename "$OS_OUTPUT")" "$(basename "$LIB_DIR")"
+    tar czf "$DEST/$ARCHIVE_NAME" "${items[@]}"
 )
 
 echo ""
