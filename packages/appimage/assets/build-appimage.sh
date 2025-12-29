@@ -285,7 +285,10 @@ else
         ldd "$ARCH_OUTPUT_DIR/$binary" | while read -r line; do
             case "$line" in
                 linux-gate.so*|linux-vdso.so*)
-                    # kernel-provided VDSO — always allowed
+                    # kernel-provided VDSO
+                ;;
+                /lib*/ld-linux*.so*'('*')')
+                    # ELF dynamic loader (absolute path form)
                 ;;
                 *"=> not found"*)
                     echo "      ❌ Missing dependency: $line"
@@ -296,19 +299,18 @@ else
                     echo "      ✅ $lib (local)"
                 ;;
                 *"=> /lib/"*|*"=> /usr/lib/"*)
-                    # system libs are allowed
-                ;;
-                linux-vdso.so*|/lib64/ld-linux*|/lib/*/ld-linux*)
-                    # loader / vdso are allowed
+                    # glibc system libs
                 ;;
                 *)
-                    # Catch anything else (leak)
                     echo "      ❌ Non-portable dependency: $line"
                     exit 1
                 ;;
             esac
         done
     done
+    
+    echo "   ✅ Linux binaries are hermetic"
+    
     LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version > /dev/null 2>&1 || {
         echo "      ❌ mksquashfs failed to run"
         exit 1
