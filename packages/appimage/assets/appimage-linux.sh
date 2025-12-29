@@ -3,6 +3,7 @@
 set -eo pipefail
 
 SQUASHFS_TOOLS_VERSION_TAG=${SQUASHFS_TOOLS_VERSION_TAG:-"4.6.1"}
+DESKTOP_UTILS_DEPS_VERSION_TAG=${DESKTOP_UTILS_DEPS_VERSION_TAG:-"0.28"}
 
 ROOT=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
@@ -13,41 +14,47 @@ if ! docker buildx version &> /dev/null; then
     exit 1
 fi
 
-# Create a new builder instance if it doesn't exist
-if ! docker buildx ls | grep -q appimage-builder; then
-    echo "🏗️  Creating buildx builder instance..."
-    docker buildx create --name appimage-builder --use
-fi
-
-# Use the builder
-docker buildx use appimage-builder
-
 DEST="${DEST:-$ROOT/out/build}"
 TMP_DOCKER_CONTEXT="/tmp/appimage-docker-context"
-TMP_DIR="/tmp/appimage-build-linux"
-rm -rf $TMP_DIR "$TMP_DOCKER_CONTEXT"
-mkdir -p $TMP_DIR "$TMP_DOCKER_CONTEXT"
+TEMP_DIR="/tmp/appimage-build-linux"
 
-# ,linux/arm64,linux/arm/v7,linux/386
+cleanup() {
+    docker buildx rm appimage-builder || true
+    echo "Cleaning up temporary directories..."
+    rm -rf "$TEMP_DIR" "$TMP_DOCKER_CONTEXT"
+}
+trap 'errorCode=$?; echo "Error $errorCode at command: $BASH_COMMAND"; cleanup; exit $errorCode' ERR
+
+echo "🏗️  Preparing build environment..."
+cleanup
+mkdir -p "$TEMP_DIR" "$TMP_DOCKER_CONTEXT"
+
+# Create a new builder instance if it doesn't exist
+echo "🏗️  Creating buildx builder instance..."
+docker buildx create --name appimage-builder
+docker buildx use appimage-builder
+
+# Build all Linux architectures
 echo ""
 echo "🚀 Building for amd64, arm64, armv7, i386 platforms..."
 docker buildx build \
     --platform   "linux/amd64,linux/arm64,linux/arm/v7,linux/386" \
+    --build-arg  DESKTOP_UTILS_DEPS_VERSION_TAG="$DESKTOP_UTILS_DEPS_VERSION_TAG" \
     --build-arg  SQUASHFS_TOOLS_VERSION_TAG="$SQUASHFS_TOOLS_VERSION_TAG" \
     --cache-from type=local,src=.buildx-cache \
     --cache-to   type=local,dest=.buildx-cache,mode=max \
     --output     type=local,dest="${TMP_DOCKER_CONTEXT}" \
     -f           "$ROOT/assets/Dockerfile" \
-                 $ROOT
+    $ROOT
 
 echo ""
 echo "📦 Extracting all tarballs..."
 
-# Find and extract all .zip files to TMP_DIR root
-find "${TMP_DOCKER_CONTEXT}" -name "*.zip" -type f | while read -r zipfile; do
-    echo "  Extracting $(basename "$zipfile")..."
-    unzip -q "$zipfile" -d "${TMP_DIR}"
-    rm -f "$zipfile"
+# Find and extract all .tar.gz files to TMP_DIR root
+find "${TMP_DOCKER_CONTEXT}" -name "*.tar.gz" -type f | while read -r tarfile; do
+    echo "  Extracting $(basename "$tarfile")..."
+    tar -xzf "$tarfile" -C "${TEMP_DIR}"
+    rm -f "$tarfile"
 done
 
 
@@ -55,31 +62,31 @@ echo "✅ All builds completed and extracted"
 
 # Verify executables have correct permissions
 echo "🔐 Verifying executable permissions..."
-chmod +x $TMP_DIR/linux/x64/mksquashfs \
-    $TMP_DIR/linux/x64/desktop-file-validate \
-    $TMP_DIR/linux/x64/opj_decompress \
-    $TMP_DIR/linux/ia32/mksquashfs \
-    $TMP_DIR/linux/ia32/desktop-file-validate \
-    $TMP_DIR/linux/arm64/mksquashfs \
-    $TMP_DIR/linux/arm64/desktop-file-validate \
-    $TMP_DIR/linux/arm32/mksquashfs
+chmod +x $TEMP_DIR/linux/x64/mksquashfs \
+    $TEMP_DIR/linux/x64/desktop-file-validate \
+    $TEMP_DIR/linux/x64/opj_decompress \
+    $TEMP_DIR/linux/ia32/mksquashfs \
+    $TEMP_DIR/linux/ia32/desktop-file-validate \
+    $TEMP_DIR/linux/arm64/mksquashfs \
+    $TEMP_DIR/linux/arm64/desktop-file-validate \
+    $TEMP_DIR/linux/arm32/mksquashfs
 
 echo ""
 echo "✨ Extraction complete!"
 echo ""
 echo "📂 Directory structure:"
-tree $TMP_DIR -L 4 2>/dev/null || find $TMP_DIR -type f
+tree $TEMP_DIR -L 4 2>/dev/null || find $TEMP_DIR -type f -maxdepth 4
 
 echo ""
-echo "Creating zip archive of all builds..."
-ARCHIVE_NAME="appimage-tools-linux-all-architectures.zip"
+echo "Creating tar.gz archive of all builds..."
+ARCHIVE_NAME="appimage-tools-linux-all-architectures.tar.gz"
 (
-    cd "$TMP_DIR"
-    zip -r -9 "$DEST/$ARCHIVE_NAME" .
+    cd "$TEMP_DIR"
+    tar czf "$DEST/$ARCHIVE_NAME" .
 )
 echo "✓ Archive created: $DEST/$ARCHIVE_NAME"
 
-rm -rf "$TMP_DIR" "$TMP_DOCKER_CONTEXT"
-docker buildx rm appimage-builder
+cleanup
+
 echo ""
 echo "🎉 Done!"

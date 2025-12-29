@@ -167,11 +167,11 @@ echo "AppImage/type2-runtime release: $APPIMAGE_TYPE2_RELEASE" > "$INSTALL_DIR/V
 echo "$CHECKSUMS" >> "$INSTALL_DIR/VERSION.txt"
 echo "All files verified successfully." >&2
 
-ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE.zip"
-echo "📦 Creating ZIP bundle: $ARCHIVE_NAME"
+ARCHIVE_NAME="appimage-runtime-$APPIMAGE_TYPE2_RELEASE.tar.gz"
+echo "📦 Creating tar.gz bundle: $ARCHIVE_NAME"
 (
 cd "$INSTALL_DIR/.."
-zip -r -9 "$OUT_DIR/$ARCHIVE_NAME" $(basename "$INSTALL_DIR")
+tar czf "$OUT_DIR/$ARCHIVE_NAME" $(basename "$INSTALL_DIR")
 )
 echo "✅ Done!"
 echo "Bundle at: $OUT_DIR/$ARCHIVE_NAME"

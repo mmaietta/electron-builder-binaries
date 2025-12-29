@@ -1,5 +1,5 @@
 #!/bin/env bash
-set -euo pipefail
+set -exuo pipefail
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
@@ -105,16 +105,16 @@ TARGETVARIANT="${TARGETVARIANT:-}"
 # Setup directories
 DEST="${DEST:-$CWD/out/build}"
 
-TMP_DIR=${TMP_DIR:-"/tmp/appimage-output"}
-rm -rf "$TMP_DIR"
-mkdir -p "$TMP_DIR"
+TEMP_DIR=${TEMP_DIR:-"/tmp/appimage-output"}
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
 
 # build tools
-OS_OUTPUT="$TMP_DIR/$OS"
+OS_OUTPUT="$TEMP_DIR/$OS"
 ARCH_OUTPUT_DIR="$OS_OUTPUT/$ARCH_DIR"
 
 # lib for runtimes go at root
-LIB_DIR="$TMP_DIR/lib"
+LIB_DIR="$TEMP_DIR/lib"
 LIB_DEST="$LIB_DIR/$ARCH_DIR"
 
 echo "🏗️  Building for $OS/$ARCH_DIR"
@@ -197,36 +197,72 @@ chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
-# PATCH MACOS BINARIES
+# PATCH BINARIES
+# note: limit to only mksquashfs. (smaller scope for packaging)
+EXECS_TO_PATCH=("mksquashfs")
 # =============================================================================
+copy_lib_recursive() {
+    local lib_path="$1"
+    local dest_dir="$2"
+    local libname
+    libname=$(basename "$lib_path")
+    
+    # Already handled
+    if [ -e "$dest_dir/$libname" ]; then
+        return 0
+    fi
+    
+    # Resolve real file
+    local real_file
+    real_file=$(readlink -f "$lib_path")
+    
+    # Copy real file
+    cp -a "$real_file" "$dest_dir/"
+    echo "      ✅ $libname"
+    
+    # Recreate symlink if this is one
+    if [ -L "$lib_path" ]; then
+        ln -sf "$(basename "$real_file")" "$dest_dir/$libname"
+        
+        # Follow symlink chain safely
+        local next_target
+        next_target=$(readlink "$lib_path")
+        
+        if [ -n "$next_target" ]; then
+            if [[ "$next_target" != /* ]]; then
+                next_target="$(dirname "$lib_path")/$next_target"
+            fi
+            copy_lib_recursive "$next_target" "$dest_dir"
+        fi
+    fi
+}
+
 if [ "$OS" = "darwin" ]; then
     echo ""
     echo "🔧 Patching macOS binaries for portability..."
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
-    for binary in mksquashfs desktop-file-validate; do
+    
+    find "$ARCH_OUTPUT_DIR" -type f -executable | while read -r binary; do
+        
+        if [[ " ${EXECS_TO_PATCH[*]} " == *"$(basename "$binary")"* ]]; then
+            continue
+        fi
+        
         echo "   🔧 Patching $binary..."
-        otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+        otool -L "$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
             if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
                 libname=$(basename "$lib")
                 cp "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
                 echo "      ✅ Copied $libname"
-                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
-                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$binary" 2>/dev/null || \
                 echo "      ⚠️  Could not update path for $lib"
             fi
         done
-    done
-    echo ""
-    echo "🧪 Validating macOS binary portability..."
-    
-    for binary in mksquashfs desktop-file-validate; do
-        echo "   🔍 $binary"
+        echo "   🔍 Checking $(basename "$binary")..."
         
-        otool -L "$ARCH_OUTPUT_DIR/$binary" \
-        | grep -v ":" \
-        | awk '{print $1}' \
-        | while read -r lib; do
+        otool -L "$binary"   | grep -v ":" | awk '{print $1}' | while read -r lib; do
             case "$lib" in
                 @executable_path/*|@loader_path/*)
                     echo "      ✅ $lib"
@@ -250,39 +286,41 @@ else
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     
-    for binary in mksquashfs desktop-file-validate; do
-        echo "   🔧 Patching $binary..."
+    
+    
+    # Recursively find all ELF binaries in a directory
+    find "$ARCH_OUTPUT_DIR" -type f -executable | while read -r binary; do
         
-        ldd "$ARCH_OUTPUT_DIR/$binary" \
+        # note: limit to only mksquashfs. (smaller scope for packaging)
+        if [ "$(basename "$binary")" != "mksquashfs" ]; then
+            continue
+        fi
+        
+        echo "   🔧 Patching $(basename "$binary")..."
+        
+        # Collect all non-system shared library dependencies
+        ldd "$binary" \
         | awk '/=> \// { print $3 }' \
         | while read -r lib; do
             libname=$(basename "$lib")
             
-            # Skip glibc + loader (must remain system-provided)
+            # Skip system libraries
             case "$libname" in
                 libc.so.*|ld-linux*.so.*|libpthread.so.*|librt.so.*|libdl.so.*)
                     continue
                 ;;
             esac
             
-            if [ ! -f "$ARCH_OUTPUT_DIR/lib/$libname" ]; then
-                cp -a "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
-                echo "      ✅ Copied $libname"
-            fi
+            echo "      🔄 Copying $libname and its symlink chain..."
+            copy_lib_recursive "$lib" "$ARCH_OUTPUT_DIR/lib"
         done
         
         # Make the binary hermetic
-        patchelf --remove-rpath "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || true
-        patchelf --set-rpath '$ORIGIN/../lib' "$ARCH_OUTPUT_DIR/$binary"
-    done
-    
-    echo ""
-    echo "🧪 Validating Linux binary portability..."
-    
-    for binary in mksquashfs desktop-file-validate; do
-        echo "   🔍 $binary"
+        patchelf --remove-rpath "$binary" 2>/dev/null || true
+        patchelf --set-rpath '$ORIGIN/../lib' "$binary"
         
-        ldd "$ARCH_OUTPUT_DIR/$binary" | while read -r line; do
+        # Verify all dependencies are now local or system
+        ldd "$binary" | while read -r line; do
             case "$line" in
                 linux-gate.so*|linux-vdso.so*)
                     # kernel-provided VDSO
@@ -309,15 +347,14 @@ else
         done
     done
     
-    echo "   ✅ Linux binaries are hermetic"
-    
     LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version > /dev/null 2>&1 || {
         echo "      ❌ mksquashfs failed to run"
         exit 1
     }
-    
-    echo "   ✅ Linux binaries are hermetic"
-    
+    LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1 || {
+        echo "      ❌ desktop-file-validate failed to run"
+        exit 1
+    }
 fi
 
 # =============================================================================
@@ -350,14 +387,15 @@ fi
 if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     echo ""
     echo "🖼️  Building OpenJPEG..."
-    cd /tmp
+    mkdir -p /tmp/openjpeg-build
+    cd /tmp/openjpeg-build
     wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
     tar xzf v2.3.0.tar.gz
     cd openjpeg-2.3.0
     mkdir build && cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
     make -j$(nproc) > /dev/null
-    make install DESTDIR=/tmp/openjpeg-install > /dev/null
+    make install DESTDIR=/tmp/openjpeg-install
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
@@ -365,6 +403,7 @@ if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
     cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
     
+    rm -rf /tmp/openjpeg-build /tmp/openjpeg-install
     # Create symlinks
     cd "$ARCH_OUTPUT_DIR/lib"
     ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
@@ -399,7 +438,7 @@ if [ "$OS" = "linux" ]; then
         if is_ia32 && [[ "$libname" == "libappindicator"* || "$libname" == "libindicator"* ]]; then
             for deb_dir in /tmp/appind /tmp/ind; do
                 if [ -f "$deb_dir/usr/lib/i386-linux-gnu/$libname" ]; then
-                    cp "$deb_dir/usr/lib/i386-linux-gnu/$libname" "$LIB_DEST/$outname"
+                    copy_lib_recursive "$deb_dir/usr/lib/i386-linux-gnu/$libname" "$LIB_DEST"
                     echo "   ✅ $libname"
                     return 0
                 fi
@@ -417,7 +456,7 @@ if [ "$OS" = "linux" ]; then
         
         for dir in "${search_dirs[@]}"; do
             if [ -f "$dir/$libname" ]; then
-                cp "$dir/$libname" "$LIB_DEST/$outname"
+                copy_lib_recursive "$dir/$libname" "$LIB_DEST"
                 echo "   ✅ $libname"
                 return 0
             fi
@@ -452,12 +491,12 @@ echo "   ✅ All libraries copied successfully"
 echo ""
 echo "📦 Creating archive..."
 
-ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.zip"
+ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.tar.gz"
 mkdir -p "$DEST"
 
 (
-    cd "$TMP_DIR"
-    zip -r -9 "$DEST/$ARCHIVE_NAME" "$(basename "$OS_OUTPUT")" "$(basename "$LIB_DIR")"
+    cd "$TEMP_DIR"
+    tar czf "$DEST/$ARCHIVE_NAME" "$(basename "$OS_OUTPUT")" "$(basename "$LIB_DIR")"
 )
 
 echo ""
@@ -465,6 +504,6 @@ echo "🎉 Build complete!"
 echo "   Archive: $DEST/$ARCHIVE_NAME"
 echo ""
 echo "Files created:"
-tree $ARCH_OUTPUT_DIR -L 4 2>/dev/null || find $ARCH_OUTPUT_DIR -type f
+tree $ARCH_OUTPUT_DIR -L 6 2>/dev/null || find $ARCH_OUTPUT_DIR -type f -maxdepth 6
 
-rm -rf "$TMP_DIR" "$BUILD_DIR"
+rm -rf "$TEMP_DIR" "$BUILD_DIR"
