@@ -28,7 +28,7 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # =============================================================================
-# Architecture Detection
+# Env Detection
 # =============================================================================
 if [ "$OS" = "linux" ]; then
     # Linux: use TARGETPLATFORM from Docker
@@ -103,6 +103,7 @@ TARGETVARIANT="${TARGETVARIANT:-}"
 
 # =============================================================================
 # Setup directories
+# =============================================================================
 DEST="${DEST:-$CWD/out/build}"
 
 TEMP_DIR=${TEMP_DIR:-"/tmp/appimage-output"}
@@ -197,10 +198,40 @@ chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
-# PATCH BINARIES
-# note: limit to only mksquashfs. (smaller scope for packaging)
-EXECS_TO_PATCH=("mksquashfs")
+# BUILD OPENJPEG (Linux x64/arm64 only)
 # =============================================================================
+if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
+    echo ""
+    echo "🖼️  Building OpenJPEG..."
+    mkdir -p /tmp/openjpeg-build
+    cd /tmp/openjpeg-build
+    wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
+    tar xzf v2.3.0.tar.gz
+    cd openjpeg-2.3.0
+    mkdir build && cd build
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
+    make -j$(nproc) > /dev/null
+    make install DESTDIR=/tmp/openjpeg-install
+    
+    mkdir -p "$ARCH_OUTPUT_DIR/lib"
+    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
+    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$ARCH_OUTPUT_DIR/lib/"
+    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
+    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
+    
+    rm -rf /tmp/openjpeg-build /tmp/openjpeg-install
+    # Create symlinks
+    cd "$ARCH_OUTPUT_DIR/lib"
+    ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
+    ln -sf libopenjp2.so.7 libopenjp2.so
+    echo "   ✅ Built OpenJPEG"
+fi
+
+# =============================================================================
+# PATCH BINARIES
+# =============================================================================
+EXECS_TO_PATCH=("mksquashfs") # note: limit to only mksquashfs. (smaller scope for packaging)
+
 copy_lib_recursive() {
     local lib_path="$1"
     local dest_dir="$2"
@@ -237,18 +268,16 @@ copy_lib_recursive() {
     fi
 }
 
-if [ "$OS" = "darwin" ]; then
-    echo ""
-    echo "🔧 Patching macOS binaries for portability..."
+find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
+    
+    if [[ " ${EXECS_TO_PATCH[*]} " != *"$(basename "$binary")"* ]]; then
+        continue
+    fi
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     
-    find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
-        
-        if [[ " ${EXECS_TO_PATCH[*]} " == *"$(basename "$binary")"* ]]; then
-            continue
-        fi
-        
+    if [ "$OS" = "darwin" ]; then
+        echo ""
         echo "   🔧 Patching $binary..."
         otool -L "$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
             if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
@@ -260,8 +289,8 @@ if [ "$OS" = "darwin" ]; then
                 echo "      ⚠️  Could not update path for $lib"
             fi
         done
-        echo "   🔍 Checking $(basename "$binary")..."
         
+        echo "   🔍 Checking $(basename "$binary")..."
         otool -L "$binary"   | grep -v ":" | awk '{print $1}' | while read -r lib; do
             case "$lib" in
                 @executable_path/*|@loader_path/*)
@@ -276,30 +305,12 @@ if [ "$OS" = "darwin" ]; then
                 ;;
             esac
         done
-    done
-    
-    echo "   ✅ macOS binaries are portable"
-    
-else
-    echo ""
-    echo "🔧 Patching Linux binaries for portability..."
-    
-    mkdir -p "$ARCH_OUTPUT_DIR/lib"
-    
-    # Recursively find all ELF binaries in a directory
-    find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
         
-        if [[ " ${EXECS_TO_PATCH[*]} " == *"$(basename "$binary")"* ]]; then
-            continue
-        fi
-        
-        
+    else
         echo "   🔧 Patching $(basename "$binary")..."
         
         # Collect all non-system shared library dependencies
-        ldd "$binary" \
-        | awk '/=> \// { print $3 }' \
-        | while read -r lib; do
+        ldd "$binary" | awk '/=> \// { print $3 }' | while read -r lib; do
             libname=$(basename "$lib")
             
             # Skip system libraries
@@ -315,7 +326,7 @@ else
         
         # Make the binary hermetic
         patchelf --remove-rpath "$binary" 2>/dev/null || true
-        patchelf --set-rpath '$ORIGIN/../lib' "$binary"
+        patchelf --force-rpath --set-rpath '$ORIGIN/../lib' "$binary"
         
         # Verify all dependencies are now local or system
         ldd "$binary" | while read -r line; do
@@ -343,17 +354,9 @@ else
                 ;;
             esac
         done
-    done
-    
-    LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version > /dev/null 2>&1 || {
-        echo "      ❌ mksquashfs failed to run"
-        exit 1
-    }
-    LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1 || {
-        echo "      ❌ desktop-file-validate failed to run"
-        exit 1
-    }
-fi
+        
+    fi
+done
 
 # =============================================================================
 # VERIFY BINARIES
@@ -363,7 +366,7 @@ echo ""
 echo "🔍 Verifying binaries and recording versions..."
 : > "$VERSION_FILE"
 
-if MKSQ_VER=$("$ARCH_OUTPUT_DIR/mksquashfs" -version | head -n1 2>&1); then
+if MKSQ_VER=$(LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version | head -n1 2>&1); then
     echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
     echo "   ✅ mksquashfs verified: $MKSQ_VER"
 else
@@ -371,42 +374,12 @@ else
     exit 1
 fi
 
-if "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
+if LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
     echo "desktop-file-validate: $DESKTOP_UTILS_DEPS_VERSION_TAG" >> "$VERSION_FILE"
     echo "   ✅ desktop-file-validate verified: $DESKTOP_UTILS_DEPS_VERSION_TAG"
 else
     echo "   ❌ desktop-file-validate verification failed"
     exit 1
-fi
-
-# =============================================================================
-# BUILD OPENJPEG (Linux x64/arm64 only)
-# =============================================================================
-if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
-    echo ""
-    echo "🖼️  Building OpenJPEG..."
-    mkdir -p /tmp/openjpeg-build
-    cd /tmp/openjpeg-build
-    wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
-    tar xzf v2.3.0.tar.gz
-    cd openjpeg-2.3.0
-    mkdir build && cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
-    make -j$(nproc) > /dev/null
-    make install DESTDIR=/tmp/openjpeg-install
-    
-    mkdir -p "$ARCH_OUTPUT_DIR/lib"
-    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
-    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$ARCH_OUTPUT_DIR/lib/"
-    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
-    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
-    
-    rm -rf /tmp/openjpeg-build /tmp/openjpeg-install
-    # Create symlinks
-    cd "$ARCH_OUTPUT_DIR/lib"
-    ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
-    ln -sf libopenjp2.so.7 libopenjp2.so
-    echo "   ✅ Built OpenJPEG"
 fi
 
 # =============================================================================
