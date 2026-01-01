@@ -15,6 +15,7 @@ echo ""
 export SQUASHFS_TOOLS_VERSION_TAG="4.6.1"
 export APPIMAGE_TYPE2_RELEASE="20251108"
 export DESKTOP_UTILS_DEPS_VERSION_TAG="0.28"
+
 # Detect OS
 ROOT=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 TARGET=${TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}

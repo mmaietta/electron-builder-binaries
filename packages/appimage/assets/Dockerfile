@@ -48,6 +48,7 @@ RUN rm -rf /var/lib/apt/lists/* \
     libzstd-dev \
     meson \
     ninja-build \
+    patchelf \
     pkg-config \
     tar \
     tree \
@@ -107,4 +108,4 @@ RUN DEST=/ bash /project/build/build-appimage.sh
 FROM scratch
 ARG TARGETARCH
 ARG TARGETVARIANT
-COPY --from=builder /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.zip
+COPY --from=builder /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.tar.gz /appimage-tools-linux-${TARGETARCH}${TARGETVARIANT}.tar.gz

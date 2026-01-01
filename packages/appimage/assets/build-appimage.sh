@@ -10,14 +10,14 @@ DESKTOP_UTILS_DEPS_VERSION_TAG=${DESKTOP_UTILS_DEPS_VERSION_TAG:-"0.28"}
 case "$(uname -s)" in
     Linux*)
         OS="linux"
-        ;;
+    ;;
     Darwin*)
         OS="darwin"
-        ;;
+    ;;
     *)
         echo "❌ Unsupported OS: $(uname -s)"
         exit 1
-        ;;
+    ;;
 esac
 
 echo "🏗️  AppImage Tools Compiler for $OS"
@@ -25,10 +25,9 @@ echo ""
 
 BUILD_DIR="/tmp/appimage-build"
 rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
 
 # =============================================================================
-# Architecture Detection
+# Env Detection
 # =============================================================================
 if [ "$OS" = "linux" ]; then
     # Linux: use TARGETPLATFORM from Docker
@@ -55,14 +54,14 @@ if [ "$OS" = "linux" ]; then
     fi
     
     TARGETARCH="${TARGETARCH:-unknown}"
-
+    
 else
-
+    
     # macOS: use uname
     ARCH=$(uname -m)
     if [ "$ARCH" = "x86_64" ]; then
         ARCH_DIR="x64" # map to NodeJS process.arch
-    elif [ "$ARCH" = "arm64" ]; then
+        elif [ "$ARCH" = "arm64" ]; then
         ARCH_DIR="arm64"
     else
         echo "❌ Unsupported architecture: $ARCH"
@@ -80,7 +79,7 @@ else
     
     # Verify required brew packages are installed
     echo "🔍 Checking Homebrew dependencies..."
-    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "desktop-file-utils" "meson" "ninja" "tree")
+    REQUIRED_DEPS=("lzo" "xz" "lz4" "zstd" "meson" "ninja" "tree")
     MISSING_DEPS=()
     
     for dep in "${REQUIRED_DEPS[@]}"; do
@@ -103,18 +102,19 @@ TARGETVARIANT="${TARGETVARIANT:-}"
 
 # =============================================================================
 # Setup directories
+# =============================================================================
 DEST="${DEST:-$CWD/out/build}"
 
-TMP_DIR=${TMP_DIR:-"/tmp/appimage-output"}
-rm -rf "$TMP_DIR"
-mkdir -p "$TMP_DIR"
+TEMP_DIR=${TEMP_DIR:-"/tmp/appimage-output"}
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR"
 
 # build tools
-OS_OUTPUT="$TMP_DIR/$OS"
+OS_OUTPUT="$TEMP_DIR/$OS"
 ARCH_OUTPUT_DIR="$OS_OUTPUT/$ARCH_DIR"
 
 # lib for runtimes go at root
-LIB_DIR="$TMP_DIR/lib"
+LIB_DIR="$TEMP_DIR/lib"
 LIB_DEST="$LIB_DIR/$ARCH_DIR"
 
 echo "🏗️  Building for $OS/$ARCH_DIR"
@@ -139,45 +139,40 @@ echo "   ✅ desktop-file-utils cloned"
 # BUILD SQUASHFS-TOOLS
 # =============================================================================
 echo "📦 Building squashfs-tools..."
+cd $BUILD_DIR/squashfs-tools/squashfs-tools
 
 if [ "$OS" = "linux" ]; then
-    cd $BUILD_DIR/squashfs-tools/squashfs-tools
+
     make -j$(nproc) \
-        GZIP_SUPPORT=1 \
-        XZ_SUPPORT=1 \
-        LZO_SUPPORT=1 \
-        LZ4_SUPPORT=1 \
-        ZSTD_SUPPORT=1 \
-        XZ_STATIC=1 \
-        LZO_STATIC=1 \
-        LZ4_STATIC=1 \
-        ZSTD_STATIC=1
+    GZIP_SUPPORT=1 \
+    XZ_SUPPORT=1 \
+    LZO_SUPPORT=1 \
+    LZ4_SUPPORT=1 \
+    ZSTD_SUPPORT=1 
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp -aL mksquashfs "$ARCH_OUTPUT_DIR/"
-    echo "   ✅ Built mksquashfs with static compression libraries"
+    chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
+
 else
-    cd $BUILD_DIR/squashfs-tools/squashfs-tools
 
     BREW_PREFIX=$(brew --prefix)
     make -j$(sysctl -n hw.ncpu) \
-        GZIP_SUPPORT=1 \
-        XZ_SUPPORT=1 \
-        LZO_SUPPORT=1 \
-        LZ4_SUPPORT=1 \
-        ZSTD_SUPPORT=1 \
-        XZ_STATIC=1 \
-        LZO_STATIC=1 \
-        LZ4_STATIC=1 \
-        ZSTD_STATIC=1 \
-        EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
-        EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
+    GZIP_SUPPORT=1 \
+    XZ_SUPPORT=1 \
+    LZO_SUPPORT=1 \
+    LZ4_SUPPORT=1 \
+    ZSTD_SUPPORT=1 \
+    EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
+    EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp mksquashfs "$ARCH_OUTPUT_DIR/"
     chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
-    echo "   ✅ Built mksquashfs with static compression libraries"
+
 fi
+
+echo "   ✅ Built mksquashfs"
 
 # =============================================================================
 # BUILD DESKTOP-FILE-UTILS
@@ -188,8 +183,8 @@ cd "$BUILD_DIR/desktop-file-utils"
 
 BUILD=$BUILD_DIR/desktop-file-utils/build
 meson setup "$BUILD" \
-  --prefix=/usr \
-  --buildtype=release
+--prefix=/usr \
+--buildtype=release
 ninja -C "$BUILD"
 DESTDIR="$BUILD" ninja -C "$BUILD" install
 cp -aL "$BUILD/usr/bin/desktop-file-validate" "$ARCH_OUTPUT_DIR/"
@@ -197,72 +192,20 @@ chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
-# PATCH MACOS BINARIES
-# =============================================================================
-if [ "$OS" = "darwin" ]; then
-    echo ""
-    echo "🔧 Patching macOS binaries for portability..."
-    
-    mkdir -p "$ARCH_OUTPUT_DIR/lib"
-    for binary in mksquashfs desktop-file-validate; do
-        echo "   🔧 Patching $binary..."
-        otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
-            if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
-                libname=$(basename "$lib")
-                cp "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
-                echo "      ✅ Copied $libname"
-                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
-                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$ARCH_OUTPUT_DIR/$binary" 2>/dev/null || \
-                echo "      ⚠️  Could not update path for $lib"
-            fi
-        done
-    done
-    echo "   ✅ Binaries patched"
-fi
-
-# =============================================================================
-# VERIFY BINARIES
-# =============================================================================
-VERSION_FILE="$ARCH_OUTPUT_DIR/VERSION.txt"
-echo ""
-echo "🔍 Verifying binaries and recording versions..."
-: > "$VERSION_FILE"
-
-if MKSQ_VER=$("$ARCH_OUTPUT_DIR/mksquashfs" -version | head -n1 2>&1); then
-    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
-    echo "   ✅ mksquashfs verified: $MKSQ_VER"
-else
-    echo "   ❌ mksquashfs verification failed"
-    exit 1
-fi
-
-if "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
-    if [ "$OS" = "linux" ]; then
-        DFV_VER=$(dpkg-query -W -f='${Version}\n' desktop-file-utils 2>&1) || DFV_VER="unknown"
-    else
-        DFV_VER=$(brew list --versions desktop-file-utils | awk '{print $2}')
-    fi
-    echo "desktop-file-validate: $DFV_VER" >> "$VERSION_FILE"
-    echo "   ✅ desktop-file-validate verified: $DFV_VER"
-else
-    echo "   ❌ desktop-file-validate verification failed"
-    exit 1
-fi
-
-# =============================================================================
 # BUILD OPENJPEG (Linux x64/arm64 only)
 # =============================================================================
 if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     echo ""
     echo "🖼️  Building OpenJPEG..."
-    cd /tmp
+    mkdir -p /tmp/openjpeg-build
+    cd /tmp/openjpeg-build
     wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
     tar xzf v2.3.0.tar.gz
     cd openjpeg-2.3.0
     mkdir build && cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
     make -j$(nproc) > /dev/null
-    make install DESTDIR=/tmp/openjpeg-install > /dev/null
+    make install DESTDIR=/tmp/openjpeg-install
     
     mkdir -p "$ARCH_OUTPUT_DIR/lib"
     cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
@@ -270,12 +213,178 @@ if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
     cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
     cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
     
+    rm -rf /tmp/openjpeg-build /tmp/openjpeg-install
     # Create symlinks
     cd "$ARCH_OUTPUT_DIR/lib"
     ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
     ln -sf libopenjp2.so.7 libopenjp2.so
     echo "   ✅ Built OpenJPEG"
 fi
+
+# =============================================================================
+# PATCH BINARIES
+# =============================================================================
+EXECS_TO_PATCH=("mksquashfs") # note: limit to only mksquashfs. (smaller scope for packaging)
+
+copy_lib_recursive() {
+    local lib_path="$1"
+    local dest_dir="$2"
+    local libname
+    libname=$(basename "$lib_path")
+    
+    # Already handled
+    if [ -e "$dest_dir/$libname" ]; then
+        return 0
+    fi
+    
+    # Resolve real file
+    local real_file
+    real_file=$(readlink -f "$lib_path")
+    
+    # Copy real file
+    cp -a "$real_file" "$dest_dir/"
+    echo "      ✅ $libname"
+    
+    # Recreate symlink if this is one
+    if [ -L "$lib_path" ]; then
+        ln -sf "$(basename "$real_file")" "$dest_dir/$libname"
+        
+        # Follow symlink chain safely
+        local next_target
+        next_target=$(readlink "$lib_path")
+        
+        if [ -n "$next_target" ]; then
+            if [[ "$next_target" != /* ]]; then
+                next_target="$(dirname "$lib_path")/$next_target"
+            fi
+            copy_lib_recursive "$next_target" "$dest_dir"
+        fi
+    fi
+}
+
+find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
+    
+    if [[ " ${EXECS_TO_PATCH[*]} " != *"$(basename "$binary")"* ]]; then
+        continue
+    fi
+    
+    mkdir -p "$ARCH_OUTPUT_DIR/lib"
+    
+    if [ "$OS" = "darwin" ]; then
+        echo ""
+        echo "   🔧 Patching $binary..."
+        otool -L "$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
+            if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
+                libname=$(basename "$lib")
+                cp "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
+                echo "      ✅ Copied $libname"
+                install_name_tool -change "$lib" "@executable_path/lib/$libname" "$binary" 2>/dev/null || \
+                install_name_tool -change "$lib" "@loader_path/lib/$libname" "$binary" 2>/dev/null || \
+                echo "      ⚠️  Could not update path for $lib"
+            fi
+        done
+        
+        echo "   🔍 Checking $(basename "$binary")..."
+        otool -L "$binary"   | grep -v ":" | awk '{print $1}' | while read -r lib; do
+            case "$lib" in
+                @executable_path/*|@loader_path/*)
+                    echo "      ✅ $lib"
+                ;;
+                /usr/lib/*)
+                    # system libraries are allowed
+                ;;
+                *)
+                    echo "      ❌ Non-portable dependency: $lib"
+                    exit 1
+                ;;
+            esac
+        done
+        
+    else
+        echo "   🔧 Patching $(basename "$binary")..."
+        
+        # Collect all non-system shared library dependencies
+        ldd "$binary" | awk '/=> \// { print $3 }' | while read -r lib; do
+            libname=$(basename "$lib")
+            
+            # Skip system libraries
+            case "$libname" in
+                libc.so.*|ld-linux*.so.*|libpthread.so.*|librt.so.*|libdl.so.*)
+                    continue
+                ;;
+            esac
+            
+            echo "      🔄 Copying $libname and its symlink chain..."
+            copy_lib_recursive "$lib" "$ARCH_OUTPUT_DIR/lib"
+        done
+        
+        # Make the binary hermetic
+        patchelf --remove-rpath "$binary" 2>/dev/null || true
+        patchelf --force-rpath --set-rpath '$ORIGIN/../lib' "$binary"
+        
+        # Verify all dependencies are now local or system
+        ldd "$binary" | while read -r line; do
+            case "$line" in
+                linux-gate.so*|linux-vdso.so*)
+                    # kernel-provided VDSO
+                ;;
+                /lib*/ld-linux*.so*'('*')')
+                    # ELF dynamic loader (absolute path form)
+                ;;
+                *"=> not found"*)
+                    echo "      ❌ Missing dependency: $line"
+                    exit 1
+                ;;
+                *"=> $ARCH_OUTPUT_DIR/lib/"*)
+                    lib=$(echo "$line" | awk '{print $1}')
+                    echo "      ✅ $lib (local)"
+                ;;
+                *"=> /lib/"*|*"=> /usr/lib/"*)
+                    # glibc system libs
+                ;;
+                *)
+                    echo "      ❌ Non-portable dependency: $line"
+                    exit 1
+                ;;
+            esac
+        done
+        
+    fi
+done
+
+# =============================================================================
+# GRAB BINARY VERSIONS
+# =============================================================================
+VERSION_FILE="$ARCH_OUTPUT_DIR/VERSION.txt"
+echo ""
+echo "🔍 Verifying binaries and recording versions..."
+: > "$VERSION_FILE"
+
+if MKSQ_VER=$(LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/mksquashfs" -version | head -n1 2>&1); then
+    echo "mksquashfs: $MKSQ_VER" >> "$VERSION_FILE"
+    echo "   ✅ mksquashfs verified: $MKSQ_VER"
+else
+    echo "   ❌ mksquashfs verification failed"
+    exit 1
+fi
+
+if LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
+    echo "desktop-file-validate: $DESKTOP_UTILS_DEPS_VERSION_TAG" >> "$VERSION_FILE"
+    echo "   ✅ desktop-file-validate verified: $DESKTOP_UTILS_DEPS_VERSION_TAG"
+else
+    echo "   ❌ desktop-file-validate verification failed"
+    exit 1
+fi
+
+# if [ -f "$ARCH_OUTPUT_DIR/opj_decompress" ]; then
+#     if OPJ_VER=$(LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/opj_decompress" -h | head -n1 2>&1); then
+#         echo "opj_decompress: $OPJ_VER" >> "$VERSION_FILE"
+#         echo "   ✅ opj_decompress verified: $OPJ_VER"
+#     else
+#         echo "   ❌ opj_decompress verification failed"
+#         exit 1
+#     fi
+# fi
 
 # =============================================================================
 # COPY RUNTIME LIBRARIES
@@ -287,11 +396,11 @@ if [ "$OS" = "linux" ]; then
     # Determine system library directory
     if is_ia32; then
         SYS_LIB_DIR="/usr/lib/i386-linux-gnu"
-    elif is_x64; then
+        elif is_x64; then
         SYS_LIB_DIR="/usr/lib/x86_64-linux-gnu"
-    elif is_arm64; then
+        elif is_arm64; then
         SYS_LIB_DIR="/usr/lib/aarch64-linux-gnu"
-    elif is_arm32; then
+        elif is_arm32; then
         SYS_LIB_DIR="/usr/lib/arm-linux-gnueabihf"
     fi
     
@@ -304,7 +413,7 @@ if [ "$OS" = "linux" ]; then
         if is_ia32 && [[ "$libname" == "libappindicator"* || "$libname" == "libindicator"* ]]; then
             for deb_dir in /tmp/appind /tmp/ind; do
                 if [ -f "$deb_dir/usr/lib/i386-linux-gnu/$libname" ]; then
-                    cp "$deb_dir/usr/lib/i386-linux-gnu/$libname" "$LIB_DEST/$outname"
+                    copy_lib_recursive "$deb_dir/usr/lib/i386-linux-gnu/$libname" "$LIB_DEST"
                     echo "   ✅ $libname"
                     return 0
                 fi
@@ -322,7 +431,7 @@ if [ "$OS" = "linux" ]; then
         
         for dir in "${search_dirs[@]}"; do
             if [ -f "$dir/$libname" ]; then
-                cp "$dir/$libname" "$LIB_DEST/$outname"
+                copy_lib_recursive "$dir/$libname" "$LIB_DEST"
                 echo "   ✅ $libname"
                 return 0
             fi
@@ -334,7 +443,7 @@ if [ "$OS" = "linux" ]; then
     
     # Copy required libraries
     mkdir -p "$LIB_DEST"
-        
+    
     copy_lib "libXss.so.1" || exit 1
     copy_lib "libXtst.so.6" || exit 1
     copy_lib "libnotify.so.4" || exit 1
@@ -347,51 +456,6 @@ if [ "$OS" = "linux" ]; then
         copy_lib "libappindicator3.so.1" "libappindicator.so.1" || exit 1
         copy_lib "libindicator3.so.7" "libindicator.so.7" || exit 1
     fi
-    
-else
-    # macOS - copy only remaining dynamic dependencies
-    # Both binaries should have compression libs statically linked
-    
-    echo "   🔍 Checking for remaining dynamic dependencies..."
-    echo ""
-    echo "   mksquashfs dependencies:"
-    otool -L "$ARCH_OUTPUT_DIR/mksquashfs" | grep -v ":" | head -10
-    
-    echo ""
-    echo "   desktop-file-validate dependencies:"
-    otool -L "$ARCH_OUTPUT_DIR/desktop-file-validate" | grep -v ":" | head -10
-    
-    BREW_PREFIX=$(brew --prefix)
-    
-    # Collect all Homebrew dylibs needed by both binaries
-    declare dylibs_needed=()
-    
-    for binary in mksquashfs desktop-file-validate; do
-        while IFS= read -r lib; do
-            if [[ "$lib" == ${BREW_PREFIX}/* ]]; then
-                lib_name=$(basename "$lib")
-                dylibs_needed["$lib"]="$lib_name"
-            fi
-        done < <(otool -L "$ARCH_OUTPUT_DIR/$binary" | grep -v ":" | grep -v "@" | awk '{print $1}')
-    done
-    
-    # Copy all needed dylibs
-    if [ ${#dylibs_needed[@]} -gt 0 ]; then
-        echo ""
-        echo "   📚 Copying ${#dylibs_needed[@]} required dynamic libraries..."
-        for lib_path in "${!dylibs_needed[@]}"; do
-            lib_name="${dylibs_needed[$lib_path]}"
-            if [ -f "$lib_path" ]; then
-                cp "$lib_path" "$ARCH_OUTPUT_DIR/$lib_name"
-                echo "      ✅ $lib_name"
-            else
-                echo "      ⚠️  $lib_path not found"
-            fi
-        done
-    else
-        echo ""
-        echo "   ✅ No Homebrew dependencies needed (fully static or system libs only)"
-    fi
 fi
 
 echo "   ✅ All libraries copied successfully"
@@ -402,12 +466,17 @@ echo "   ✅ All libraries copied successfully"
 echo ""
 echo "📦 Creating archive..."
 
-ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.zip"
+ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.tar.gz"
 mkdir -p "$DEST"
 
+items=( "$(basename "$OS_OUTPUT")" )
+
+if [ -d "$LIB_DIR" ]; then
+    items+=( "$(basename "$LIB_DIR")" )
+fi
 (
-    cd "$TMP_DIR"
-    zip -r -9 "$DEST/$ARCHIVE_NAME" "$(basename "$OS_OUTPUT")" "$(basename "$LIB_DIR")"
+    cd "$TEMP_DIR"
+    tar czf "$DEST/$ARCHIVE_NAME" "${items[@]}"
 )
 
 echo ""
@@ -415,6 +484,6 @@ echo "🎉 Build complete!"
 echo "   Archive: $DEST/$ARCHIVE_NAME"
 echo ""
 echo "Files created:"
-tree $ARCH_OUTPUT_DIR -L 4 2>/dev/null || find $ARCH_OUTPUT_DIR -type f
+tree $ARCH_OUTPUT_DIR -L 6 2>/dev/null || find $ARCH_OUTPUT_DIR -type f -maxdepth 6
 
-rm -rf "$TMP_DIR" "$BUILD_DIR"
+rm -rf "$TEMP_DIR" "$BUILD_DIR"
