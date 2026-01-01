@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.5
+
+### Patch Changes
+
+- [#70](https://github.com/mmaietta/electron-builder-binaries/pull/70) [`64765b2`](https://github.com/mmaietta/electron-builder-binaries/commit/64765b22c3c5c162e703b6583ece0fc6aec57403) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: openjpeg all
+
 ## 1.0.4
 
 ### Patch Changes
