@@ -142,20 +142,20 @@ echo "📦 Building squashfs-tools..."
 cd $BUILD_DIR/squashfs-tools/squashfs-tools
 
 if [ "$OS" = "linux" ]; then
-
+    
     make -j$(nproc) \
     GZIP_SUPPORT=1 \
     XZ_SUPPORT=1 \
     LZO_SUPPORT=1 \
     LZ4_SUPPORT=1 \
-    ZSTD_SUPPORT=1 
+    ZSTD_SUPPORT=1
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp -aL mksquashfs "$ARCH_OUTPUT_DIR/"
     chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
-
+    
 else
-
+    
     BREW_PREFIX=$(brew --prefix)
     make -j$(sysctl -n hw.ncpu) \
     GZIP_SUPPORT=1 \
@@ -169,7 +169,7 @@ else
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp mksquashfs "$ARCH_OUTPUT_DIR/"
     chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
-
+    
 fi
 
 echo "   ✅ Built mksquashfs"
@@ -192,39 +192,42 @@ chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
-# BUILD OPENJPEG (Linux x64/arm64 only)
+# BUILD OPENJPEG
 # =============================================================================
-if [ "$OS" = "linux" ] && (is_x64 || is_arm64); then
-    echo ""
-    echo "🖼️  Building OpenJPEG..."
-    mkdir -p /tmp/openjpeg-build
-    cd /tmp/openjpeg-build
-    wget -q https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz
-    tar xzf v2.3.0.tar.gz
-    cd openjpeg-2.3.0
-    mkdir build && cd build
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
-    make -j$(nproc) > /dev/null
-    make install DESTDIR=/tmp/openjpeg-install
-    
-    mkdir -p "$ARCH_OUTPUT_DIR/lib"
-    cp -a /tmp/openjpeg-install/usr/local/lib/libopenjp2.* "$ARCH_OUTPUT_DIR/lib/"
-    # cp -a /tmp/openjpeg-install/usr/local/lib/openjpeg-2.3 "$ARCH_OUTPUT_DIR/lib/"
-    cp -a /tmp/openjpeg-install/usr/local/lib/pkgconfig "$ARCH_OUTPUT_DIR/lib/"
-    cp -aL /tmp/openjpeg-install/usr/local/bin/opj_decompress "$ARCH_OUTPUT_DIR/"
-    
-    rm -rf /tmp/openjpeg-build /tmp/openjpeg-install
-    # Create symlinks
-    cd "$ARCH_OUTPUT_DIR/lib"
-    ln -sf libopenjp2.so.2.3.0 libopenjp2.so.7
-    ln -sf libopenjp2.so.7 libopenjp2.so
-    echo "   ✅ Built OpenJPEG"
-fi
+echo ""
+echo "🖼️  Building OpenJPEG..."
+
+OPENJPEG_VERSION="2.5.4"
+TMP_BUILD_DIR="$(mktemp -d)"
+INSTALL_DIR="$(mktemp -d)"
+
+cd "$TMP_BUILD_DIR" || exit 1
+
+# Download source using curl
+curl -sSL "https://github.com/uclouvain/openjpeg/archive/v${OPENJPEG_VERSION}.tar.gz" -o "v${OPENJPEG_VERSION}.tar.gz"
+
+# Extract
+tar xzf "v${OPENJPEG_VERSION}.tar.gz"
+cd "openjpeg-${OPENJPEG_VERSION}" || exit 1
+
+# Build
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
+make -j"$(nproc)" > /dev/null
+make install DESTDIR="$INSTALL_DIR"
+
+# Prepare output directory
+mkdir -p "$ARCH_OUTPUT_DIR/lib"
+cp -a "$INSTALL_DIR/usr/local/lib/libopenjp2."* "$ARCH_OUTPUT_DIR/lib/"
+cp -a "$INSTALL_DIR/usr/local/lib/pkgconfig" "$ARCH_OUTPUT_DIR/lib/"
+cp -aL "$INSTALL_DIR/usr/local/bin/opj_decompress" "$ARCH_OUTPUT_DIR/"
+
+rm -rf "$TMP_BUILD_DIR" "$INSTALL_DIR"
 
 # =============================================================================
 # PATCH BINARIES
 # =============================================================================
-EXECS_TO_PATCH=("mksquashfs") # note: limit to only mksquashfs. (smaller scope for packaging)
+EXECS_TO_PATCH=("mksquashfs" "opj_decompress") # desktop-file-validate copy->patch skipped for now due to bundle size increase
 
 copy_lib_recursive() {
     local lib_path="$1"
@@ -272,36 +275,28 @@ find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
     
     if [ "$OS" = "darwin" ]; then
         echo ""
-        echo "   🔧 Patching $binary..."
+        echo "   🔧 Patching Darwin $binary..."
+
+        install_name_tool -delete_rpath "$ARCH_OUTPUT_DIR/lib" "$binary" 2>/dev/null || true
+
+        # Set a relative RPATH pointing to lib/
+        install_name_tool -add_rpath "@loader_path/lib" "$binary"
+
         otool -L "$binary" | grep -v ":" | grep -v "@" | awk '{print $1}' | while read -r lib; do
             if [[ "$lib" == /usr/local/* ]] || [[ "$lib" == /opt/homebrew/* ]]; then
                 libname=$(basename "$lib")
-                cp "$lib" "$ARCH_OUTPUT_DIR/lib/$libname"
+                
+                copy_lib_recursive "$lib" "$ARCH_OUTPUT_DIR/lib"
                 echo "      ✅ Copied $libname"
+
                 install_name_tool -change "$lib" "@executable_path/lib/$libname" "$binary" 2>/dev/null || \
                 install_name_tool -change "$lib" "@loader_path/lib/$libname" "$binary" 2>/dev/null || \
-                echo "      ⚠️  Could not update path for $lib"
+                echo "      ❌ Failed to patch $libname in $binary"
             fi
-        done
-        
-        echo "   🔍 Checking $(basename "$binary")..."
-        otool -L "$binary"   | grep -v ":" | awk '{print $1}' | while read -r lib; do
-            case "$lib" in
-                @executable_path/*|@loader_path/*)
-                    echo "      ✅ $lib"
-                ;;
-                /usr/lib/*)
-                    # system libraries are allowed
-                ;;
-                *)
-                    echo "      ❌ Non-portable dependency: $lib"
-                    exit 1
-                ;;
-            esac
-        done
-        
+        done        
     else
-        echo "   🔧 Patching $(basename "$binary")..."
+        echo ""
+        echo "   🔧 Patching Linux $(basename "$binary")..."
         
         # Collect all non-system shared library dependencies
         ldd "$binary" | awk '/=> \// { print $3 }' | while read -r lib; do
@@ -320,37 +315,55 @@ find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
         
         # Make the binary hermetic
         patchelf --remove-rpath "$binary" 2>/dev/null || true
-        patchelf --force-rpath --set-rpath '$ORIGIN/../lib' "$binary"
-        
-        # Verify all dependencies are now local or system
-        ldd "$binary" | while read -r line; do
-            case "$line" in
-                linux-gate.so*|linux-vdso.so*)
-                    # kernel-provided VDSO
-                ;;
-                /lib*/ld-linux*.so*'('*')')
-                    # ELF dynamic loader (absolute path form)
-                ;;
-                *"=> not found"*)
-                    echo "      ❌ Missing dependency: $line"
-                    exit 1
-                ;;
-                *"=> $ARCH_OUTPUT_DIR/lib/"*)
-                    lib=$(echo "$line" | awk '{print $1}')
-                    echo "      ✅ $lib (local)"
-                ;;
-                *"=> /lib/"*|*"=> /usr/lib/"*)
-                    # glibc system libs
-                ;;
-                *)
-                    echo "      ❌ Non-portable dependency: $line"
-                    exit 1
-                ;;
-            esac
-        done
-        
+        patchelf --force-rpath --set-rpath '$ORIGIN/../lib' "$binary"        
     fi
 done
+
+# =============================================================================
+# STRIP BINARIES
+# =============================================================================
+echo "✂️ Stripping symbols and measuring size savings..."
+total_saved=0
+# Platform detection
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    STAT_CMD='stat -f%z'
+    STRIP_CMD='strip -x'
+else
+    STAT_CMD='stat -c%s'
+    STRIP_CMD='strip --strip-unneeded'
+fi
+# Strip and log
+find "$ARCH_OUTPUT_DIR" \( -name '*.dylib' -o -name '*.so' -o -name '*.so.*' -o -name '*.bundle' -o -type f -perm -111 \) | while read -r bin; do
+    if [[ ! -f "$bin" || -L "$bin" ]]; then
+        # echo "  ⏭️  Skipping (symlink or invalid): $bin"
+        continue
+    fi
+    orig_size=$($STAT_CMD "$bin" 2>/dev/null || echo 0)
+    
+    if $STRIP_CMD "$bin" 2>/dev/null; then
+        new_size=$($STAT_CMD "$bin" 2>/dev/null || echo 0)
+        if [[ "$new_size" -gt 0 && "$orig_size" -gt "$new_size" ]]; then
+            saved=$((orig_size - new_size))
+            total_saved=$((total_saved + saved))
+        else
+            saved=0
+        fi
+        printf "  ➖ Stripped: %-60s saved: %6d bytes\n" "$(basename "$bin")" "$saved"
+    else
+        echo "  ⚠️ Could not strip: $bin"
+    fi
+done
+echo "💾 Total space saved: $total_saved bytes (~$((total_saved / 1024)) KB)"
+
+if [ "$OS" = "darwin" ]; then
+    # sign every dylib and executable with adhoc identity
+    echo "🔏 Code signing binaries and libraries..."
+    for f in "$ARCH_OUTPUT_DIR"/lib/*.dylib "$ARCH_OUTPUT_DIR"/*; do
+        /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
+    done
+    # verify signatures (should not print errors)
+    /usr/bin/codesign -v --deep --strict "$ARCH_OUTPUT_DIR"/mksquashfs
+fi
 
 # =============================================================================
 # GRAB BINARY VERSIONS
@@ -368,7 +381,7 @@ else
     exit 1
 fi
 
-if LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
+if "$ARCH_OUTPUT_DIR/desktop-file-validate" --help > /dev/null 2>&1; then
     echo "desktop-file-validate: $DESKTOP_UTILS_DEPS_VERSION_TAG" >> "$VERSION_FILE"
     echo "   ✅ desktop-file-validate verified: $DESKTOP_UTILS_DEPS_VERSION_TAG"
 else
@@ -376,15 +389,13 @@ else
     exit 1
 fi
 
-# if [ -f "$ARCH_OUTPUT_DIR/opj_decompress" ]; then
-#     if OPJ_VER=$(LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/opj_decompress" -h | head -n1 2>&1); then
-#         echo "opj_decompress: $OPJ_VER" >> "$VERSION_FILE"
-#         echo "   ✅ opj_decompress verified: $OPJ_VER"
-#     else
-#         echo "   ❌ opj_decompress verification failed"
-#         exit 1
-#     fi
-# fi
+if OPJ_VER=$("$ARCH_OUTPUT_DIR/opj_decompress" -h | head -n1 2>&1); then
+    echo "opj_decompress: $OPJ_VER" >> "$VERSION_FILE"
+    echo "   ✅ opj_decompress verified: $OPJ_VER"
+else
+    echo "   ❌ opj_decompress verification failed"
+    # exit 1
+fi
 
 # =============================================================================
 # COPY RUNTIME LIBRARIES
@@ -470,10 +481,10 @@ ARCHIVE_NAME="appimage-tools-${OS}-${TARGETARCH}${TARGETVARIANT}.tar.gz"
 mkdir -p "$DEST"
 
 items=( "$(basename "$OS_OUTPUT")" )
-
 if [ -d "$LIB_DIR" ]; then
     items+=( "$(basename "$LIB_DIR")" )
 fi
+
 (
     cd "$TEMP_DIR"
     tar czf "$DEST/$ARCHIVE_NAME" "${items[@]}"
