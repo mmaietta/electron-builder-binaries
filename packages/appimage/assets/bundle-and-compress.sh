@@ -114,10 +114,7 @@ fi
 # Execute normally
 exec "$BIN" "$@"
 EOF
-
 chmod +x "$BUILD_DIR/appimage-tool"
-ln -sf appimage-tool "$BUILD_DIR/mksquashfs"
-ln -sf appimage-tool "$BUILD_DIR/desktop-file-validate"
 
 # =========================
 # select-runtime.env
@@ -168,8 +165,13 @@ export APPIMAGE_TOOLS_ARCH
 export APPIMAGE_TOOLS_DIR
 export APPIMAGE_TOOLS_LIBDIR
 EOF
-
 chmod +x "$BUILD_DIR/select-runtime.env"
+
+ENTRYPOINTS=("mksquashfs" "desktop-file-validate" "opj_decompress")
+for entry in "${ENTRYPOINTS[@]}"; do
+    ln -sf appimage-tool "$BUILD_DIR/$entry"
+done
+
 echo "✅ Generic AppImage tool wrapper created"
 
 # =============================
