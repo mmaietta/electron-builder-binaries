@@ -192,7 +192,7 @@ chmod +x "$ARCH_OUTPUT_DIR/desktop-file-validate"
 echo "   ✅ Built desktop-file-validate"
 
 # =============================================================================
-# BUILD OPENJPEG (Linux x64/arm64 only)
+# BUILD OPENJPEG
 # =============================================================================
 echo ""
 echo "🖼️  Building OpenJPEG..."
@@ -227,7 +227,7 @@ rm -rf "$TMP_BUILD_DIR" "$INSTALL_DIR"
 # =============================================================================
 # PATCH BINARIES
 # =============================================================================
-EXECS_TO_PATCH=("mksquashfs" "opj_decompress") # note: limit to only mksquashfs. (smaller scope for packaging)
+EXECS_TO_PATCH=("mksquashfs" "opj_decompress") # desktop-file-validate copy->patch skipped for now due to bundle size increase
 
 copy_lib_recursive() {
     local lib_path="$1"
