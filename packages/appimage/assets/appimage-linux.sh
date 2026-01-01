@@ -69,7 +69,147 @@ chmod +x $TEMP_DIR/linux/x64/mksquashfs \
     $TEMP_DIR/linux/ia32/desktop-file-validate \
     $TEMP_DIR/linux/arm64/mksquashfs \
     $TEMP_DIR/linux/arm64/desktop-file-validate \
-    $TEMP_DIR/linux/arm32/mksquashfs
+    $TEMP_DIR/linux/arm64/opj_decompress \
+    $TEMP_DIR/linux/arm32/mksquashfs \
+    $TEMP_DIR/linux/arm32/desktop-file-validate
+
+echo "✅ Executable permissions set"
+
+# =============================================================================
+# CREATE GENERIC APPIMAGE TOOL WRAPPER
+# =============================================================================
+echo ""
+echo "🔨 Creating generic AppImage tool wrapper with debug support..."
+
+cat <<'EOF' >"$TEMP_DIR/appimage-tool"
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load shared runtime selector
+source "$ROOT_DIR/select-runtime.env"
+
+# Determine tool name
+INVOKED_AS="$(basename "$0")"
+
+if [[ "$INVOKED_AS" == "appimage-tool" ]]; then
+    if [[ $# -lt 1 ]]; then
+        echo "Usage:"
+        echo "  appimage-tool <tool-name> [args...]"
+        exit 1
+    fi
+    TOOL_NAME="$1"
+    shift
+else
+    TOOL_NAME="$INVOKED_AS"
+fi
+
+BIN="$APPIMAGE_TOOLS_DIR/$TOOL_NAME"
+
+if [[ ! -x "$BIN" ]]; then
+    echo "Tool not found or not executable:"
+    echo "   $BIN"
+    echo
+    echo "Available tools:"
+    ls -1 "$APPIMAGE_TOOLS_DIR" 2>/dev/null || true
+    exit 1
+fi
+
+# Debug mode
+if [[ "${1:-}" == "--debug" || "${1:-}" == "-d" ]]; then
+    echo "=== AppImage Tool Debug Info ==="
+    echo "Tool name:        $TOOL_NAME"
+    echo "Binary path:      $BIN"
+    echo "Platform:         $APPIMAGE_TOOLS_PLATFORM"
+    echo "Architecture:     $APPIMAGE_TOOLS_ARCH"
+    echo "Runtime dir:      $APPIMAGE_TOOLS_DIR"
+    echo "Library dir:      $APPIMAGE_TOOLS_LIBDIR"
+    if [[ "$APPIMAGE_TOOLS_PLATFORM" == "darwin" ]]; then
+        echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+    else
+        echo "LD_LIBRARY_PATH:   $LD_LIBRARY_PATH"
+    fi
+    echo "Executable file info:"
+    file "$BIN"
+    echo "Dynamic libs:"
+    if [[ "$APPIMAGE_TOOLS_PLATFORM" == "darwin" ]]; then
+        otool -L "$BIN" || true
+    else
+        ldd "$BIN" || true
+    fi
+    exit 0
+fi
+
+# Execute normally
+exec "$BIN" "$@"
+EOF
+
+chmod +x "$TEMP_DIR/appimage-tool"
+ln -sf appimage-tool "$TEMP_DIR/mksquashfs"
+ln -sf appimage-tool "$TEMP_DIR/desktop-file-validate"
+
+# =========================
+# select-runtime.env
+# =========================
+echo "  ✏️  select-runtime.env"
+cat <<'EOF' >"$TEMP_DIR/select-runtime.env"
+#!/usr/bin/env bash
+# Shared AppImage tools runtime selector
+
+set -euo pipefail
+
+TOOLS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+OS="$(uname -s)"
+
+if [[ "$OS" == "Darwin" ]]; then
+    APPIMAGE_TOOLS_PLATFORM="darwin"
+    case "$(uname -m)" in
+        x86_64)  APPIMAGE_TOOLS_ARCH="x64" ;;
+        arm64|aarch64) APPIMAGE_TOOLS_ARCH="arm64" ;;
+        *)
+            echo "❌ Unsupported Darwin architecture: $(uname -m)" >&2
+            return 1
+            ;;
+    esac
+else
+    APPIMAGE_TOOLS_PLATFORM="linux"
+    case "$(uname -m)" in
+        x86_64)  APPIMAGE_TOOLS_ARCH="x64" ;;
+        aarch64) APPIMAGE_TOOLS_ARCH="arm64" ;;
+        armv7l|armv6l) APPIMAGE_TOOLS_ARCH="arm32" ;;
+        i686|i386) APPIMAGE_TOOLS_ARCH="ia32" ;;
+        *)
+            echo "❌ Unsupported Linux architecture: $(uname -m)" >&2
+            return 1
+            ;;
+    esac
+fi
+
+APPIMAGE_TOOLS_DIR="$TOOLS_ROOT/$APPIMAGE_TOOLS_PLATFORM/$APPIMAGE_TOOLS_ARCH"
+APPIMAGE_TOOLS_LIBDIR="$APPIMAGE_TOOLS_DIR/lib"
+
+if [[ ! -d "$APPIMAGE_TOOLS_DIR" ]]; then
+    echo "❌ AppImage tools directory not found:"
+    echo "   $APPIMAGE_TOOLS_DIR"
+    return 1
+fi
+
+if [[ "$APPIMAGE_TOOLS_PLATFORM" == "darwin" ]]; then
+    export DYLD_LIBRARY_PATH="$APPIMAGE_TOOLS_LIBDIR${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="$APPIMAGE_TOOLS_LIBDIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+
+export APPIMAGE_TOOLS_PLATFORM
+export APPIMAGE_TOOLS_ARCH
+export APPIMAGE_TOOLS_DIR
+export APPIMAGE_TOOLS_LIBDIR
+EOF
+
+chmod +x "$TEMP_DIR/select-runtime.env"
+echo "✅ Generic AppImage tool wrapper created"
 
 echo ""
 echo "✨ Extraction complete!"

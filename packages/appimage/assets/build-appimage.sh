@@ -1,5 +1,5 @@
 #!/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 
 CWD=$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)
 
@@ -25,7 +25,6 @@ echo ""
 
 BUILD_DIR="/tmp/appimage-build"
 rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
 
 # =============================================================================
 # Env Detection
@@ -140,26 +139,23 @@ echo "   ✅ desktop-file-utils cloned"
 # BUILD SQUASHFS-TOOLS
 # =============================================================================
 echo "📦 Building squashfs-tools..."
+cd $BUILD_DIR/squashfs-tools/squashfs-tools
 
 if [ "$OS" = "linux" ]; then
-    cd $BUILD_DIR/squashfs-tools/squashfs-tools
+
     make -j$(nproc) \
     GZIP_SUPPORT=1 \
     XZ_SUPPORT=1 \
     LZO_SUPPORT=1 \
     LZ4_SUPPORT=1 \
-    ZSTD_SUPPORT=1 \
-    XZ_STATIC=1 \
-    LZO_STATIC=1 \
-    LZ4_STATIC=1 \
-    ZSTD_STATIC=1
+    ZSTD_SUPPORT=1 
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp -aL mksquashfs "$ARCH_OUTPUT_DIR/"
-    echo "   ✅ Built mksquashfs with static compression libraries"
+    chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
+
 else
-    cd $BUILD_DIR/squashfs-tools/squashfs-tools
-    
+
     BREW_PREFIX=$(brew --prefix)
     make -j$(sysctl -n hw.ncpu) \
     GZIP_SUPPORT=1 \
@@ -167,18 +163,16 @@ else
     LZO_SUPPORT=1 \
     LZ4_SUPPORT=1 \
     ZSTD_SUPPORT=1 \
-    XZ_STATIC=1 \
-    LZO_STATIC=1 \
-    LZ4_STATIC=1 \
-    ZSTD_STATIC=1 \
     EXTRA_CFLAGS="-I${BREW_PREFIX}/include" \
     EXTRA_LDFLAGS="-L${BREW_PREFIX}/lib"
     
     mkdir -p "$ARCH_OUTPUT_DIR"
     cp mksquashfs "$ARCH_OUTPUT_DIR/"
     chmod +x "$ARCH_OUTPUT_DIR/mksquashfs"
-    echo "   ✅ Built mksquashfs"
+
 fi
+
+echo "   ✅ Built mksquashfs"
 
 # =============================================================================
 # BUILD DESKTOP-FILE-UTILS
@@ -359,7 +353,7 @@ find "$ARCH_OUTPUT_DIR" -type f -perm -111 | while read -r binary; do
 done
 
 # =============================================================================
-# VERIFY BINARIES
+# GRAB BINARY VERSIONS
 # =============================================================================
 VERSION_FILE="$ARCH_OUTPUT_DIR/VERSION.txt"
 echo ""
@@ -381,6 +375,16 @@ else
     echo "   ❌ desktop-file-validate verification failed"
     exit 1
 fi
+
+# if [ -f "$ARCH_OUTPUT_DIR/opj_decompress" ]; then
+#     if OPJ_VER=$(LD_LIBRARY_PATH= "$ARCH_OUTPUT_DIR/opj_decompress" -h | head -n1 2>&1); then
+#         echo "opj_decompress: $OPJ_VER" >> "$VERSION_FILE"
+#         echo "   ✅ opj_decompress verified: $OPJ_VER"
+#     else
+#         echo "   ❌ opj_decompress verification failed"
+#         exit 1
+#     fi
+# fi
 
 # =============================================================================
 # COPY RUNTIME LIBRARIES
