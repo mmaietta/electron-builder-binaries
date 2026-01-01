@@ -183,7 +183,7 @@ rm -f "$OUT_DIR/$ARCHIVE_NAME"
 echo "📦 Creating tar.gz bundle: $ARCHIVE_NAME"
 (
     cd "$BUILD_DIR"
-    tar czf "$OUT_DIR/$ARCHIVE_NAME" .
+    tar -czf "$OUT_DIR/$ARCHIVE_NAME" --options gzip:compression-level=9 .
 )
 echo "✅ Done!"
 echo "Bundle at: $OUT_DIR/$ARCHIVE_NAME"
