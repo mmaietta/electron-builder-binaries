@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.4
+
+### Patch Changes
+
+- [#69](https://github.com/mmaietta/electron-builder-binaries/pull/69) [`586408e`](https://github.com/mmaietta/electron-builder-binaries/commit/586408e870ce133c01b8f2e1b9ff79044c233d97) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: redeploy linux with patchelf processed
+
 ## 1.0.3
 
 ### Patch Changes
