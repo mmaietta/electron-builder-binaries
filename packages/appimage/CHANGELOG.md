@@ -1,5 +1,11 @@
 # appimage
 
+## 1.0.6
+
+### Patch Changes
+
+- [#73](https://github.com/mmaietta/electron-builder-binaries/pull/73) [`c8ac139`](https://github.com/mmaietta/electron-builder-binaries/commit/c8ac13938d35b2f851fcd70bbf1a3dfa46b3fabe) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: remove bash 4 features from script
+
 ## 1.0.5
 
 ### Patch Changes
