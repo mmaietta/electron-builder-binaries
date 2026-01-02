@@ -128,14 +128,11 @@ set -euo pipefail
 
 TOOLS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-OS="$(uname -s)"
-MACHINE="$(uname -m)"
-
 # Set platform: "darwin" or "linux"
-APPIMAGE_TOOLS_PLATFORM="${OS,,}"   # lowercase version of uname -s
+APPIMAGE_TOOLS_PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
 # Set architecture with fallback to x64
-case "$MACHINE" in
+case "$(uname -m)" in
     x86_64|amd64)   APPIMAGE_TOOLS_ARCH="x64" ;;
     arm64|aarch64)  APPIMAGE_TOOLS_ARCH="arm64" ;;
     armv7l|armv6l)  APPIMAGE_TOOLS_ARCH="arm32" ;;
