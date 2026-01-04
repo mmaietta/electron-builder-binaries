@@ -29,6 +29,8 @@ jobs:
         id: set
         shell: bash
         run: |
+          set -ex
+          
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             RANGE="origin/${{ github.base_ref }}...HEAD"
             git fetch origin ${{ github.base_ref }} --depth=1
