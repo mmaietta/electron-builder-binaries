@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -exuo pipefail
-
+shopt -s nullglob
 
 BASE_DIR=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
 source "$BASE_DIR/utils.sh"
@@ -32,28 +32,19 @@ downloadArtifact()
     hashArtifact "$OUTPUT_NAME" "$CHECKSUM"
 }
 
-
-# NAMES=(
-#   fpm
-#   win-codesign
-#   appimage
-#   ran
-# )
-
 for FILEPATH in "$BUILD_OUT_DIR"/*; do
-  NAME=$(basename "$FILEPATH")
+  NAME="$(basename "$FILEPATH")"
   DESTINATION_DIR="$ARTIFACTS_DIR/$NAME"
 
   rm -rf "$DESTINATION_DIR"
   cp -a "$FILEPATH" "$DESTINATION_DIR"
 
   for f in "$DESTINATION_DIR"/*; do
-    # Skip if no files match
     [[ -e "$f" ]] || continue
-
     hashArtifact "$NAME/$(basename "$f")"
   done
 done
+
 
 sort "$ARTIFACTS_DIR/checksums.txt" -o "$ARTIFACTS_DIR/checksums.txt"
 echo "Artifacts compressed and checksums generated in $ARTIFACTS_DIR"
