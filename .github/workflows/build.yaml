@@ -29,12 +29,20 @@ jobs:
         id: set
         shell: bash
         run: |
-          PACKAGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            RANGE="origin/${{ github.base_ref }}...HEAD"
+            git fetch origin ${{ github.base_ref }} --depth=1
+          else
+            RANGE="${{ github.event.before }}...${{ github.sha }}"
+          fi
+
+          PACKAGES=$(git diff --name-only $RANGE \
             | grep '^packages/' \
             | cut -d/ -f2 \
             | sort -u \
             | jq -R -s -c 'split("\n")[:-1]')
-          echo "matrix=$PACKAGES" >> $GITHUB_OUTPUT
+
+          echo "matrix=$PACKAGES" >> "$GITHUB_OUTPUT"
       - name: Show detected packages
         run: |
           echo "Detected packages: ${{ steps.set.outputs.matrix }}"
