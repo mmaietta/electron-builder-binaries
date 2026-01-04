@@ -1,5 +1,17 @@
 # ran
 
+## 2.0.0
+
+### Major Changes
+
+- [#75](https://github.com/mmaietta/electron-builder-binaries/pull/75) [`b916c8d`](https://github.com/mmaietta/electron-builder-binaries/commit/b916c8d4b2291fb4250b8ee3382b2943eab78abe) Thanks [@mmaietta](https://github.com/mmaietta)! - chore(ran): upgrade ran to latest 0.1.6 release
+
+### Patch Changes
+
+- [#75](https://github.com/mmaietta/electron-builder-binaries/pull/75) [`b916c8d`](https://github.com/mmaietta/electron-builder-binaries/commit/b916c8d4b2291fb4250b8ee3382b2943eab78abe) Thanks [@mmaietta](https://github.com/mmaietta)! - chore: redeploy ran and commit artifact
+
+- [#75](https://github.com/mmaietta/electron-builder-binaries/pull/75) [`b916c8d`](https://github.com/mmaietta/electron-builder-binaries/commit/b916c8d4b2291fb4250b8ee3382b2943eab78abe) Thanks [@mmaietta](https://github.com/mmaietta)! - fix: manual redeploy of `ran`
+
 ## 1.0.0
 
 ### Major Changes
