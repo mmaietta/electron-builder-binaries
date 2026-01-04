@@ -129,7 +129,7 @@ async function run() {
       .join("\n");
 
     const options = {
-      owner: "electron-userland",
+      owner: "mmaietta",
       repo: "electron-builder-binaries",
       tag: releaseName,
       name: releaseName,
