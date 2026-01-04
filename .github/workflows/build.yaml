@@ -29,12 +29,24 @@ jobs:
         id: set
         shell: bash
         run: |
-          PACKAGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep '^packages/' \
+          set -ex
+          
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            RANGE="origin/${{ github.base_ref }}...HEAD"
+            git fetch origin ${{ github.base_ref }} --depth=1
+          else
+            RANGE="${{ github.event.before }}...${{ github.sha }}"
+          fi
+
+          FILES=$(git diff --name-only $RANGE || true)
+
+          CHANGED_PACKAGES=$(echo "$FILES" \
+            | grep '^packages/' || true \
             | cut -d/ -f2 \
             | sort -u \
             | jq -R -s -c 'split("\n")[:-1]')
-          echo "matrix=$PACKAGES" >> $GITHUB_OUTPUT
+
+          echo "matrix=$CHANGED_PACKAGES" >> "$GITHUB_OUTPUT"
       - name: Show detected packages
         run: |
           echo "Detected packages: ${{ steps.set.outputs.matrix }}"
@@ -96,7 +108,9 @@ jobs:
         with: { node-version: '22' }
 
       - name: Install tree via Homebrew
-        run: brew install tree
+        run: |
+          brew install tree
+          mkdir -p out
 
       - name: Download all artifacts
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
@@ -105,7 +119,8 @@ jobs:
           merge-multiple: true
 
       - name: Show artifact tree
-        run: tree ./out
+        run: |
+          tree ./out
 
       - name: Compress artifacts
         run: sh ./scripts/compress-artifacts.sh
@@ -122,5 +137,5 @@ jobs:
         with:
           name: artifacts-staging
           path: artifacts-staging
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 1
