@@ -20,23 +20,25 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
-
     steps:
-      - uses: actions/checkout@v4
-
-      - id: set
+      - name: Checkout code repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Detect changed packages
+        id: set
+        shell: bash
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1 || true
-
           PACKAGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
             | grep '^packages/' \
             | cut -d/ -f2 \
             | sort -u \
             | jq -R -s -c 'split("\n")[:-1]')
-
           echo "matrix=$PACKAGES" >> $GITHUB_OUTPUT
-
-  
+      - name: Show detected packages
+        run: |
+          echo "Detected packages: ${{ steps.set.outputs.matrix }}"
+ 
   fpm:
     if: contains(needs.detect.outputs.matrix, '"fpm"')
     uses: ./.github/workflows/build-fpm.yaml
@@ -73,7 +75,7 @@ jobs:
       always() &&
       !contains(needs.*.result, 'failure') &&
       contains(needs.*.result, 'success')
-      
+
     outputs:
       artifactUrl: ${{ steps.upload.outputs.artifact-url }}
       artifactId: ${{ steps.upload.outputs.artifact-id }}
