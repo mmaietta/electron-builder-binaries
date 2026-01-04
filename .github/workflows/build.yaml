@@ -38,13 +38,15 @@ jobs:
             RANGE="${{ github.event.before }}...${{ github.sha }}"
           fi
 
-          PACKAGES=$(git diff --name-only $RANGE \
+          FILES=$(git diff --name-only $RANGE || true)
+
+          CHANGED_PACKAGES=$(echo "$FILES" \
             | grep '^packages/' || true \
             | cut -d/ -f2 \
             | sort -u \
             | jq -R -s -c 'split("\n")[:-1]')
 
-          echo "matrix=$PACKAGES" >> "$GITHUB_OUTPUT"
+          echo "matrix=$CHANGED_PACKAGES" >> "$GITHUB_OUTPUT"
       - name: Show detected packages
         run: |
           echo "Detected packages: ${{ steps.set.outputs.matrix }}"
@@ -106,7 +108,9 @@ jobs:
         with: { node-version: '22' }
 
       - name: Install tree via Homebrew
-        run: brew install tree
+        run: |
+          brew install tree
+          mkdir -p out
 
       - name: Download all artifacts
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
@@ -115,7 +119,8 @@ jobs:
           merge-multiple: true
 
       - name: Show artifact tree
-        run: tree ./out
+        run: |
+          tree ./out
 
       - name: Compress artifacts
         run: sh ./scripts/compress-artifacts.sh
