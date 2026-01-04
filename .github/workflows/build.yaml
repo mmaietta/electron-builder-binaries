@@ -16,17 +16,46 @@ permissions:
   contents: read
 
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: set
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+
+          PACKAGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep '^packages/' \
+            | cut -d/ -f2 \
+            | sort -u \
+            | jq -R -s -c 'split("\n")[:-1]')
+
+          echo "matrix=$PACKAGES" >> $GITHUB_OUTPUT
+
+  
   fpm:
+    if: contains(needs.detect.outputs.matrix, '"fpm"')
     uses: ./.github/workflows/build-fpm.yaml
+    needs: detect
 
   win-codesign:
+    if: contains(needs.detect.outputs.matrix, '"win-codesign"')
     uses: ./.github/workflows/build-wincodesign.yaml
+    needs: detect
   
   appimage:
+    if: contains(needs.detect.outputs.matrix, '"appimage"')
     uses: ./.github/workflows/build-appimage.yaml
+    needs: detect
   
   ran:
+    if: contains(needs.detect.outputs.matrix, '"ran"')
     uses: ./.github/workflows/build-ran.yaml
+    needs: detect
 
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
@@ -40,9 +69,15 @@ jobs:
       ran,
       # squirrel
     ]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      contains(needs.*.result, 'success')
+      
     outputs:
       artifactUrl: ${{ steps.upload.outputs.artifact-url }}
       artifactId: ${{ steps.upload.outputs.artifact-id }}
+
     steps:
       
       - name: Enable Corepack for pnpm
