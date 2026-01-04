@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -exuo pipefail
 
 
 BASE_DIR=$(cd "$(dirname "$BASH_SOURCE")" && pwd)
@@ -40,11 +40,12 @@ downloadArtifact()
 #   ran
 # )
 
-for NAME in "$BUILD_OUT_DIR"/*; do
+for FILEPATH in "$BUILD_OUT_DIR"/*; do
+  NAME=$(basename "$FILEPATH")
   DESTINATION_DIR="$ARTIFACTS_DIR/$NAME"
 
   rm -rf "$DESTINATION_DIR"
-  cp -a "$BUILD_OUT_DIR/$NAME" "$DESTINATION_DIR"
+  cp -a "$FILEPATH" "$DESTINATION_DIR"
 
   for f in "$DESTINATION_DIR"/*; do
     # Skip if no files match
