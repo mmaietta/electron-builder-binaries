@@ -33,14 +33,14 @@ downloadArtifact()
 }
 
 
-NAMES=(
-  fpm
-  win-codesign
-  appimage
-  ran
-)
+# NAMES=(
+#   fpm
+#   win-codesign
+#   appimage
+#   ran
+# )
 
-for NAME in "${NAMES[@]}"; do
+for NAME in "$BUILD_OUT_DIR"/*; do
   DESTINATION_DIR="$ARTIFACTS_DIR/$NAME"
 
   rm -rf "$DESTINATION_DIR"
