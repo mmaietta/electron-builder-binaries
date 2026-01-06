@@ -213,7 +213,11 @@ cd "openjpeg-${OPENJPEG_VERSION}" || exit 1
 # Build
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local > /dev/null
-make -j"$(nproc)" > /dev/null
+if [ "$OS" = "linux" ]; then
+    make -j$(nproc)
+else
+    make -j$(sysctl -n hw.ncpu)
+fi
 make install DESTDIR="$INSTALL_DIR"
 
 # Prepare output directory
@@ -361,7 +365,11 @@ if [ "$OS" = "darwin" ]; then
     # sign every dylib and executable with adhoc identity
     echo "🔏 Code signing binaries and libraries..."
     for f in "$ARCH_OUTPUT_DIR"/lib/*.dylib "$ARCH_OUTPUT_DIR"/*; do
-        /usr/bin/codesign --force --sign - "$f" 2>/tmp/codesign.err || true
+        if [ ! -f "$f" ]; then
+            continue
+        fi
+        echo "   Signing $f"
+        /usr/bin/codesign --force --sign - "$f" 2>/dev/null || ( echo "   ❌ Failed to sign $f"; exit 1 )
     done
     # verify signatures (should not print errors)
     /usr/bin/codesign -v --deep --strict "$ARCH_OUTPUT_DIR"/mksquashfs
