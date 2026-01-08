@@ -100,15 +100,15 @@ RUN scons \
     PREFIX=/build/install \
     install-compiler
 
-# The binary is now at /build/install/bin/makensis
-RUN chmod +x /build/install/bin/makensis
+# The binary is now at /build/install/makensis
+RUN chmod +x /build/install/makensis
 
 # Verify the binary works
-RUN /build/install/bin/makensis -VERSION || true
+RUN /build/install/makensis -VERSION
 
 # Create output directory
 RUN mkdir -p /output && \
-    cp /build/install/bin/makensis /output/makensis
+    cp /build/install/makensis /output/makensis
 
 DOCKERFILE_END
 
