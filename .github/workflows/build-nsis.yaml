@@ -38,7 +38,8 @@ jobs:
           retention-days: 1
 
   windows:
-    runs-on: ${{ matrix.runner }}
+    runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - name: Enable Corepack for pnpm
         run: |
@@ -61,7 +62,7 @@ jobs:
           retention-days: 1
 
   mac:
-    runs-on: ${{ matrix.node }}
+    runs-on: macos-latest
     timeout-minutes: 20
     steps:
       - name: Enable Corepack for pnpm
