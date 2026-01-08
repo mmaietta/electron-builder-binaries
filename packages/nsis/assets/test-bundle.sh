@@ -25,6 +25,7 @@ echo ""
 # ----------------------------------------
 echo "📦 Extracting bundle..."
 cd $BUNDLE_PATH
+NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
 
 shopt -s nullglob
 archives=( *complete*.tar.gz )
@@ -36,7 +37,7 @@ fi
 
 echo "Using archive: ${archives[0]}"
 tar -xzf "${archives[0]}"
-cd $BUNDLE_PATH/nsis-bundle
+cd $NSIS_BUNDLE
 
 # ----------------------------------------
 # Step: Test makensis binary
@@ -44,7 +45,7 @@ cd $BUNDLE_PATH/nsis-bundle
 echo "🔍 Testing makensis binary..."
 if [[ "$PLATFORM" == Windows* ]]; then
     echo "Windows platform detected, running PowerShell entrypoint..."
-    pwsh -File "./$BINARY_PATH" -VERSION
+    pwsh -File "$NSIS_BUNDLE/$BINARY_PATH" -VERSION
 else
     echo "Non-Windows platform detected, running binary directly..."
     chmod +x "./$BINARY_PATH"
@@ -86,7 +87,7 @@ EOF
 # ----------------------------------------
 echo "⚙️  Compiling test installer..."
 if [[ "$PLATFORM" == Windows* ]]; then
-    pwsh -File "./$BINARY_PATH" test.nsi
+    pwsh -File "$NSIS_BUNDLE/$BINARY_PATH" test.nsi
 else
     "./$BINARY_PATH" test.nsi
 fi

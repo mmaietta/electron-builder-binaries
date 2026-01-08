@@ -167,15 +167,9 @@ jobs:
         run: |
           ls -lhR packages/nsis/out
 
-      - name: Run tests (linx/mac)
+      - name: Run tests
         shell: bash
-        # if: runner.os != 'Windows'
         run: |
           bash ./assets/test-bundle.sh "${{ matrix.platform }}" "${{ matrix.binary }}" "`pwd`/out/nsis"
         working-directory: packages/nsis
-
-      # - name: Run tests (Windows)
-      #   if: runner.os == 'Windows'
-      #   run: |
-      #     .\assets\test-bundle.ps1 -Platform "${{ matrix.platform }}" -Binary "${{ matrix.binary }}" -BundlePath "$(pwd)\out\nsis"
-      #   shell: powershell
+        
