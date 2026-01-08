@@ -111,8 +111,8 @@ jobs:
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
 
-      - name: tar bundle
-        run: tar -czvf ./nsis/nsis-bundle.tar.gz ./*
+      - name: Zip bundle
+        run: zip ./nsis/nsis-bundle.zip -r ./*
         working-directory: ./packages/nsis/out
         shell: bash
 
@@ -126,5 +126,5 @@ jobs:
         with:
           name: nsis-bundle
           if-no-files-found: error
-          path: packages/nsis/out/**/*.tar.gz
+          path: packages/nsis/out/**/*.zip
           retention-days: 1
