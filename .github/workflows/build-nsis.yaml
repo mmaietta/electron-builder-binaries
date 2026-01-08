@@ -167,38 +167,48 @@ jobs:
         shell: bash
         run: |
           BUNDLE_PATH="./packages/nsis/out/nsis"
+          echo "Listing bundle folder:"
           ls -lhR "$BUNDLE_PATH"
-          cd "$BUNDLE_PATH"
-          
+
+          # Determine extraction target
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
+          mkdir -p "$NSIS_BUNDLE"
+
+          # Convert path for Windows runners
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # Convert to Windows path for CMD / PowerShell
-            # GitHub Actions uses /d/... style; convert to D:\... style
+            # GitHub Actions /d/... -> D:\...
             WIN_NSIS_BUNDLE=$(echo "$NSIS_BUNDLE" | sed -E 's#^/([a-zA-Z])/#\1:\\#; s#/#\\#g')
             echo "NSIS_BUNDLE=$WIN_NSIS_BUNDLE" >> $GITHUB_ENV
           else
             echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
           fi
 
-          shopt -s nullglob || true  # Enable nullglob on Unix shells
-          archives=( *complete*.tar.gz )
+          # Enable nullglob for pattern matching
+          shopt -s nullglob || true
 
-          if [[ ${#archives[@]} -eq 0 ]]; then
-              echo "ERROR: no *complete*.tar.gz files found"
+          # Find the archive
+          archives=( "$BUNDLE_PATH"/*complete*.tar.gz )
+          if (( ${#archives[@]} == 0 )); then
+              echo "ERROR: no *complete*.tar.gz files found in $BUNDLE_PATH"
               exit 1
           fi
 
           echo "Using archive: ${archives[0]}"
-          tar -xzf "${archives[0]}"
 
-          ls -lhR "$BUNDLE_PATH/.."
+          # Extract into NSIS_BUNDLE folder explicitly
+          tar -xzf "${archives[0]}" -C "$NSIS_BUNDLE"
 
-          echo "NSIS bundle: $NSIS_BUNDLE"
+          # Verify contents
+          echo "Listing extracted files:"
+          ls -lhR "$NSIS_BUNDLE"
+
+          # Final sanity check
           if [ ! -d "$NSIS_BUNDLE" ]; then
-            echo "❌ NSIS bundle directory not found"
+            echo "❌ NSIS bundle directory not found after extraction!"
             exit 1
           fi
-          ls -lh "$NSIS_BUNDLE"
+
+          echo "✅ NSIS bundle ready at $NSIS_BUNDLE"
 
       - name: Create test NSIS script
         run: |
