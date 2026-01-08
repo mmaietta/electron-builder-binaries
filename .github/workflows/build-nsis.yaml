@@ -165,7 +165,7 @@ jobs:
 
       - name: Find NSIS bundle
         run: |
-          BUNDLE_PATH="./packages/nsis/out"
+          BUNDLE_PATH="./packages/nsis/out/nsis"
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
           cd $BUNDLE_PATH
 
