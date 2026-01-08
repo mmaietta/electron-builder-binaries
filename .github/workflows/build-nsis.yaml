@@ -170,8 +170,11 @@ jobs:
         with:
           name: nsis-bundle
 
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Run tests
         shell: bash
         run: |
           bash ./assets/test-bundle.sh "${{ matrix.platform }}" makensis `pwd`/out/nsis
-        working-directory: ./packages/nsis
+        working-directory: packages/nsis
