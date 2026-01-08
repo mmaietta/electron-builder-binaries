@@ -19,7 +19,7 @@ NSIS_VERSION=${NSIS_VERSION:-3.10}
 NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
-OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.tar.gz"
 
 echo "📦 Building NSIS Base Bundle..."
 echo "   Version: $NSIS_VERSION"
@@ -320,7 +320,7 @@ echo ""
 echo "📦 Creating base bundle archive..."
 
 cd "$OUT_DIR"
-tar -czf "${OUTPUT_ARCHIVE%.zip}.tar.gz" nsis-bundle
+tar -czf "${OUTPUT_ARCHIVE}" nsis-bundle
 
 # =============================================================================
 # Cleanup
