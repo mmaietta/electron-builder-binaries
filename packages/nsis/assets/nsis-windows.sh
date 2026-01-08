@@ -104,10 +104,11 @@ echo ""
 echo "📚 Copying NSIS data files..."
 
 for item in Contrib Include Plugins Stubs; do
-    if [ -d "$NSIS_EXTRACTED/$item" ]; then
+    # if [ -d "$NSIS_EXTRACTED/$item" ]; then
         echo "  → $item/"
+        mkdir -p "$BUNDLE_DIR/share/nsis/$item"
         cp -r "$NSIS_EXTRACTED/$item" "$BUNDLE_DIR/share/nsis/"
-    fi
+    # fi
 done
 
 # Remove unnecessary files
@@ -246,7 +247,7 @@ echo ""
 echo "🔧 Applying language file patches..."
 
 FIXES_DIR="$BASE_DIR/assets/nsis-lang-fixes"
-LANG_FILES_DIR="$BUNDLE_DIR/share/nsis/Language files"
+LANG_FILES_DIR="$BUNDLE_DIR/share/nsis/Contrib/Language files"
 
 PATCHED_COUNT=0
 ls -1 "$LANG_FILES_DIR"/*.n* >/dev/null 2>&1 || {
@@ -279,6 +280,7 @@ if [ $PATCHED_COUNT -gt 0 ]; then
     echo "  ✓ Patched $PATCHED_COUNT language files"
 else
     echo "  ⚠️  No language files to patch"
+    exit 1
 fi
 
 # =============================================================================
