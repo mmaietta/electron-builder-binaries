@@ -259,13 +259,21 @@ cat > "$BUILD_DIR/nsis-bundle/makensis.ps1" <<'EOF'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+# Set NSISDIR if not already set
 if (-not $env:NSISDIR) {
-  $env:NSISDIR = Join-Path $ScriptDir "share\nsis"
+    $env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
 }
 
-$Makensis = Join-Path $ScriptDir "windows\makensis.exe"
+# Path to makensis.exe
+$Makensis = Join-Path $ScriptDir "windows" "makensis.exe"
 
-& $Makensis @args
+if (-not (Test-Path $Makensis)) {
+    Write-Error "makensis.exe not found at $Makensis"
+    exit 1
+}
+
+# Run the binary, forwarding all arguments
+& "$Makensis" @args
 exit $LASTEXITCODE
 EOF
 
