@@ -191,7 +191,7 @@ jobs:
           echo "Using archive: ${archives[0]}"
           tar -xzf "${archives[0]}"
 
-          ls -lhR "./packages/nsis/out"
+          ls -lhR "$BUNDLE_PATH/.."
 
           echo "NSIS bundle: $NSIS_BUNDLE"
           if [ ! -d "$NSIS_BUNDLE" ]; then
