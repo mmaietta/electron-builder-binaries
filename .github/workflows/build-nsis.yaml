@@ -131,9 +131,11 @@ jobs:
           retention-days: 30
 
   test-nsis:
+    name: Test NSIS Bundle (${{ matrix.platform }})
     runs-on: ${{ matrix.runner }}
     needs: combine-artifacts
     strategy:
+      fail-fast: false
       matrix:
         include:
           - platform: Windows
@@ -161,17 +163,13 @@ jobs:
           name: nsis-bundle
           path: packages/nsis/out
 
-
-      - name: Set up environment
-        run: |
-          echo "Platform: ${{ matrix.platform }}"
-          echo "Runner: ${{ matrix.runner }}"
-
       - name: Find NSIS bundle
         run: |
           BUNDLE_PATH="./packages/nsis/out"
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
           cd $BUNDLE_PATH
+
+          ls -lh
           
           shopt -s nullglob || true  # Enable nullglob on Unix shells
           archives=( *complete*.tar.gz )

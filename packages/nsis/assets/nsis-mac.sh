@@ -138,14 +138,7 @@ if file "$COMPILED_BINARY" | grep -q "Mach-O"; then
     echo "  ✓ Valid macOS Mach-O binary"
 else
     echo "  ⚠️  Binary verification inconclusive"
-fi
-
-# Try to get version
-if "$COMPILED_BINARY" -VERSION &> /dev/null; then
-    VERSION_OUTPUT=$("$COMPILED_BINARY" -VERSION 2>&1 | head -1)
-    echo "  ✓ Binary test successful: $VERSION_OUTPUT"
-else
-    echo "  ⚠️  Binary version check failed (may still work)"
+    exit 1
 fi
 
 # =============================================================================
