@@ -132,6 +132,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: nsis-temp-*
+          path: packages/nsis/out
           merge-multiple: true
 
       - name: List downloaded artifacts
