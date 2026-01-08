@@ -130,18 +130,17 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  # Test the combined bundle on all platforms
-  test-bundle:
-    name: Test Bundle (${{ matrix.platform }})
+  test-nsis:
     runs-on: ${{ matrix.runner }}
-    needs: combine-artifacts
     strategy:
-      fail-fast: false
       matrix:
         include:
           - platform: Windows
             runner: windows-latest
             binary: makensis.ps1
+          - platform: Windows
+            runner: windows-latest
+            binary: makensis.cmd
           - platform: Linux
             runner: ubuntu-latest
             binary: makensis
@@ -152,24 +151,127 @@ jobs:
             runner: macos-15
             binary: makensis
     steps:
-
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Download combined bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: nsis-bundle
-          path: packages/nsis/out
-          
-      - name: List bundle contents
-        shell: bash
+      - name: Set up environment
         run: |
-          ls -lhR packages/nsis/out
+          echo "Platform: ${{ matrix.platform }}"
+          echo "Runner: ${{ matrix.runner }}"
 
-      - name: Run tests
+      - name: Find NSIS bundle
+        run: |
+          BUNDLE_PATH="./nsis"
+          NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
+          cd $BUNDLE_PATH
+          
+          shopt -s nullglob || true  # Enable nullglob on Unix shells
+          archives=( *complete*.tar.gz )
+          
+          if [[ ${#archives[@]} -eq 0 ]]; then
+              echo "ERROR: no *complete*.tar.gz files found"
+              exit 1
+          fi
+          
+          echo "Using archive: ${archives[0]}"
+          tar -xzf "${archives[0]}"
+          echo "NSIS bundle extracted to $NSIS_BUNDLE"
+
+      # Step: Test makensis binary (PowerShell on Windows)
+      - name: Test makensis (PowerShell)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
+        shell: pwsh
+        run: |
+          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          echo "Running PowerShell binary: $BINARY_PATH"
+          & "$BINARY_PATH" -VERSION
+
+      # Step: Test makensis binary (CMD on Windows)
+      - name: Test makensis (CMD)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
+        shell: cmd
+        run: |
+          BINARY_PATH="%NSIS_BUNDLE%\${{ matrix.binary }}"
+          echo Running CMD binary: %BINARY_PATH%
+          "%BINARY_PATH%" -VERSION
+
+      # Step: Test makensis binary (Linux/macOS)
+      - name: Test makensis (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          bash ./assets/test-bundle.sh "${{ matrix.platform }}" "${{ matrix.binary }}" "`pwd`/out/nsis"
-        working-directory: packages/nsis
-        
+          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          chmod +x "$BINARY_PATH"
+          "$BINARY_PATH" -VERSION
+
+      - name: Create test NSIS script
+        run: |
+          cat > test.nsi << 'EOF'
+          !include "MUI2.nsh"
+
+          Name "Test Installer"
+          OutFile "test-installer.exe"
+          InstallDir "$PROGRAMFILES\TestApp"
+
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "Main"
+            SetOutPath "$INSTDIR"
+            WriteUninstaller "$INSTDIR\Uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            Delete "$INSTDIR\Uninstall.exe"
+            RMDir "$INSTDIR"
+          SectionEnd
+          EOF
+
+      # Step: Compile installer (PowerShell)
+      - name: Compile test installer (PowerShell)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
+        shell: pwsh
+        run: |
+          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          & "$BINARY_PATH" test.nsi
+
+      # Step: Compile installer (CMD)
+      - name: Compile test installer (CMD)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
+        shell: cmd
+        run: |
+          BINARY_PATH="%NSIS_BUNDLE%\${{ matrix.binary }}"
+          "%BINARY_PATH%" test.nsi
+
+      # Step: Compile installer (Linux/macOS)
+      - name: Compile test installer (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          chmod +x "$BINARY_PATH"
+          "$BINARY_PATH" test.nsi
+
+      - name: Verify output
+        run: |
+          ls -l
+          if [[ -f test-installer.exe ]]; then
+              echo "✅ Test compilation successful!"
+          else
+              echo "❌ Test compilation failed – no output file"
+              exit 1
+          fi
+
+      - name: Check NSIS plugins
+        run: |
+          plugin_count="$(find share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l | tr -d ' ')"
+          echo "Found $plugin_count plugin DLLs"
+          if (( plugin_count < 20 )); then
+              echo "⚠️  Warning: Expected more plugins"
+          else
+              echo "✅ Plugin count looks good"
+          fi
