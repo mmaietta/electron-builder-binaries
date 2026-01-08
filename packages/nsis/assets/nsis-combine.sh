@@ -254,19 +254,17 @@ echo "🪟 Creating Windows PowerShell entrypoint..."
 
 cat > "$BUILD_DIR/nsis-bundle/makensis.ps1" <<'EOF'
 # =============================================================
-# NSIS Windows PowerShell Entrypoint
-# Works in Git Bash, MSYS, or native Windows
+# NSIS Windows PowerShell Entrypoint (CI-safe)
 # =============================================================
 
-# Get script directory
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# If path is MSYS/Git Bash style (/d/a/...), convert to Windows path
+# Ensure Windows-style paths
 if ($ScriptDir -match '^/([a-zA-Z])/(.*)') {
     $ScriptDir = "$($matches[1]):\$($matches[2] -replace '/', '\')"
 }
 
-# Set NSISDIR if not already set
+# Set NSISDIR if not set
 if (-not $env:NSISDIR) {
     $env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
 }
@@ -274,16 +272,22 @@ if (-not $env:NSISDIR) {
 # Path to makensis.exe
 $Makensis = Join-Path $ScriptDir "windows" "makensis.exe"
 
-# Check that the binary exists
 if (-not (Test-Path $Makensis)) {
     Write-Error "makensis.exe not found at: $Makensis"
     exit 1
 }
 
-# Run makensis with all arguments
-& "$Makensis" @args
+# Change working directory to script dir
+Set-Location $ScriptDir
 
-# Exit with the same code as makensis
+# Run makensis safely with arguments
+if ($args.Count -gt 0) {
+    & "$Makensis" --% @args
+} else {
+    & "$Makensis"
+}
+
+# Exit with same code
 exit $LASTEXITCODE
 
 EOF
