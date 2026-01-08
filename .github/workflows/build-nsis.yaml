@@ -246,14 +246,14 @@ jobs:
           ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle"
           ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle\windows"
 
-          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE "packages/nsis/out/nsis/nsis-bundle/windows/makensis.exe"
+          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE ${{ env.NSIS_BUNDLE }} ${{ matrix.binary }}
           Write-Host "Binary path: $BINARY_PATH"
 
           if (-not (Test-Path $BINARY_PATH)) {
               Write-Host "❌ makensis.exe not found!"
               exit 1
           }
-              
+
           Unblock-File "$BINARY_PATH"
           & "$BINARY_PATH" -VERSION
           & "$BINARY_PATH" "test.nsi"
@@ -266,7 +266,7 @@ jobs:
         run: |
           ls "%GITHUB_WORKSPACE%\packages\nsis\out\nsis\nsis-bundle"
 
-          set "BINARY_PATH=%GITHUB_WORKSPACE%\packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
+          set "BINARY_PATH=%GITHUB_WORKSPACE%\${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
           if not exist "%BINARY_PATH%" (
               echo ERROR: Binary not found: %BINARY_PATH%
               exit /b 1
@@ -284,8 +284,7 @@ jobs:
           "$BINARY_PATH" -VERSION
           "$BINARY_PATH" test.nsi
 
-      - name: Verify output
-        shell: bash
+      - name: Verify output installer
         run: |
           ls -l
           if [[ -f test-installer.exe ]]; then
@@ -296,7 +295,6 @@ jobs:
           fi
 
       - name: Check NSIS plugins
-        shell: bash
         run: |
           plugin_count="$(find share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l | tr -d ' ')"
           echo "Found $plugin_count plugin DLLs"
