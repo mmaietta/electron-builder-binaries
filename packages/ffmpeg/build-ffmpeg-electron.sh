@@ -80,6 +80,7 @@ RUN chmod +x /build/build-ffmpeg.sh
 
 ARG FFMPEG_VERSION
 ENV FFMPEG_VERSION=${FFMPEG_VERSION}
+
 # Run the build script during image build
 RUN /build/build-ffmpeg.sh
 
@@ -149,7 +150,7 @@ create_docker_build_script() {
 #!/bin/bash
 set -e
 
-FFMPEG_VERSION=${FFMPEG_VERSION:-6.1}
+FFMPEG_VERSION=${FFMPEG_VERSION:-8.0.1}
 PREFIX="/build/output"
 TARGETOS=${TARGETOS:-linux}
 TARGETARCH=${TARGETARCH:-amd64}
@@ -254,7 +255,7 @@ create_macos_build_script() {
 #!/bin/bash
 set -e
 
-FFMPEG_VERSION=${FFMPEG_VERSION:-6.1}
+FFMPEG_VERSION=${FFMPEG_VERSION:-8.0.1}
 TARGET_ARCH=${TARGET_ARCH:-$(uname -m)}
 BUILD_DIR="${BUILD_DIR:-/tmp/ffmpeg-build-${TARGET_ARCH}}"
 PREFIX="${OUTPUT_DIR}"
@@ -285,6 +286,11 @@ if [ ! -d "ffmpeg-${FFMPEG_VERSION}" ]; then
     echo "📥 Downloading FFmpeg ${FFMPEG_VERSION}..."
     curl -L "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" -o "ffmpeg-${FFMPEG_VERSION}.tar.xz"
     tar xf "ffmpeg-${FFMPEG_VERSION}.tar.xz"
+else
+    echo "🧹 Cleaning previous build..."
+    cd "ffmpeg-${FFMPEG_VERSION}"
+    make clean || true
+    cd ..
 fi
 
 cd "ffmpeg-${FFMPEG_VERSION}"
@@ -293,9 +299,21 @@ cd "ffmpeg-${FFMPEG_VERSION}"
 if [ "$TARGET_ARCH" = "x64" ]; then
     ARCH_FLAGS="--arch=x86_64"
     MACOS_MIN_VERSION="10.13"
+    # Disable inline assembly for compatibility with Apple Clang
+    EXTRA_FLAGS="--disable-inline-asm"
+    # Force x86_64 compilation
+    export CFLAGS="-arch x86_64"
+    export CXXFLAGS="-arch x86_64"
+    export LDFLAGS="-arch x86_64"
 elif [ "$TARGET_ARCH" = "arm64" ]; then
     ARCH_FLAGS="--arch=arm64"
     MACOS_MIN_VERSION="11.0"
+    # Disable inline assembly for compatibility with Apple Clang on ARM
+    EXTRA_FLAGS="--disable-inline-asm"
+    # Force arm64 compilation
+    export CFLAGS="-arch arm64"
+    export CXXFLAGS="-arch arm64"
+    export LDFLAGS="-arch arm64"
 else
     echo "❌ Unsupported architecture: ${TARGET_ARCH}"
     exit 1
@@ -306,6 +324,7 @@ echo "⚙️  Configuring FFmpeg for macOS ${TARGET_ARCH}..."
 ./configure \
     --prefix="${PREFIX}" \
     ${ARCH_FLAGS} \
+    ${EXTRA_FLAGS} \
     --enable-gpl \
     --enable-version3 \
     --disable-doc \
@@ -314,8 +333,8 @@ echo "⚙️  Configuring FFmpeg for macOS ${TARGET_ARCH}..."
     --enable-static \
     --disable-ffplay \
     --disable-ffprobe \
-    --extra-cflags="-mmacosx-version-min=${MACOS_MIN_VERSION}" \
-    --extra-ldflags="-mmacosx-version-min=${MACOS_MIN_VERSION}"
+    --extra-cflags="-mmacosx-version-min=${MACOS_MIN_VERSION} ${CFLAGS}" \
+    --extra-ldflags="-mmacosx-version-min=${MACOS_MIN_VERSION} ${LDFLAGS}"
 
 # Build
 echo "🔨 Compiling FFmpeg..."
@@ -695,7 +714,8 @@ main() {
         local output_name="$platform"
         
         if [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg" ] || [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg.exe" ]; then
-            cp -r "${OUTPUT_DIR}/${output_name}/bin" "${DIST_DIR}/${output_name}"
+            mkdir -p "${DIST_DIR}/${output_name}"
+            cp -r "${OUTPUT_DIR}/${output_name}/bin" "${DIST_DIR}/${output_name}/"
             echo "  ✅ ${output_name}"
         elif [[ " ${skipped_builds[@]} " =~ " ${platform} " ]]; then
             echo "  ⏭️  ${output_name} (skipped - requires macOS host)"
@@ -731,6 +751,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "  --all           Build for all platforms"
     echo ""
     echo "Options:"
+    echo "  --clean           Clean all build directories, caches, and artifacts"
     echo "  --remove-builder  Remove buildx builder instance after completion"
     echo "  --cleanup         Remove temporary build directories"
     echo "  --help, -h        Show this help message"
@@ -741,12 +762,17 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "  $0 linux-x64                    # Build only Linux x64"
     echo "  $0 macos-x64 macos-arm64        # Build macOS binaries (requires macOS)"
     echo "  $0 linux-x64 windows-x64        # Build Linux and Windows (Docker)"
-    echo "  $0 --all --remove-builder       # Build all and cleanup"
+    echo "  $0 --all --remove-builder       # Build all and cleanup builder"
+    echo "  $0 --clean                      # Clean all build artifacts"
     echo ""
     echo "Build Methods:"
     echo "  - Linux/Windows: Uses Docker Buildx with QEMU"
     echo "  - macOS: Uses native compilation when run on macOS"
     echo "  - macOS builds are skipped when run on non-macOS systems"
+    echo ""
+    echo "Output Directories:"
+    echo "  - Build artifacts: ${OUTPUT_DIR}"
+    echo "  - Distribution:    ${DIST_DIR}"
     echo ""
     echo "Requirements:"
     echo "  - Docker with Buildx (for Linux/Windows builds)"
