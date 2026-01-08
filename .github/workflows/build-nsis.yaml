@@ -246,8 +246,14 @@ jobs:
           ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle"
           ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle\windows"
 
-          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE "packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
+          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE "packages/nsis/out/nsis/nsis-bundle/windows/makensis.exe"
           Write-Host "Binary path: $BINARY_PATH"
+
+          if (-not (Test-Path $BINARY_PATH)) {
+              Write-Host "❌ makensis.exe not found!"
+              exit 1
+          }
+              
           Unblock-File "$BINARY_PATH"
           & "$BINARY_PATH" -VERSION
           & "$BINARY_PATH" "test.nsi"
