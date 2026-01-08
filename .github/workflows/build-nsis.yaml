@@ -169,6 +169,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nsis-bundle
+          path: packages/nsis/out/nsis
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -176,5 +177,6 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
+          ls -lhR 
           bash ./assets/test-bundle.sh "${{ matrix.platform }}" makensis `pwd`/out/nsis
         working-directory: packages/nsis
