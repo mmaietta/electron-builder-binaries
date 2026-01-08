@@ -179,33 +179,11 @@ jobs:
           fi
 
           echo "NSIS bundle: $NSIS_BUNDLE"
-
-      # Step: Test makensis binary (PowerShell on Windows)
-      - name: Test makensis (PowerShell)
-        if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
-        shell: pwsh
-        run: |
-          $BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
-          echo "Running PowerShell binary: $BINARY_PATH"
-          & "$BINARY_PATH" -VERSION
-
-      # Step: Test makensis binary (CMD on Windows)
-      - name: Test makensis (CMD)
-        if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
-        shell: cmd
-        run: |
-          set BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
-          echo Running CMD binary: %BINARY_PATH%
-          "%BINARY_PATH%" -VERSION
-
-      # Step: Test makensis binary (Linux/macOS)
-      - name: Test makensis (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
-          chmod +x "$BINARY_PATH"
-          "$BINARY_PATH" -VERSION
+          if [ ! -d "$NSIS_BUNDLE" ]; then
+            echo "❌ NSIS bundle directory not found"
+            exit 1
+          fi
+          ls -lh "$NSIS_BUNDLE"
 
       - name: Create test NSIS script
         run: |
@@ -234,29 +212,34 @@ jobs:
           SectionEnd
           EOF
 
-      # Step: Compile installer (PowerShell)
-      - name: Compile test installer (PowerShell)
+      # Step: Test makensis binary (PowerShell on Windows)
+      - name: Test makensis (PowerShell)
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
+          $BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
+          echo "Running PowerShell binary: $BINARY_PATH"
+          & "$BINARY_PATH" -VERSION
           & "$BINARY_PATH" test.nsi
 
-      # Step: Compile installer (CMD)
-      - name: Compile test installer (CMD)
+      # Step: Test makensis binary (CMD on Windows)
+      - name: Test makensis (CMD)
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
+          set BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
+          echo Running CMD binary: %BINARY_PATH%
+          "%BINARY_PATH%" -VERSION
           "%BINARY_PATH%" test.nsi
 
-      # Step: Compile installer (Linux/macOS)
-      - name: Compile test installer (Unix)
+      # Step: Test makensis binary (Linux/macOS)
+      - name: Test makensis (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
           chmod +x "$BINARY_PATH"
+          "$BINARY_PATH" -VERSION
           "$BINARY_PATH" test.nsi
 
       - name: Verify output
