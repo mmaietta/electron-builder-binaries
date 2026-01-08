@@ -243,18 +243,26 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          $BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
-          & $BINARY_PATH -VERSION
-          & $BINARY_PATH test.nsi
+          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE "packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
+          Write-Host "Binary path: $BINARY_PATH"
+          Unblock-File "$BINARY_PATH"
+          & "$BINARY_PATH" -VERSION
+          & "$BINARY_PATH" "test.nsi"
+
 
       # Step: Test makensis binary (CMD on Windows)
       - name: Test makensis (CMD)
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          set BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
-          %BINARY_PATH% -VERSION
-          %BINARY_PATH% test.nsi
+          set "BINARY_PATH=%GITHUB_WORKSPACE%\packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
+          if not exist "%BINARY_PATH%" (
+              echo ERROR: Binary not found: %BINARY_PATH%
+              exit /b 1
+          )
+          echo Running CMD binary: %BINARY_PATH%
+          "%BINARY_PATH%" -VERSION
+          "%BINARY_PATH%" test.nsi
 
       # Step: Test makensis binary (Linux/macOS)
       - name: Test makensis (Unix)
