@@ -211,9 +211,10 @@ echo "  ✓ Created universal makensis wrapper"
 # =============================================================================
 # Create Windows CMD Entrypoint
 # =============================================================================
-
 echo ""
 echo "🪟 Creating Windows CMD entrypoint..."
+
+mkdir -p "$BUILD_DIR/nsis-bundle"
 
 cat > "$BUILD_DIR/nsis-bundle/makensis.cmd" <<'EOF'
 @echo off
@@ -223,7 +224,6 @@ REM =============================================================
 REM NSIS Windows CMD Entrypoint
 REM =============================================================
 REM Sets NSISDIR and forwards all arguments to makensis.exe
-REM Suitable for Node.js execSync({ shell: false })
 REM =============================================================
 
 REM Determine directory of this script
@@ -243,12 +243,14 @@ set EXITCODE=%ERRORLEVEL%
 endlocal & exit /b %EXITCODE%
 EOF
 
+# Force CRLF line endings for CMD (always)
+sed -i '' 's/$/\r/' "$BUILD_DIR/nsis-bundle/makensis.cmd"
+
 echo "  ✓ makensis.cmd created"
 
 # =============================================================================
 # Create Windows PowerShell Entrypoint
 # =============================================================================
-
 echo ""
 echo "🪟 Creating Windows PowerShell entrypoint..."
 
@@ -277,6 +279,9 @@ if (-not (Test-Path $Makensis)) {
     exit 1
 }
 
+# Unblock makensis.exe in case it's blocked
+Unblock-File $Makensis
+
 # Change working directory to script dir
 Set-Location $ScriptDir
 
@@ -289,8 +294,10 @@ if ($args.Count -gt 0) {
 
 # Exit with same code
 exit $LASTEXITCODE
-
 EOF
+
+# Force CRLF line endings for PS1 (always)
+sed -i '' 's/$/\r/' "$BUILD_DIR/nsis-bundle/makensis.ps1"
 
 echo "  ✓ makensis.ps1 created"
 
