@@ -43,8 +43,8 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
-if ! command -v unzip &> /dev/null; then
-    echo "❌ unzip is required but not installed"
+if ! command -v tar &> /dev/null; then
+    echo "❌ tar is required but not installed"
     exit 1
 fi
 
@@ -246,40 +246,39 @@ echo ""
 echo "🔧 Applying language file patches..."
 
 FIXES_DIR="$BASE_DIR/assets/nsis-lang-fixes"
-LANG_FILES_DIR="$BUNDLE_DIR/share/nsis/Contrib/Language files"
+LANG_FILES_DIR="$BUNDLE_DIR/share/nsis/Language files"
 
-if [ -d "$FIXES_DIR" ] && [ -d "$LANG_FILES_DIR" ]; then
-    PATCHED_COUNT=0
+PATCHED_COUNT=0
+ls -1 "$LANG_FILES_DIR"/*.n* >/dev/null 2>&1 || {
+    echo "  ⚠️  No language files found to patch"
+    exit 1
+}
+for fixfile in "$FIXES_DIR"/*; do
+    [ -f "$fixfile" ] || continue
     
-    for fixfile in "$FIXES_DIR"/*; do
-        [ -f "$fixfile" ] || continue
-        
-        fname=$(basename "$fixfile")
-        target="$LANG_FILES_DIR/$fname"
-        
-        if [ -f "$target" ]; then
-            echo "  → Patching $fname"
-            {
-                echo ""
-                echo ""
-                echo "; --- BEGIN FIXES ADDED ---"
-                echo ""
-                cat "$fixfile"
-                echo ""
-                echo "; --- END FIXES ADDED ---"
-                echo ""
-            } >> "$target"
-            ((PATCHED_COUNT++)) || true
-        fi
-    done
+    fname=$(basename "$fixfile")
+    target="$LANG_FILES_DIR/$fname"
     
-    if [ $PATCHED_COUNT -gt 0 ]; then
-        echo "  ✓ Patched $PATCHED_COUNT language files"
-    else
-        echo "  ⚠️  No language files to patch"
+    if [ -f "$target" ]; then
+        echo "  → Patching $fname"
+        {
+            echo ""
+            echo ""
+            echo "; --- BEGIN FIXES ADDED ---"
+            echo ""
+            cat "$fixfile"
+            echo ""
+            echo "; --- END FIXES ADDED ---"
+            echo ""
+        } >> "$target"
+        ((PATCHED_COUNT++)) || true
     fi
+done
+
+if [ $PATCHED_COUNT -gt 0 ]; then
+    echo "  ✓ Patched $PATCHED_COUNT language files"
 else
-    echo "  ⚠️  Skipping (fixes dir not found or no language files)"
+    echo "  ⚠️  No language files to patch"
 fi
 
 # =============================================================================
@@ -321,7 +320,7 @@ echo ""
 echo "📦 Creating base bundle archive..."
 
 cd "$OUT_DIR"
-zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
+tar -czf "${OUTPUT_ARCHIVE%.zip}.tar.gz" nsis-bundle
 
 # =============================================================================
 # Cleanup

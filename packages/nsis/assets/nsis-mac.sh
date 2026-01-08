@@ -197,7 +197,7 @@ echo ""
 echo "📦 Creating macOS bundle archive..."
 
 cd "$TEMP_DIR"
-zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
+tar -czf "${OUTPUT_ARCHIVE%.zip}.tar.gz" nsis-bundle
 
 # =============================================================================
 # Cleanup

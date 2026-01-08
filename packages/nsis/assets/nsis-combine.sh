@@ -35,16 +35,15 @@ mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
 echo "📂 Locating bundle files..."
 
-BASE_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-base-*.zip" -type f | head -1)
-LINUX_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-linux-*.zip" -type f | head -1)
+BASE_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-base-*.tar.gz" -type f | head -1)
+LINUX_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-linux-*.tar.gz" -type f | head -1)
 
 # Find Mac bundles - may have different architectures
-MAC_BUNDLES=$(find "$OUT_DIR" -name "nsis-bundle-mac-*.zip" -type f)
-
+MAC_BUNDLES=$(find "$OUT_DIR" -name "nsis-bundle-mac-*.tar.gz" -type f)
 # Debug output
 echo "Searching in: $OUT_DIR"
 echo "Files found:"
-find "$OUT_DIR" -name "*.zip" -type f 2>/dev/null || echo "  (none)"
+find "$OUT_DIR" -name "*.tar.gz" -type f 2>/dev/null || echo "  (none)"
 echo ""
 
 # Validate base bundle
@@ -76,8 +75,8 @@ fi
 
 echo ""
 echo "📦 Extracting base bundle..."
-
-unzip -q "$BASE_BUNDLE" -d "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+tar -xzf "$BASE_BUNDLE" -C "$BUILD_DIR"
 
 if [ ! -d "$BUILD_DIR/nsis-bundle" ]; then
     echo "❌ Base bundle extraction failed - nsis-bundle directory not found"
@@ -97,7 +96,7 @@ if [ -n "$LINUX_BUNDLE" ]; then
     TEMP_LINUX="$BUILD_DIR/temp-linux"
     mkdir -p "$TEMP_LINUX"
     
-    unzip -q "$LINUX_BUNDLE" -d "$TEMP_LINUX"
+    tar -xzf "$LINUX_BUNDLE" -C "$TEMP_LINUX"
     
     if [ -d "$TEMP_LINUX/nsis-bundle/linux" ]; then
         cp -r "$TEMP_LINUX/nsis-bundle/linux" "$BUILD_DIR/nsis-bundle/"
@@ -121,7 +120,7 @@ if [ -n "$MAC_BUNDLES" ]; then
         TEMP_MAC="$BUILD_DIR/temp-mac-$$"
         mkdir -p "$TEMP_MAC"
         
-        unzip -q "$mac_bundle" -d "$TEMP_MAC"
+        tar -xzf "$mac_bundle" -C "$TEMP_MAC"
         
         if [ -d "$TEMP_MAC/nsis-bundle/mac" ]; then
             # Check if this is first mac binary or additional architecture
