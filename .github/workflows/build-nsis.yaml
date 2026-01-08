@@ -132,13 +132,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: nsis-temp-*
-          path: packages/nsis/out/nsis
+          path: packages/nsis
           merge-multiple: true
 
       - name: List downloaded artifacts
         run: |
           echo "Downloaded artifacts:"
-          ls -lh packages/nsis/out/nsis/
+          ls -lhR packages/nsis/out
         shell: bash
 
       - name: Combine bundles
