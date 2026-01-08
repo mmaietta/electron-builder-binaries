@@ -14,15 +14,13 @@ set -euo pipefail
 # Each platform can be built independently, but they all require the base.
 # =============================================================================
 
-export NSIS_VERSION="3.10"
-
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ASSETS_DIR="$SCRIPT_DIR/assets"
 OUT_DIR="$SCRIPT_DIR/out"
 
 # Build configuration
-export NSIS_VERSION="${NSIS_VERSION:-3.10}"
-export NSIS_BRANCH_OR_COMMIT="${NSIS_BRANCH_OR_COMMIT:-v310}"
+export NSIS_VERSION="${NSIS_VERSION:-3.11}"
+export NSIS_BRANCH_OR_COMMIT="${NSIS_BRANCH_OR_COMMIT:-v311}"
 
 # Detect current OS
 OS_TYPE=${TARGET:-$(uname -s | tr '[:upper:]' '[:lower:]')}
