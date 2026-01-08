@@ -105,27 +105,9 @@ build_mac() {
 build_all() {
     echo "🌍 Building all available platforms..."
     echo ""
-    
-    # Always build base first
     build_base
-    echo ""
-    
-    # Build current platform
-    case "$CURRENT_OS" in
-        mac)
-            echo "Building for current platform (macOS)..."
-            build_mac
-            ;;
-        linux)
-            echo "Building for current platform (Linux)..."
-            build_linux
-            ;;
-        all)
-            echo "Building for all platforms..."
-            build_mac
-            build_linux
-            ;;
-    esac
+    build_mac
+    build_linux
 }
 
 verify_builds() {

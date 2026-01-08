@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 # =============================================================================
-# Windows NSIS Bundle Downloader (Cross-Platform)
+# Windows NSIS Base Bundle Builder (Cross-Platform)
 # =============================================================================
 # Downloads official pre-built NSIS for Windows and packages with plugins
-# This creates the BASE bundle that other platforms will inject their binaries into
+# This creates the BASE bundle with Windows binary and all shared data
 # Runs on Linux/Mac/Windows via bash
 # =============================================================================
 
@@ -19,9 +19,9 @@ NSIS_VERSION=${NSIS_VERSION:-3.10}
 NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
-OUTPUT_ARCHIVE="nsis-bundle-base-$NSIS_BRANCH.zip"
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
 
-echo "📦 Downloading NSIS Base Bundle..."
+echo "📦 Building NSIS Base Bundle..."
 echo "   Version: $NSIS_VERSION"
 echo "   Branch:  $NSIS_BRANCH"
 echo ""
@@ -91,7 +91,6 @@ fi
 echo ""
 echo "📋 Copying Windows binaries..."
 
-# Copy makensis.exe (this is the Windows compiler)
 cp "$NSIS_EXTRACTED/makensis.exe" "$BUNDLE_DIR/windows/makensis.exe"
 chmod +x "$BUNDLE_DIR/windows/makensis.exe"
 
@@ -104,7 +103,6 @@ echo "  ✓ Windows makensis.exe"
 echo ""
 echo "📚 Copying NSIS data files..."
 
-# Copy the complete NSIS data structure
 for item in Contrib Include Plugins Stubs; do
     if [ -d "$NSIS_EXTRACTED/$item" ]; then
         echo "  → $item/"
@@ -114,8 +112,8 @@ done
 
 # Remove unnecessary files
 rm -rf "$BUNDLE_DIR/share/nsis/Contrib/Graphics/Checks" \
-"$BUNDLE_DIR/share/nsis/Contrib/Graphics/Header" \
-
+       "$BUNDLE_DIR/share/nsis/Contrib/Graphics/Header" \
+       2>/dev/null || true
 
 # =============================================================================
 # Download Additional Plugins
@@ -127,26 +125,26 @@ echo "🔌 Downloading additional plugins..."
 PLUGINS_DIR="$TEMP_DIR/plugins"
 mkdir -p "$PLUGINS_DIR"
 
-PLUGIN_NAMES=(
-    NsProcess
-    UAC
-    WinShell
-    NsJSON
-    NsArray
-    INetC
-    NsisMultiUser
-    StdUtils
+declare -a PLUGIN_NAMES=(
+    "NsProcess"
+    "UAC"
+    "WinShell"
+    "NsJSON"
+    "NsArray"
+    "INetC"
+    "NsisMultiUser"
+    "StdUtils"
 )
 
-PLUGIN_URLS=(
-    https://nsis.sourceforge.io/mediawiki/images/1/18/NsProcess.zip
-    https://nsis.sourceforge.io/mediawiki/images/8/8f/UAC.zip
-    https://nsis.sourceforge.io/mediawiki/images/5/54/WinShell.zip
-    https://nsis.sourceforge.io/mediawiki/images/5/5a/NsJSON.zip
-    https://nsis.sourceforge.io/mediawiki/images/4/4c/NsArray.zip
-    https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip
-    https://nsis.sourceforge.io/mediawiki/images/5/5d/NsisMultiUser.zip
-    https://nsis.sourceforge.io/mediawiki/images/d/d2/StdUtils.2020-10-23.zip
+declare -a PLUGIN_URLS=(
+    "https://nsis.sourceforge.io/mediawiki/images/1/18/NsProcess.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/8/8f/UAC.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/5/54/WinShell.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/5/5a/NsJSON.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/4/4c/NsArray.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/c/c9/Inetc.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/5/5d/NsisMultiUser.zip"
+    "https://nsis.sourceforge.io/mediawiki/images/d/d2/StdUtils.2020-10-23.zip"
 )
 
 DOWNLOADED_COUNT=0
@@ -177,7 +175,7 @@ echo "🔧 Installing plugins..."
 # Determine extraction tool
 if command -v 7z &> /dev/null; then
     EXTRACT_CMD="7z x -y"
-    elif command -v 7za &> /dev/null; then
+elif command -v 7za &> /dev/null; then
     EXTRACT_CMD="7za x -y"
 else
     EXTRACT_CMD="unzip -oq"
@@ -193,7 +191,7 @@ for plugin_zip in "$PLUGINS_DIR"/*.zip; do
     
     # Extract (suppress output)
     if [[ "$EXTRACT_CMD" == "unzip"* ]]; then
-        $EXTRACT_CMD "$plugin_zip" -d "$extract_dir"
+        $EXTRACT_CMD "$plugin_zip" -d "$extract_dir" 2>/dev/null || true
     else
         $EXTRACT_CMD "$plugin_zip" -o"$extract_dir" >/dev/null 2>&1 || true
     fi
@@ -205,41 +203,84 @@ for plugin_zip in "$PLUGINS_DIR"/*.zip; do
         case "$relative_path" in
             *x86-ansi*|*/ansi/*|*/Ansi/*)
                 mkdir -p "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi"
-                cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi/"
-            ;;
+                cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi/" 2>/dev/null || true
+                ;;
             *x86-unicode*|*/unicode/*|*/Unicode/*)
                 mkdir -p "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode"
-                cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode/"
-            ;;
+                cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode/" 2>/dev/null || true
+                ;;
             *)
                 # Determine by filename
                 if [[ "$(basename "$dll_file")" =~ W\.dll$ ]] || [[ "$(basename "$dll_file")" =~ Unicode ]]; then
                     mkdir -p "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode"
-                    cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode/"
+                    cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-unicode/" 2>/dev/null || true
                 else
                     mkdir -p "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi"
-                    cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi/"
+                    cp "$dll_file" "$BUNDLE_DIR/share/nsis/Plugins/x86-ansi/" 2>/dev/null || true
                 fi
-            ;;
+                ;;
         esac
     done
     
     # Install header files
     find "$extract_dir" -type f -name "*.nsh" 2>/dev/null | while read -r nsh_file; do
-        cp "$nsh_file" "$BUNDLE_DIR/share/nsis/Include/"
+        cp "$nsh_file" "$BUNDLE_DIR/share/nsis/Include/" 2>/dev/null || true
     done
     
     find "$extract_dir" -type f -name "*.nsi" \
-    ! -iname '*example*' \
-    ! -iname '*test*' \
-    ! -iname '*demo*' \
-    2>/dev/null \
-    | while read -r nsi_file; do
-        cp "$nsi_file" "$BUNDLE_DIR/share/nsis/Include/"
+        ! -iname '*example*' \
+        ! -iname '*test*' \
+        ! -iname '*demo*' \
+        2>/dev/null | while read -r nsi_file; do
+        cp "$nsi_file" "$BUNDLE_DIR/share/nsis/Include/" 2>/dev/null || true
     done
     
     echo "  ✓ $plugin_name"
 done
+
+# =============================================================================
+# Apply Language File Patches
+# =============================================================================
+
+echo ""
+echo "🔧 Applying language file patches..."
+
+FIXES_DIR="$BASE_DIR/assets/nsis-lang-fixes"
+LANG_FILES_DIR="$BUNDLE_DIR/share/nsis/Contrib/Language files"
+
+if [ -d "$FIXES_DIR" ] && [ -d "$LANG_FILES_DIR" ]; then
+    PATCHED_COUNT=0
+    
+    for fixfile in "$FIXES_DIR"/*; do
+        [ -f "$fixfile" ] || continue
+        
+        fname=$(basename "$fixfile")
+        target="$LANG_FILES_DIR/$fname"
+        
+        if [ -f "$target" ]; then
+            echo "  → Patching $fname"
+            {
+                echo ""
+                echo ""
+                echo "; --- BEGIN FIXES ADDED ---"
+                echo ""
+                cat "$fixfile"
+                echo ""
+                echo "; --- END FIXES ADDED ---"
+                echo ""
+            } >> "$target"
+            ((PATCHED_COUNT++)) || true
+        fi
+    done
+    
+    if [ $PATCHED_COUNT -gt 0 ]; then
+        echo "  ✓ Patched $PATCHED_COUNT language files"
+    else
+        echo "  ⚠️  No language files to patch"
+    fi
+else
+    echo "  ⚠️  Skipping (fixes dir not found or no language files)"
+fi
 
 # =============================================================================
 # Create Version Metadata
@@ -257,12 +298,13 @@ Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 Source: SourceForge official release
 Plugins: $DOWNLOADED_COUNT additional plugins
 
-Contains:
+This is the base bundle containing:
 - Windows makensis.exe (official binary)
 - Complete NSIS data files (Contrib, Include, Plugins, Stubs)
 - Additional community plugins
-- MacOS and Linux native binaries compiled from source
+- Language file patches applied
 
+Platform-specific binaries (Linux, macOS) are added during bundle combination.
 EOF
 
 cat > "$BUNDLE_DIR/windows/VERSION.txt" <<EOF
@@ -279,7 +321,7 @@ echo ""
 echo "📦 Creating base bundle archive..."
 
 cd "$OUT_DIR"
-zip -r -9 "$OUTPUT_ARCHIVE" nsis-bundle
+zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
 
 # =============================================================================
 # Cleanup
@@ -295,8 +337,8 @@ echo ""
 echo "================================================================"
 echo "  ✅ Base Bundle Complete!"
 echo "================================================================"
-echo "  📁 Archive: $OUT_DIR/$OUTPUT_ARCHIVE"
-echo "  📊 Size:    $(du -h "$OUT_DIR/$OUTPUT_ARCHIVE" | cut -f1)"
+echo "  📁 Archive: $OUTPUT_ARCHIVE"
+echo "  📊 Size:    $(du -h "$OUTPUT_ARCHIVE" | cut -f1)"
 
 if [ -d "$BUNDLE_DIR/share/nsis/Plugins" ]; then
     plugin_count=$(find "$BUNDLE_DIR/share/nsis/Plugins" -name "*.dll" 2>/dev/null | wc -l | xargs)
@@ -305,12 +347,8 @@ fi
 
 echo "================================================================"
 echo ""
-echo "📋 Bundle structure:"
-echo "   windows/makensis.exe       (Windows binary)"
-echo "   share/nsis/               (Complete NSIS data)"
-echo "   VERSION.txt               (Build metadata)"
-echo ""
-echo "💡 Next steps:"
-echo "   1. Run nsis-linux.sh to add Linux binary"
-echo "   2. Run nsis-mac.sh to add macOS binary"
+echo "📋 Archive contains:"
+echo "   windows/makensis.exe"
+echo "   share/nsis/ (complete NSIS data)"
+echo "   VERSION.txt"
 echo ""

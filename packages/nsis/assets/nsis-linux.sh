@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 
 # =============================================================================
 # Linux NSIS Binary Builder (Docker-based)
 # =============================================================================
-# Compiles native Linux makensis binary from source using Docker
-# Injects the Linux binary into the base Windows bundle
-# Can be run from any platform with Docker (Mac, Linux, Windows)
+# Compiles ONLY the native Linux makensis binary from source using Docker
+# Does NOT download or merge with base bundle
+# Output: Single zip with just the Linux binary
 # =============================================================================
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -21,8 +21,6 @@ NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 IMAGE_NAME="nsis-linux-builder:${NSIS_BRANCH}"
 CONTAINER_NAME="nsis-linux-build-$$"
 
-BUNDLE_DIR="$OUT_DIR/nsis-bundle"
-BASE_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
 OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-linux-$NSIS_BRANCH.zip"
 
 echo "🐧 Building native Linux makensis binary..."
@@ -31,20 +29,18 @@ echo "   Branch:  $NSIS_BRANCH"
 echo ""
 
 # =============================================================================
+# Setup
+# =============================================================================
+
+mkdir -p "$OUT_DIR"
+
+# =============================================================================
 # Check Prerequisites
 # =============================================================================
 
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker is required but not installed"
     echo "   Install Docker: https://docs.docker.com/get-docker/"
-    exit 1
-fi
-
-if [ ! -f "$BASE_ARCHIVE" ]; then
-    echo "❌ Base bundle not found: $BASE_ARCHIVE"
-    echo "Contents:"
-    ls -l "$OUT_DIR"
-    echo "   Run assets/nsis-windows.sh first to create the base bundle"
     exit 1
 fi
 
@@ -103,13 +99,9 @@ RUN scons \
 # The binary is now at /build/install/makensis
 RUN chmod +x /build/install/makensis
 
-# Verify the binary works
-# RUN /build/install/makensis -VERSION
-
 # Create output directory
 RUN mkdir -p /output && \
     cp /build/install/makensis /output/makensis
-
 DOCKERFILE_END
 
 # =============================================================================
@@ -143,59 +135,37 @@ echo "📦 Extracting compiled Linux binary..."
 docker create --name "$CONTAINER_NAME" "$IMAGE_NAME" /bin/true
 
 # Create temp directory for extraction
-TEMP_BINARY="$OUT_DIR/temp-linux-binary"
-mkdir -p "$TEMP_BINARY"
+TEMP_DIR="$OUT_DIR/temp-linux"
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR/nsis-bundle/linux"
 
 # Copy binary from container
-docker cp "$CONTAINER_NAME:/output/makensis" "$TEMP_BINARY/makensis"
+docker cp "$CONTAINER_NAME:/output/makensis" "$TEMP_DIR/nsis-bundle/linux/makensis"
 
-if [ ! -f "$TEMP_BINARY/makensis" ]; then
+if [ ! -f "$TEMP_DIR/nsis-bundle/linux/makensis" ]; then
     echo "❌ Failed to extract Linux binary"
     exit 1
 fi
 
-chmod +x "$TEMP_BINARY/makensis"
+chmod +x "$TEMP_DIR/nsis-bundle/linux/makensis"
 echo "  ✓ Linux binary extracted"
 
 # Verify binary
 echo "  → Verifying binary..."
-if file "$TEMP_BINARY/makensis" | grep -q "ELF"; then
+if file "$TEMP_DIR/nsis-bundle/linux/makensis" | grep -q "ELF"; then
     echo "  ✓ Valid Linux ELF binary"
 else
     echo "  ⚠️  Binary verification inconclusive"
 fi
 
 # =============================================================================
-# Inject into Base Bundle
-# =============================================================================
-
-echo ""
-echo "📂 Injecting Linux binary into base bundle..."
-
-# Extract base bundle
-rm -rf "$BUNDLE_DIR"
-unzip -q "$BASE_ARCHIVE" -d "$OUT_DIR"
-
-if [ ! -d "$BUNDLE_DIR" ]; then
-    echo "❌ Failed to extract base bundle"
-    exit 1
-fi
-
-# Create Linux directory and copy binary
-mkdir -p "$BUNDLE_DIR/linux"
-cp "$TEMP_BINARY/makensis" "$BUNDLE_DIR/linux/makensis"
-chmod +x "$BUNDLE_DIR/linux/makensis"
-
-echo "  ✓ Linux binary added to bundle"
-
-# =============================================================================
 # Create Version Metadata
 # =============================================================================
 
 echo ""
-echo "📝 Creating Linux version metadata..."
+echo "📝 Creating version metadata..."
 
-cat > "$BUNDLE_DIR/linux/VERSION.txt" <<EOF
+cat > "$TEMP_DIR/nsis-bundle/linux/VERSION.txt" <<EOF
 Platform: Linux
 Binary: makensis (native ELF binary)
 Architecture: x86_64
@@ -211,30 +181,26 @@ This binary is compiled from source with:
 - NSIS_CONFIG_CONST_DATA_PATH=no
 
 Usage:
-  ./linux/makensis -DNSISDIR=\$(pwd)/share/nsis your-script.nsi
-
-Or set environment:
   export NSISDIR="\$(pwd)/share/nsis"
   ./linux/makensis your-script.nsi
 EOF
 
 # =============================================================================
-# Create Final Archive
+# Create Archive
 # =============================================================================
 
 echo ""
-echo "📦 Creating final Linux bundle..."
+echo "📦 Creating Linux bundle archive..."
 
-cd "$OUT_DIR"
-rm -f "$OUTPUT_ARCHIVE"
-zip -r -9 "$OUTPUT_ARCHIVE" nsis-bundle
+cd "$TEMP_DIR"
+zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
 
 # =============================================================================
 # Cleanup
 # =============================================================================
 
 rm -f "$DOCKERFILE"
-rm -rf "$TEMP_BINARY"
+rm -rf "$TEMP_DIR"
 
 # =============================================================================
 # Summary
@@ -248,15 +214,7 @@ echo "  📁 Archive: $OUTPUT_ARCHIVE"
 echo "  📊 Size:    $(du -h "$OUTPUT_ARCHIVE" | cut -f1)"
 echo "================================================================"
 echo ""
-echo "📋 Bundle now contains:"
-echo "   ✓ windows/makensis.exe   (Windows binary)"
-echo "   ✓ linux/makensis         (Linux native binary)"
-echo "   ✓ share/nsis/            (Complete NSIS data)"
-echo ""
-echo "🧪 Test the Linux binary:"
-echo "   cd $BUNDLE_DIR"
-echo "   ./linux/makensis -VERSION"
-echo ""
-echo "💡 Next step:"
-echo "   Run assets/nsis-mac.sh to add macOS binary"
+echo "📋 Archive contains:"
+echo "   nsis-bundle/linux/makensis"
+echo "   nsis-bundle/linux/VERSION.txt"
 echo ""

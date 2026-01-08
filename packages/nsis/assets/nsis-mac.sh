@@ -4,8 +4,9 @@ set -euo pipefail
 # =============================================================================
 # macOS NSIS Binary Builder
 # =============================================================================
-# Compiles native macOS makensis binary from source
-# Injects the macOS binary into the base Windows bundle
+# Compiles ONLY the native macOS makensis binary from source
+# Does NOT download or merge with base bundle
+# Output: Single zip with just the macOS binary
 # Must be run on macOS (no Docker cross-compilation for macOS)
 # =============================================================================
 
@@ -18,8 +19,6 @@ BUILD_DIR="$OUT_DIR/build-mac"
 NSIS_VERSION=${NSIS_VERSION:-3.10}
 NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 
-BUNDLE_DIR="$OUT_DIR/nsis-bundle"
-BASE_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
 OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-mac-$NSIS_BRANCH.zip"
 
 # Detect architecture
@@ -37,13 +36,18 @@ echo "   Architecture: $ARCH_NAME ($ARCH)"
 echo ""
 
 # =============================================================================
+# Setup
+# =============================================================================
+
+mkdir -p "$OUT_DIR"
+
+# =============================================================================
 # Check Prerequisites
 # =============================================================================
 
 # Check if running on macOS
 if [ "$(uname -s)" != "Darwin" ]; then
     echo "❌ This script must be run on macOS"
-    echo "   For cross-platform builds, use Docker for Linux builds"
     exit 1
 fi
 
@@ -56,19 +60,17 @@ fi
 
 # Check for scons
 if ! command -v scons &> /dev/null; then
-    echo "📦 Installing scons via pip..."
-    python3 -m pip install --user scons 2>/dev/null || {
-        echo "❌ Failed to install scons"
-        echo "   Install with: pip3 install scons"
-        exit 1
-    }
-fi
-
-# Check for base bundle
-if [ ! -f "$BASE_ARCHIVE" ]; then
-    echo "❌ Base bundle not found: $BASE_ARCHIVE"
-    echo "   Run assets/nsis-windows.sh first to create the base bundle"
-    exit 1
+    echo "📦 Installing scons..."
+    if command -v brew &> /dev/null; then
+        brew install scons
+    else
+        python3 -m pip install --user scons 2>/dev/null || {
+            echo "❌ Failed to install scons"
+            echo "   Install with: brew install scons"
+            echo "   Or: pip3 install scons"
+            exit 1
+        }
+    fi
 fi
 
 # =============================================================================
@@ -99,7 +101,6 @@ echo "   This may take 5-10 minutes..."
 cd "$BUILD_DIR/nsis"
 
 # Build with SCons
-# Skip stubs, plugins, utils - we only need the compiler
 if ! scons \
     SKIPSTUBS=all \
     SKIPPLUGINS=all \
@@ -148,42 +149,33 @@ else
 fi
 
 # =============================================================================
-# Inject into Base Bundle
+# Package Binary
 # =============================================================================
 
 echo ""
-echo "📂 Injecting macOS binary into base bundle..."
+echo "📦 Packaging macOS binary..."
 
-# Extract base bundle
-rm -rf "$BUNDLE_DIR"
-unzip -q "$BASE_ARCHIVE" -d "$OUT_DIR"
+TEMP_DIR="$OUT_DIR/temp-mac"
+rm -rf "$TEMP_DIR"
+mkdir -p "$TEMP_DIR/nsis-bundle/mac"
 
-if [ ! -d "$BUNDLE_DIR" ]; then
-    echo "❌ Failed to extract base bundle"
-    exit 1
-fi
-
-# Create mac directory and copy binary
-mkdir -p "$BUNDLE_DIR/mac"
-cp "$COMPILED_BINARY" "$BUNDLE_DIR/mac/makensis"
-chmod +x "$BUNDLE_DIR/mac/makensis"
-
-echo "  ✓ macOS binary added to bundle"
+cp "$COMPILED_BINARY" "$TEMP_DIR/nsis-bundle/mac/makensis"
+chmod +x "$TEMP_DIR/nsis-bundle/mac/makensis"
 
 # =============================================================================
 # Create Version Metadata
 # =============================================================================
 
 echo ""
-echo "📝 Creating macOS version metadata..."
+echo "📝 Creating version metadata..."
 
-cat > "$BUNDLE_DIR/mac/VERSION.txt" <<EOF
+cat > "$TEMP_DIR/nsis-bundle/mac/VERSION.txt" <<EOF
 Platform: macOS
 Binary: makensis (native Mach-O binary)
 Architecture: $ARCH_NAME ($ARCH)
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 Compiled from source: NSIS $NSIS_BRANCH
-Compiler: Clang $(clang --version | head -1)
+Compiler: Clang $(clang --version 2>&1 | head -1)
 Build system: SCons
 macOS Version: $(sw_vers -productVersion)
 
@@ -193,31 +185,28 @@ This binary is compiled from source with:
 - NSIS_CONFIG_CONST_DATA_PATH=no
 
 Usage:
-  ./mac/makensis -DNSISDIR=\$(pwd)/share/nsis your-script.nsi
-
-Or set environment:
   export NSISDIR="\$(pwd)/share/nsis"
   ./mac/makensis your-script.nsi
 EOF
 
 # =============================================================================
-# Create Final Archive
+# Create Archive
 # =============================================================================
 
 echo ""
-echo "📦 Creating final macOS bundle..."
+echo "📦 Creating macOS bundle archive..."
 
-cd "$OUT_DIR"
-rm -f "$OUTPUT_ARCHIVE"
-zip -r -9 "$OUTPUT_ARCHIVE" nsis-bundle
+cd "$TEMP_DIR"
+zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
 
 # =============================================================================
 # Cleanup
 # =============================================================================
 
 echo ""
-echo "🧹 Cleaning up build directory..."
+echo "🧹 Cleaning up..."
 rm -rf "$BUILD_DIR"
+rm -rf "$TEMP_DIR"
 
 # =============================================================================
 # Summary
@@ -232,19 +221,7 @@ echo "  📊 Size:    $(du -h "$OUTPUT_ARCHIVE" | cut -f1)"
 echo "  🏗️  Arch:    $ARCH_NAME"
 echo "================================================================"
 echo ""
-echo "📋 Bundle now contains:"
-echo "   ✓ windows/makensis.exe   (Windows binary)"
-echo "   ✓ mac/makensis           (macOS native binary)"
-echo "   ✓ share/nsis/            (Complete NSIS data)"
-
-if [ -d "$BUNDLE_DIR/linux" ]; then
-    echo "   ✓ linux/makensis         (Linux native binary)"
-fi
-
-echo ""
-echo "🧪 Test the macOS binary:"
-echo "   cd $BUNDLE_DIR"
-echo "   ./mac/makensis -VERSION"
-echo ""
-echo "✅ All platform binaries ready!"
+echo "📋 Archive contains:"
+echo "   nsis-bundle/mac/makensis"
+echo "   nsis-bundle/mac/VERSION.txt"
 echo ""

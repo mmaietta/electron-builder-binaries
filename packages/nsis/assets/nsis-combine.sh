@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-set -exuo pipefail
+set -euo pipefail
 
 # =============================================================================
 # NSIS Bundle Combiner
 # =============================================================================
 # Combines base, Linux, and macOS bundles into a single complete bundle
-# with all platform binaries
+# Generates universal entrypoint wrapper script
 # =============================================================================
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -35,18 +35,19 @@ mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
 echo "📂 Locating bundle files..."
 
-# Use find with a more flexible pattern to handle different paths
 BASE_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-base-*.zip" -type f | head -1)
 LINUX_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-linux-*.zip" -type f | head -1)
-MAC_X64_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-mac-*x64*.zip" -o -name "nsis-bundle-mac-*.zip" | grep -v arm64 | head -1)
-MAC_ARM64_BUNDLE=$(find "$OUT_DIR" -name "nsis-bundle-mac-*arm64*.zip" -type f | head -1)
 
-# Debug: Show what we found
+# Find Mac bundles - may have different architectures
+MAC_BUNDLES=$(find "$OUT_DIR" -name "nsis-bundle-mac-*.zip" -type f)
+
+# Debug output
 echo "Searching in: $OUT_DIR"
 echo "Files found:"
-find "$OUT_DIR" -name "*.zip" -type f || echo "  (none)"
+find "$OUT_DIR" -name "*.zip" -type f 2>/dev/null || echo "  (none)"
 echo ""
 
+# Validate base bundle
 if [ -z "$BASE_BUNDLE" ] || [ ! -f "$BASE_BUNDLE" ]; then
     echo "❌ Base bundle not found in $OUT_DIR"
     exit 1
@@ -61,18 +62,12 @@ else
     LINUX_BUNDLE=""
 fi
 
-if [ -n "$MAC_X64_BUNDLE" ] && [ -f "$MAC_X64_BUNDLE" ]; then
-    echo "  ✓ macOS x64:    $(basename "$MAC_X64_BUNDLE")"
+if [ -n "$MAC_BUNDLES" ]; then
+    for mac_bundle in $MAC_BUNDLES; do
+        echo "  ✓ macOS:        $(basename "$mac_bundle")"
+    done
 else
-    echo "  ⚠️  macOS x64:    not found (skipping)"
-    MAC_X64_BUNDLE=""
-fi
-
-if [ -n "$MAC_ARM64_BUNDLE" ] && [ -f "$MAC_ARM64_BUNDLE" ]; then
-    echo "  ✓ macOS arm64:  $(basename "$MAC_ARM64_BUNDLE")"
-else
-    echo "  ⚠️  macOS arm64:  not found (skipping)"
-    MAC_ARM64_BUNDLE=""
+    echo "  ⚠️  macOS:        not found (skipping)"
 fi
 
 # =============================================================================
@@ -115,120 +110,108 @@ if [ -n "$LINUX_BUNDLE" ]; then
 fi
 
 # =============================================================================
-# Inject macOS x64 Binary
+# Inject macOS Binaries
 # =============================================================================
 
-if [ -n "$MAC_X64_BUNDLE" ]; then
+if [ -n "$MAC_BUNDLES" ]; then
     echo ""
-    echo "🍎 Injecting macOS x64 binary..."
+    echo "🍎 Injecting macOS binaries..."
     
-    TEMP_MAC_X64="$BUILD_DIR/temp-mac-x64"
-    mkdir -p "$TEMP_MAC_X64"
-    
-    unzip -q "$MAC_X64_BUNDLE" -d "$TEMP_MAC_X64"
-    
-    if [ -d "$TEMP_MAC_X64/nsis-bundle/mac" ]; then
-        # Create mac directory structure
-        mkdir -p "$BUILD_DIR/nsis-bundle/mac/x64"
-        cp -r "$TEMP_MAC_X64/nsis-bundle/mac"/* "$BUILD_DIR/nsis-bundle/mac/x64/"
-        echo "  ✓ macOS x64 binary added"
-    else
-        echo "  ⚠️  macOS x64 binary not found in bundle"
-    fi
-    
-    rm -rf "$TEMP_MAC_X64"
+    for mac_bundle in $MAC_BUNDLES; do
+        TEMP_MAC="$BUILD_DIR/temp-mac-$$"
+        mkdir -p "$TEMP_MAC"
+        
+        unzip -q "$mac_bundle" -d "$TEMP_MAC"
+        
+        if [ -d "$TEMP_MAC/nsis-bundle/mac" ]; then
+            # Check if this is first mac binary or additional architecture
+            if [ ! -d "$BUILD_DIR/nsis-bundle/mac" ]; then
+                # First mac binary - copy directly
+                cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/"
+                echo "  ✓ macOS binary added ($(basename "$mac_bundle"))"
+            else
+                # Additional architecture - merge
+                cp -r "$TEMP_MAC/nsis-bundle/mac"/* "$BUILD_DIR/nsis-bundle/mac/"
+                echo "  ✓ macOS binary merged ($(basename "$mac_bundle"))"
+            fi
+        else
+            echo "  ⚠️  macOS binary not found in $(basename "$mac_bundle")"
+        fi
+        
+        rm -rf "$TEMP_MAC"
+    done
 fi
 
 # =============================================================================
-# Inject macOS arm64 Binary
-# =============================================================================
-
-if [ -n "$MAC_ARM64_BUNDLE" ]; then
-    echo ""
-    echo "🍎 Injecting macOS arm64 binary..."
-    
-    TEMP_MAC_ARM64="$BUILD_DIR/temp-mac-arm64"
-    mkdir -p "$TEMP_MAC_ARM64"
-    
-    unzip -q "$MAC_ARM64_BUNDLE" -d "$TEMP_MAC_ARM64"
-    
-    if [ -d "$TEMP_MAC_ARM64/nsis-bundle/mac" ]; then
-        # Create mac directory structure
-        mkdir -p "$BUILD_DIR/nsis-bundle/mac/arm64"
-        cp -r "$TEMP_MAC_ARM64/nsis-bundle/mac"/* "$BUILD_DIR/nsis-bundle/mac/arm64/"
-        echo "  ✓ macOS arm64 binary added"
-    else
-        echo "  ⚠️  macOS arm64 binary not found in bundle"
-    fi
-    
-    rm -rf "$TEMP_MAC_ARM64"
-fi
-
-# =============================================================================
-# Create Platform Selector Wrappers
+# Create Universal Entrypoint Wrapper
 # =============================================================================
 
 echo ""
-echo "🔧 Creating platform selector wrappers..."
+echo "🔧 Creating universal entrypoint wrapper..."
 
-# Create makensis wrapper script
 cat > "$BUILD_DIR/nsis-bundle/makensis" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Determine platform and architecture
+# =============================================================================
+# NSIS Universal Entrypoint
+# =============================================================================
+# Auto-detects platform and architecture, sets NSISDIR, and executes makensis
+# =============================================================================
+
+# Determine script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Auto-detect platform
 PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
+# Map to binary location
 case "$PLATFORM" in
     darwin*)
-        PLATFORM="mac"
-        case "$ARCH" in
-            x86_64) ARCH="x64" ;;
-            arm64) ARCH="arm64" ;;
-            *) ARCH="x64" ;;  # fallback
-        esac
+        PLATFORM_DIR="mac"
         ;;
     linux*)
-        PLATFORM="linux"
-        BINARY="$SCRIPT_DIR/$PLATFORM/makensis"
+        PLATFORM_DIR="linux"
         ;;
     mingw*|msys*|cygwin*)
-        PLATFORM="windows"
-        BINARY="$SCRIPT_DIR/$PLATFORM/makensis.exe"
+        PLATFORM_DIR="windows"
         ;;
     *)
-        echo "❌ Unsupported platform: $PLATFORM"
+        echo "❌ Unsupported platform: $PLATFORM" >&2
         exit 1
         ;;
 esac
 
-# For macOS, use architecture-specific binary
-if [ "$PLATFORM" = "mac" ]; then
-    BINARY="$SCRIPT_DIR/$PLATFORM/$ARCH/makensis"
+# Find the binary
+BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis"
+if [ "$PLATFORM_DIR" = "windows" ]; then
+    BINARY="${BINARY}.exe"
 fi
 
-if [ ! -x "$BINARY" ]; then
-    echo "❌ Binary not found or not executable: $BINARY"
-    echo ""
-    echo "Available binaries:"
-    find "$SCRIPT_DIR" -name "makensis*" -type f 2>/dev/null || echo "  (none found)"
+# Check if binary exists
+if [ ! -f "$BINARY" ]; then
+    echo "❌ makensis binary not found: $BINARY" >&2
+    echo "" >&2
+    echo "Available binaries:" >&2
+    find "$SCRIPT_DIR" -name "makensis*" -type f 2>/dev/null || echo "  (none found)" >&2
     exit 1
 fi
+
+# Make sure it's executable
+chmod +x "$BINARY" 2>/dev/null || true
 
 # Set NSISDIR if not already set
 if [ -z "${NSISDIR:-}" ]; then
     export NSISDIR="$SCRIPT_DIR/share/nsis"
 fi
 
-# Execute the platform-specific binary
+# Execute makensis with all arguments
 exec "$BINARY" "$@"
 EOF
 
 chmod +x "$BUILD_DIR/nsis-bundle/makensis"
-echo "  ✓ Created makensis wrapper"
+echo "  ✓ Created universal makensis wrapper"
 
 # =============================================================================
 # Create README
@@ -246,30 +229,30 @@ This bundle contains NSIS (Nullsoft Scriptable Install System) binaries for mult
 
 - **Windows**: \`windows/makensis.exe\` (official pre-built binary)
 - **Linux**: \`linux/makensis\` (native ELF binary, compiled from source)
-- **macOS x64**: \`mac/x64/makensis\` (native Mach-O binary, compiled from source)
-- **macOS arm64**: \`mac/arm64/makensis\` (native Mach-O binary, compiled from source)
+- **macOS**: \`mac/makensis\` (native Mach-O binary, compiled from source)
 - **NSIS Data**: \`share/nsis/\` (Contrib, Include, Plugins, Stubs)
+- **Universal Wrapper**: \`makensis\` (auto-detects platform)
 
 ## Quick Start
 
-### Option 1: Use the Platform Wrapper (Recommended)
+### Option 1: Use Universal Wrapper (Recommended)
+
+The wrapper automatically detects your platform and sets \`NSISDIR\`:
 
 \`\`\`bash
-# The wrapper automatically selects the right binary for your platform
 ./makensis your-script.nsi
 \`\`\`
 
 ### Option 2: Use Platform-Specific Binary
 
 \`\`\`bash
-# Set NSISDIR
+# Set NSISDIR manually
 export NSISDIR="\$(pwd)/share/nsis"
 
 # Run platform-specific binary
 ./windows/makensis.exe your-script.nsi  # Windows
 ./linux/makensis your-script.nsi         # Linux
-./mac/x64/makensis your-script.nsi       # macOS x64
-./mac/arm64/makensis your-script.nsi     # macOS arm64
+./mac/makensis your-script.nsi           # macOS
 \`\`\`
 
 ## Version Information
@@ -290,6 +273,11 @@ This bundle includes 8 additional community plugins:
 6. INetC - HTTP client
 7. NsisMultiUser - Multi-user installs
 8. StdUtils - Standard utilities
+
+## Environment Variables
+
+- **NSISDIR**: Path to NSIS data directory (auto-set by wrapper)
+- Set manually if needed: \`export NSISDIR=/path/to/share/nsis\`
 
 ## More Information
 
@@ -325,29 +313,31 @@ if [ -f "$BUILD_DIR/nsis-bundle/linux/makensis" ]; then
     echo "✓ Linux: linux/makensis (native ELF, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
 fi
 
-if [ -f "$BUILD_DIR/nsis-bundle/mac/x64/makensis" ]; then
-    echo "✓ macOS x64: mac/x64/makensis (native Mach-O, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/mac/arm64/makensis" ]; then
-    echo "✓ macOS arm64: mac/arm64/makensis (native Mach-O, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
+if [ -f "$BUILD_DIR/nsis-bundle/mac/makensis" ]; then
+    echo "✓ macOS: mac/makensis (native Mach-O, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
 fi
 
 cat >> "$BUILD_DIR/nsis-bundle/VERSION.txt" <<EOF
 
-Additional Components:
-----------------------
+Components:
+-----------
 ✓ 8 community plugins installed
 ✓ Complete NSIS data files (Contrib, Include, Plugins, Stubs)
-✓ Platform selector wrapper (makensis)
+✓ Universal entrypoint wrapper (makensis)
+✓ Language file patches applied
 
 Usage:
 ------
 ./makensis your-script.nsi
 
-Or with explicit NSISDIR:
-export NSISDIR="\$(pwd)/share/nsis"
-./windows/makensis.exe your-script.nsi
+The wrapper automatically sets:
+  NSISDIR=\$(pwd)/share/nsis
+
+Or use platform-specific binary:
+  export NSISDIR="\$(pwd)/share/nsis"
+  ./windows/makensis.exe your-script.nsi
+  ./linux/makensis your-script.nsi
+  ./mac/makensis your-script.nsi
 EOF
 
 echo "  ✓ VERSION.txt updated"
@@ -389,17 +379,14 @@ if [ -f "$BUILD_DIR/nsis-bundle/linux/makensis" ]; then
     echo "  ✓ Linux binary"
 fi
 
-if [ -f "$BUILD_DIR/nsis-bundle/mac/x64/makensis" ]; then
-    echo "  ✓ macOS x64 binary"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/mac/arm64/makensis" ]; then
-    echo "  ✓ macOS arm64 binary"
+if [ -f "$BUILD_DIR/nsis-bundle/mac/makensis" ]; then
+    echo "  ✓ macOS binary"
 fi
 
 echo "  ✓ Complete NSIS data"
 echo "  ✓ 8 community plugins"
-echo "  ✓ Platform selector wrapper"
+echo "  ✓ Universal entrypoint wrapper"
+echo "  ✓ Language file patches"
 echo ""
 
 # =============================================================================
