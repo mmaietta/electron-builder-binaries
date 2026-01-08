@@ -42,9 +42,10 @@ cd $BUNDLE_PATH/nsis-bundle
 # Step: Test makensis binary
 # ----------------------------------------
 echo "🔍 Testing makensis binary..."
+cmd.exe /c "echo CMD_OK"
 
 if [[ "$PLATFORM" == Windows* ]]; then
-  cmd.exe /c "$BINARY_PATH -VERSION"
+  cmd.exe /c ".\\$BINARY_PATH -VERSION"
 else
   chmod +x "./$BINARY_PATH"
   "./$BINARY_PATH" -VERSION
@@ -86,7 +87,7 @@ EOF
 echo "⚙️  Compiling test installer..."
 
 if [[ "$PLATFORM" == Windows* ]]; then
-  cmd.exe /c "$BINARY_PATH test.nsi"
+  cmd.exe /c ".\\$BINARY_PATH test.nsi"
 else
   "./$BINARY_PATH" test.nsi
 fi
