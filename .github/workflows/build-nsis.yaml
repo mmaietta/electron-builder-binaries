@@ -279,6 +279,7 @@ jobs:
           "$BINARY_PATH" test.nsi
 
       - name: Verify output
+        shell: bash
         run: |
           ls -l
           if [[ -f test-installer.exe ]]; then
@@ -289,6 +290,7 @@ jobs:
           fi
 
       - name: Check NSIS plugins
+        shell: bash
         run: |
           plugin_count="$(find share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l | tr -d ' ')"
           echo "Found $plugin_count plugin DLLs"
