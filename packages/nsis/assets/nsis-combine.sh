@@ -232,9 +232,9 @@ REM Remove trailing backslash
 set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 
 REM Set NSISDIR if not already defined
-if not defined NSISDIR (
+REM if not defined NSISDIR (
   set NSISDIR=%SCRIPT_DIR%\share\nsis
-)
+REM )
 
 REM Execute makensis
 "%SCRIPT_DIR%\windows\makensis.exe" %*
@@ -267,9 +267,9 @@ if ($ScriptDir -match '^/([a-zA-Z])/(.*)') {
 }
 
 # Set NSISDIR if not set
-if (-not $env:NSISDIR) {
+# if (-not $env:NSISDIR) {
     $env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
-}
+# }
 
 # Path to makensis.exe
 $Makensis = Join-Path $ScriptDir "windows" "makensis.exe"
