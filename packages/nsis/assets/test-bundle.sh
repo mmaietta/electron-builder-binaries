@@ -95,7 +95,7 @@ fi
 # Step: Verify output
 # ----------------------------------------
 echo "✅ Verifying output files..."
-ls -al
+ls -alR
 
 if [[ -f test-installer.exe ]]; then
   echo "✅ Test compilation successful!"

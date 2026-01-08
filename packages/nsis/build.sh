@@ -80,39 +80,6 @@ combine() {
     bash "$ASSETS_DIR/nsis-combine.sh"
 }
 
-verify_builds() {
-    echo ""
-    echo "📦 Build Summary"
-    echo "═══════════════════════════════════════════════════════════════"
-    
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
-    local linux_bundle="$OUT_DIR/nsis/nsis-bundle-linux-$NSIS_BRANCH_OR_COMMIT.tar.gz"
-    local mac_bundle="$OUT_DIR/nsis/nsis-bundle-mac-$NSIS_BRANCH_OR_COMMIT.tar.gz"
-    
-    if [ -f "$base_bundle" ]; then
-        local size=$(du -h "$base_bundle" | cut -f1)
-        echo "  ✅ Base (Windows):  $base_bundle ($size)"
-    else
-        echo "  ⏭️  Base (Windows):  Not built"
-    fi
-    
-    if [ -f "$linux_bundle" ]; then
-        local size=$(du -h "$linux_bundle" | cut -f1)
-        echo "  ✅ Linux:           $linux_bundle ($size)"
-    else
-        echo "  ⏭️  Linux:           Not built"
-    fi
-    
-    if [ -f "$mac_bundle" ]; then
-        local size=$(du -h "$mac_bundle" | cut -f1)
-        echo "  ✅ macOS:           $mac_bundle ($size)"
-    else
-        echo "  ⏭️  macOS:           Not built"
-    fi
-    
-    echo "═══════════════════════════════════════════════════════════════"
-}
-
 show_usage() {
     cat << EOF
 Usage: $0 [TARGET]
@@ -124,14 +91,6 @@ Targets:
   all       Build base + current platform binary
   
   If no target specified, builds 'all'
-
-Environment Variables:
-  NSIS_VERSION           NSIS version (default: 3.10)
-  NSIS_BRANCH_OR_COMMIT  Git branch/tag (default: v310)
-
-Build Order:
-  1. Base bundle must be built first (contains Windows binary + data)
-  2. Linux/Mac builds inject their native binaries into the base bundle
 
 Examples:
   ./build.sh              # Build base + current platform
@@ -184,9 +143,6 @@ case "$BUILD_TARGET" in
         exit 1
         ;;
 esac
-
-# Summary
-verify_builds
 
 echo ""
 echo "✅ Build complete!"
