@@ -165,26 +165,6 @@ case "$UNAME_M" in
 esac
 
 # ----------------------------------------
-# Windows (Git Bash / MSYS / CI runners)
-# ----------------------------------------
-if [[ "$UNAME_S" == MINGW* || "$UNAME_S" == MSYS* || "$UNAME_S" == CYGWIN* ]]; then
-  PLATFORM_DIR="windows"
-
-  WIN_NSISDIR="$(cd "$SCRIPT_DIR/share/nsis" && pwd -W)"
-  WIN_BINARY="$(cd "$SCRIPT_DIR/$PLATFORM_DIR" && pwd -W)/makensis.exe"
-
-  if [[ ! -f "$WIN_BINARY" ]]; then
-    echo "❌ makensis.exe not found: $WIN_BINARY" >&2
-    exit 1
-  fi
-
-  export NSISDIR="$WIN_NSISDIR"
-
-  # Hand off to native Windows shell (NO MSYS argument mangling)
-  exec cmd.exe /d /s /c "\"$WIN_BINARY\" $*"
-fi
-
-# ----------------------------------------
 # macOS / Linux
 # ----------------------------------------
 case "$UNAME_S" in

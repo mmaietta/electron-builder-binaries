@@ -9,9 +9,9 @@ BINARY_PATH="${2:-}"
 BUNDLE_PATH="${3:-./nsis}"
 
 if [[ -z "$PLATFORM" || -z "$BINARY_PATH" || -z "$BUNDLE_PATH" ]]; then
-  echo "Usage: $0 <platform> <binary-path> <bundle-path>"
-  echo "Example: $0 macOS-arm64 mac/arm64/makensis ./out/nsis"
-  exit 1
+    echo "Usage: $0 <platform> <binary-path> <bundle-path>"
+    echo "Example: $0 macOS-arm64 mac/arm64/makensis ./out/nsis"
+    exit 1
 fi
 
 echo "🧪 Testing NSIS bundle"
@@ -30,8 +30,8 @@ shopt -s nullglob
 archives=( *complete*.tar.gz )
 
 if (( ${#archives[@]} == 0 )); then
-  echo "ERROR: no *complete*.tar.gz files found"
-  exit 1
+    echo "ERROR: no *complete*.tar.gz files found"
+    exit 1
 fi
 
 echo "Using archive: ${archives[0]}"
@@ -42,9 +42,14 @@ cd $BUNDLE_PATH/nsis-bundle
 # Step: Test makensis binary
 # ----------------------------------------
 echo "🔍 Testing makensis binary..."
-
-chmod +x "./$BINARY_PATH"
-"./$BINARY_PATH" -VERSION
+if [[ "$PLATFORM" == Windows* ]]; then
+    echo "Windows platform detected, running PowerShell entrypoint..."
+    pwsh -File "./$BINARY_PATH" -VERSION
+else
+    echo "Non-Windows platform detected, running binary directly..."
+    chmod +x "./$BINARY_PATH"
+    "./$BINARY_PATH" -VERSION
+fi
 
 # ----------------------------------------
 # Step: Create test script
@@ -80,8 +85,11 @@ EOF
 # Step: Compile test script
 # ----------------------------------------
 echo "⚙️  Compiling test installer..."
-
-"./$BINARY_PATH" test.nsi
+if [[ "$PLATFORM" == Windows* ]]; then
+    pwsh -File "./$BINARY_PATH" test.nsi
+else
+    "./$BINARY_PATH" test.nsi
+fi
 
 # ----------------------------------------
 # Step: Verify output
@@ -90,10 +98,10 @@ echo "✅ Verifying output files..."
 ls -l
 
 if [[ -f test-installer.exe ]]; then
-  echo "✅ Test compilation successful!"
+    echo "✅ Test compilation successful!"
 else
-  echo "❌ Test compilation failed – no output file"
-  exit 1
+    echo "❌ Test compilation failed – no output file"
+    exit 1
 fi
 
 # ----------------------------------------
@@ -105,9 +113,9 @@ plugin_count="$(find share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l | tr -
 echo "Found $plugin_count plugin DLLs"
 
 if (( plugin_count < 20 )); then
-  echo "⚠️  Warning: Expected more plugins"
+    echo "⚠️  Warning: Expected more plugins"
 else
-  echo "✅ Plugin count looks good"
+    echo "✅ Plugin count looks good"
 fi
 
 echo
