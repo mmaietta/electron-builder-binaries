@@ -141,7 +141,7 @@ jobs:
         include:
           - platform: Windows
             runner: windows-latest
-            binary: makensis.cmd
+            binary: makensis
           - platform: Linux
             runner: ubuntu-latest
             binary: makensis
