@@ -279,7 +279,7 @@ echo ""
 echo "📦 Creating base bundle archive..."
 
 cd "$OUT_DIR"
-zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
+zip -r -9 "$OUTPUT_ARCHIVE" nsis-bundle
 
 # =============================================================================
 # Cleanup

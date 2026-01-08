@@ -227,7 +227,7 @@ echo "📦 Creating final Linux bundle..."
 
 cd "$OUT_DIR"
 rm -f "$OUTPUT_ARCHIVE"
-zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
+zip -r -9 "$OUTPUT_ARCHIVE" nsis-bundle
 
 # =============================================================================
 # Cleanup
