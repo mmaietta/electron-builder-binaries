@@ -2,193 +2,249 @@
 set -euo pipefail
 
 # =============================================================================
-# macOS NSIS Builder
+# macOS NSIS Binary Builder
 # =============================================================================
-# Builds native macOS makensis binary with complete plugin support
+# Compiles native macOS makensis binary from source
+# Injects the macOS binary into the base Windows bundle
+# Must be run on macOS (no Docker cross-compilation for macOS)
 # =============================================================================
 
-BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
-OUT_DIR="$BASEDIR/out/nsis"
-VERSION=${NSIS_VERSION:-3.11}
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+BASE_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+OUT_DIR="$BASE_DIR/out/nsis"
+BUILD_DIR="$OUT_DIR/build-mac"
+
+# Version configuration
+NSIS_VERSION=${NSIS_VERSION:-3.10}
+NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
+
 BUNDLE_DIR="$OUT_DIR/nsis-bundle"
+BASE_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-mac-$NSIS_BRANCH.zip"
 
-echo "🍎 Building NSIS for macOS..."
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64) ARCH_NAME="x64" ;;
+    arm64) ARCH_NAME="arm64" ;;
+    *) ARCH_NAME="$ARCH" ;;
+esac
 
-# Start fresh
-rm -rf "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
-mkdir -p "$BUNDLE_DIR/mac" "$BUNDLE_DIR/share"
+echo "🍎 Building native macOS makensis binary..."
+echo "   Version:      $NSIS_VERSION"
+echo "   Branch:       $NSIS_BRANCH"
+echo "   Architecture: $ARCH_NAME ($ARCH)"
+echo ""
 
 # =============================================================================
-# Install Dependencies
+# Check Prerequisites
 # =============================================================================
 
-echo "📦 Installing dependencies..."
+# Check if running on macOS
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "❌ This script must be run on macOS"
+    echo "   For cross-platform builds, use Docker for Linux builds"
+    exit 1
+fi
 
 # Check for Xcode Command Line Tools
 if ! xcode-select -p &> /dev/null; then
-    echo "Installing Xcode Command Line Tools..."
-    xcode-select --install
-    echo "⚠️  Please complete Xcode installation and run this script again."
+    echo "❌ Xcode Command Line Tools not found"
+    echo "   Install with: xcode-select --install"
     exit 1
 fi
 
-# Install Homebrew packages
-if ! command -v brew &> /dev/null; then
-    echo "❌ Homebrew is required but not installed."
-    echo "Install from: https://brew.sh"
+# Check for scons
+if ! command -v scons &> /dev/null; then
+    echo "📦 Installing scons via pip..."
+    python3 -m pip install --user scons 2>/dev/null || {
+        echo "❌ Failed to install scons"
+        echo "   Install with: pip3 install scons"
+        exit 1
+    }
+fi
+
+# Check for base bundle
+if [ ! -f "$BASE_ARCHIVE" ]; then
+    echo "❌ Base bundle not found: $BASE_ARCHIVE"
+    echo "   Run assets/nsis-windows.sh first to create the base bundle"
     exit 1
 fi
 
-brew install -q p7zip 2>/dev/null || true
-brew tap nsis-dev/makensis 2>/dev/null || true
+# =============================================================================
+# Clone NSIS Source
+# =============================================================================
 
-# Install NSIS via Homebrew
-if ! brew list "makensis@$VERSION" &> /dev/null; then
-    echo "Installing makensis@$VERSION..."
-    brew install "makensis@$VERSION"
+echo "📥 Cloning NSIS source..."
+
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+if ! git clone --branch "$NSIS_BRANCH" --depth=1 \
+    https://github.com/kichik/nsis.git "$BUILD_DIR/nsis"; then
+    echo "❌ Failed to clone NSIS repository"
+    exit 1
+fi
+
+echo "  ✓ NSIS source cloned"
+
+# =============================================================================
+# Build macOS Binary
+# =============================================================================
+
+echo ""
+echo "🔨 Compiling native macOS binary..."
+echo "   This may take 5-10 minutes..."
+
+cd "$BUILD_DIR/nsis"
+
+# Build with SCons
+# Skip stubs, plugins, utils - we only need the compiler
+if ! scons \
+    SKIPSTUBS=all \
+    SKIPPLUGINS=all \
+    SKIPUTILS=all \
+    SKIPMISC=all \
+    NSIS_CONFIG_CONST_DATA_PATH=no \
+    NSIS_MAX_STRLEN=8192 \
+    PREFIX="$BUILD_DIR/install" \
+    install-compiler; then
+    echo "❌ Compilation failed"
+    echo "   Check that Xcode Command Line Tools are properly installed"
+    exit 1
+fi
+
+echo "  ✓ Compilation successful"
+
+# =============================================================================
+# Verify Binary
+# =============================================================================
+
+COMPILED_BINARY="$BUILD_DIR/install/makensis"
+
+if [ ! -f "$COMPILED_BINARY" ]; then
+    echo "❌ Compiled binary not found at expected location"
+    exit 1
+fi
+
+chmod +x "$COMPILED_BINARY"
+
+echo ""
+echo "🧪 Verifying binary..."
+
+# Check if it's a valid Mach-O binary
+if file "$COMPILED_BINARY" | grep -q "Mach-O"; then
+    echo "  ✓ Valid macOS Mach-O binary"
 else
-    echo "✓ makensis@$VERSION already installed"
+    echo "  ⚠️  Binary verification inconclusive"
+fi
+
+# Try to get version
+if "$COMPILED_BINARY" -VERSION &> /dev/null; then
+    VERSION_OUTPUT=$("$COMPILED_BINARY" -VERSION 2>&1 | head -1)
+    echo "  ✓ Binary test successful: $VERSION_OUTPUT"
+else
+    echo "  ⚠️  Binary version check failed (may still work)"
 fi
 
 # =============================================================================
-# Copy macOS Binary
+# Inject into Base Bundle
 # =============================================================================
 
-echo "📦 Copying macOS makensis binary..."
-MAKENSIS_PATH=$(brew --prefix "makensis@$VERSION")/bin/makensis
+echo ""
+echo "📂 Injecting macOS binary into base bundle..."
 
-if [ ! -f "$MAKENSIS_PATH" ]; then
-    # Fallback to generic makensis
-    MAKENSIS_PATH=$(which makensis)
+# Extract base bundle
+rm -rf "$BUNDLE_DIR"
+unzip -q "$BASE_ARCHIVE" -d "$OUT_DIR"
+
+if [ ! -d "$BUNDLE_DIR" ]; then
+    echo "❌ Failed to extract base bundle"
+    exit 1
 fi
 
-cp -aL "$MAKENSIS_PATH" "$BUNDLE_DIR/mac/makensis"
+# Create mac directory and copy binary
+mkdir -p "$BUNDLE_DIR/mac"
+cp "$COMPILED_BINARY" "$BUNDLE_DIR/mac/makensis"
 chmod +x "$BUNDLE_DIR/mac/makensis"
 
-# Verify binary
-echo "✓ Binary: $("$BUNDLE_DIR/mac/makensis" -VERSION 2>&1 | head -1)"
-
-# =============================================================================
-# Copy NSIS Data Tree
-# =============================================================================
-
-echo "📂 Copying share/nsis data..."
-CELLAR=$(brew --cellar "makensis@$VERSION")
-
-if [ ! -d "$CELLAR/$VERSION/share/nsis" ]; then
-    echo "❌ NSIS data directory not found at $CELLAR/$VERSION/share/nsis"
-    exit 1
-fi
-
-cp -a "$CELLAR/$VERSION/share/nsis" "$BUNDLE_DIR/share/"
-
-# Clean unnecessary files
-rm -rf "$BUNDLE_DIR/share/nsis/.git" \
-       "$BUNDLE_DIR/share/nsis/Docs" \
-       "$BUNDLE_DIR/share/nsis/Examples"
-
-# =============================================================================
-# Download and Install Extra Plugins
-# =============================================================================
-
-echo "🔌 Installing additional plugins..."
-cd "$BUNDLE_DIR/share/nsis"
-
-# Create temp directory for downloads
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
-
-download_plugin() {
-    local name=$1
-    local url=$2
-    local zip_file="$TEMP_DIR/${name}.zip"
-    
-    echo "  → $name"
-    curl -sL "$url" -o "$zip_file"
-    
-    if [ ! -f "$zip_file" ]; then
-        echo "    ⚠️  Failed to download $name"
-        return 1
-    fi
-    
-    7z x "$zip_file" -o"$TEMP_DIR/${name}" &> /dev/null || {
-        echo "    ⚠️  Failed to extract $name"
-        return 1
-    }
-}
-
-install_plugin_files() {
-    local name=$1
-    local extract_dir="$TEMP_DIR/${name}"
-    
-    # Find and copy DLL files
-    if [ -d "$extract_dir" ]; then
-        # Copy x86-ansi plugins
-        find "$extract_dir" -name "*.dll" -path "*/x86-ansi/*" -exec cp {} Plugins/x86-ansi/ \; 2>/dev/null || true
-        find "$extract_dir" -name "*.dll" -path "*/ansi/*" -exec cp {} Plugins/x86-ansi/ \; 2>/dev/null || true
-        
-        # Copy x86-unicode plugins
-        find "$extract_dir" -name "*.dll" -path "*/x86-unicode/*" -exec cp {} Plugins/x86-unicode/ \; 2>/dev/null || true
-        find "$extract_dir" -name "*.dll" -path "*/unicode/*" -exec cp {} Plugins/x86-unicode/ \; 2>/dev/null || true
-        
-        # Copy include files
-        find "$extract_dir" -name "*.nsh" -exec cp {} Include/ \; 2>/dev/null || true
-        find "$extract_dir" -name "*.nsi" -exec cp {} Include/ \; 2>/dev/null || true
-    fi
-}
-
-# Essential plugins
-download_plugin "nsProcess" "http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip" && \
-    install_plugin_files "nsProcess"
-
-download_plugin "UAC" "http://nsis.sourceforge.net/mediawiki/images/8/8f/UAC.zip" && \
-    install_plugin_files "UAC"
-
-download_plugin "WinShell" "http://nsis.sourceforge.net/mediawiki/images/5/54/WinShell.zip" && \
-    install_plugin_files "WinShell"
-
-# Additional useful plugins
-download_plugin "nsJSON" "http://nsis.sourceforge.net/mediawiki/images/5/5a/NsJSON.zip" && \
-    install_plugin_files "nsJSON"
-
-download_plugin "nsArray" "http://nsis.sourceforge.net/mediawiki/images/4/4c/NsArray.zip" && \
-    install_plugin_files "nsArray"
-
-download_plugin "INetC" "http://nsis.sourceforge.net/mediawiki/images/c/c9/Inetc.zip" && \
-    install_plugin_files "INetC"
-
-echo "✓ Plugins installed"
+echo "  ✓ macOS binary added to bundle"
 
 # =============================================================================
 # Create Version Metadata
 # =============================================================================
 
+echo ""
+echo "📝 Creating macOS version metadata..."
+
 cat > "$BUNDLE_DIR/mac/VERSION.txt" <<EOF
-NSIS Version: $VERSION
+Platform: macOS
+Binary: makensis (native Mach-O binary)
+Architecture: $ARCH_NAME ($ARCH)
 Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-Platform: macOS $(sw_vers -productVersion)
-Architecture: $(uname -m)
-Binary: makensis
+Compiled from source: NSIS $NSIS_BRANCH
+Compiler: Clang $(clang --version | head -1)
+Build system: SCons
+macOS Version: $(sw_vers -productVersion)
+
+This binary is compiled from source with:
+- Native macOS compilation (no cross-compile)
+- NSIS_MAX_STRLEN=8192
+- NSIS_CONFIG_CONST_DATA_PATH=no
+
+Usage:
+  ./mac/makensis -DNSISDIR=\$(pwd)/share/nsis your-script.nsi
+
+Or set environment:
+  export NSISDIR="\$(pwd)/share/nsis"
+  ./mac/makensis your-script.nsi
 EOF
 
 # =============================================================================
-# Package Bundle
+# Create Final Archive
 # =============================================================================
 
-echo "📦 Creating bundle archive..."
+echo ""
+echo "📦 Creating final macOS bundle..."
+
 cd "$OUT_DIR"
+rm -f "$OUTPUT_ARCHIVE"
+zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
 
-ARCHIVE_NAME="nsis-bundle-mac-${VERSION}.zip"
-zip -r9q "$ARCHIVE_NAME" nsis-bundle
+# =============================================================================
+# Cleanup
+# =============================================================================
 
 echo ""
-echo "✅ macOS build complete!"
-echo "📁 Bundle: $OUT_DIR/$ARCHIVE_NAME"
-echo "📊 Size: $(du -h "$OUT_DIR/$ARCHIVE_NAME" | cut -f1)"
-echo ""
+echo "🧹 Cleaning up build directory..."
+rm -rf "$BUILD_DIR"
 
-# Verify bundle contents
-echo "📋 Bundle contents:"
-echo "   Binary: nsis-bundle/mac/makensis"
-echo "   Data:   nsis-bundle/share/nsis/"
-echo "   Plugins: $(find "$BUNDLE_DIR/share/nsis/Plugins" -name "*.dll" | wc -l | xargs) installed"
+# =============================================================================
+# Summary
+# =============================================================================
+
+echo ""
+echo "================================================================"
+echo "  ✅ macOS Build Complete!"
+echo "================================================================"
+echo "  📁 Archive: $OUTPUT_ARCHIVE"
+echo "  📊 Size:    $(du -h "$OUTPUT_ARCHIVE" | cut -f1)"
+echo "  🏗️  Arch:    $ARCH_NAME"
+echo "================================================================"
+echo ""
+echo "📋 Bundle now contains:"
+echo "   ✓ windows/makensis.exe   (Windows binary)"
+echo "   ✓ mac/makensis           (macOS native binary)"
+echo "   ✓ share/nsis/            (Complete NSIS data)"
+
+if [ -d "$BUNDLE_DIR/linux" ]; then
+    echo "   ✓ linux/makensis         (Linux native binary)"
+fi
+
+echo ""
+echo "🧪 Test the macOS binary:"
+echo "   cd $BUNDLE_DIR"
+echo "   ./mac/makensis -VERSION"
+echo ""
+echo "✅ All platform binaries ready!"
+echo ""

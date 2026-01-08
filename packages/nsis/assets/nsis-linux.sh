@@ -2,40 +2,58 @@
 set -euo pipefail
 
 # =============================================================================
-# Linux NSIS Builder (Docker-based)
+# Linux NSIS Binary Builder (Docker-based)
 # =============================================================================
-# Builds Win32, Win64, and Linux makensis binaries using Docker
-# Includes comprehensive plugin support
+# Compiles native Linux makensis binary from source using Docker
+# Injects the Linux binary into the base Windows bundle
+# Can be run from any platform with Docker (Mac, Linux, Windows)
 # =============================================================================
 
-BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
-OUT_DIR="$BASEDIR/out/nsis"
-NSIS_BRANCH_OR_COMMIT=${NSIS_BRANCH_OR_COMMIT:-v311}
-NSIS_SHA256=${NSIS_SHA256:-19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b}
-ZLIB_VERSION=${ZLIB_VERSION:-1.3.1}
-IMAGE_NAME="nsis-builder:${NSIS_BRANCH_OR_COMMIT}"
-CONTAINER_NAME="nsis-build-container-$$"
-OUTPUT_ARCHIVE="nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+BASE_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+OUT_DIR="$BASE_DIR/out/nsis"
 
-echo "🐧 Building NSIS for Linux (Docker)..."
+# Version configuration
+NSIS_VERSION=${NSIS_VERSION:-3.10}
+NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 
-# Check for Docker
+# Docker configuration
+IMAGE_NAME="nsis-linux-builder:${NSIS_BRANCH}"
+CONTAINER_NAME="nsis-linux-build-$$"
+
+BUNDLE_DIR="$OUT_DIR/nsis-bundle"
+BASE_ARCHIVE="$OUT_DIR/nsis-bundle-base-$NSIS_BRANCH.zip"
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-linux-$NSIS_BRANCH.zip"
+
+echo "🐧 Building native Linux makensis binary..."
+echo "   Version: $NSIS_VERSION"
+echo "   Branch:  $NSIS_BRANCH"
+echo ""
+
+# =============================================================================
+# Check Prerequisites
+# =============================================================================
+
 if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is required but not installed."
+    echo "❌ Docker is required but not installed"
+    echo "   Install Docker: https://docs.docker.com/get-docker/"
     exit 1
 fi
 
-# Clean output
-rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR"
+if [ ! -f "$BASE_ARCHIVE" ]; then
+    echo "❌ Base bundle not found: $BASE_ARCHIVE"
+    echo "   Run assets/nsis-windows.sh first to create the base bundle"
+    exit 1
+fi
 
 # =============================================================================
 # Cleanup Handler
 # =============================================================================
 
 cleanup() {
-    echo "🧹 Cleaning up containers..."
-    docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
+    echo ""
+    echo "🧹 Cleaning up Docker resources..."
+    docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
@@ -43,188 +61,200 @@ trap cleanup EXIT INT TERM
 # Create Dockerfile
 # =============================================================================
 
-echo "📝 Creating Dockerfile..."
-mkdir -p "$BASEDIR/build"
-cat > "$BASEDIR/build/Dockerfile" <<'DOCKERFILE_END'
-FROM ubuntu:22.04 AS builder
+echo "📝 Creating Dockerfile for Linux build..."
 
-ARG NSIS_BRANCH_OR_COMMIT=v311
-ARG NSIS_SHA256
-ARG ZLIB_VERSION=1.3.1
+DOCKERFILE="$OUT_DIR/Dockerfile.linux"
+
+cat > "$DOCKERFILE" <<'DOCKERFILE_END'
+FROM ubuntu:22.04
+
+ARG NSIS_BRANCH=v310
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    mingw-w64 \
     scons \
     zlib1g-dev \
-    libgdk-pixbuf2.0-dev \
     git \
-    curl \
-    unzip \
-    p7zip-full \
-    python3 \
-    python3-pip \
-    zip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Download and build zlib for Windows
-RUN curl -L "https://github.com/madler/zlib/archive/refs/tags/v${ZLIB_VERSION}.tar.gz" -o zlib.tar.gz \
-    && tar xzf zlib.tar.gz \
-    && cd "zlib-${ZLIB_VERSION}" \
-    && CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar RANLIB=i686-w64-mingw32-ranlib ./configure --prefix=/build/zlib-win32 --static \
-    && make && make install \
-    && cd .. \
-    && rm -rf "zlib-${ZLIB_VERSION}" zlib.tar.gz
-
-# Clone NSIS
-RUN git clone --branch ${NSIS_BRANCH_OR_COMMIT} --depth=1 https://github.com/kichik/nsis.git nsis
+# Clone NSIS source
+RUN git clone --branch ${NSIS_BRANCH} --depth=1 https://github.com/kichik/nsis.git nsis
 
 WORKDIR /build/nsis
 
-# Build for Windows (32-bit and 64-bit)
+# Build native Linux makensis
+# Skip stubs, plugins, utils - we only need the compiler
 RUN scons \
     SKIPSTUBS=all \
     SKIPPLUGINS=all \
     SKIPUTILS=all \
     SKIPMISC=all \
     NSIS_CONFIG_CONST_DATA_PATH=no \
-    PREFIX=/build/install/win32 \
-    VERSION=${NSIS_BRANCH_OR_COMMIT} \
-    TARGET_ARCH=x86 \
-    ZLIB_W32=/build/zlib-win32 \
+    NSIS_MAX_STRLEN=8192 \
+    PREFIX=/build/install \
     install-compiler
 
-# Build for Linux (native)
-RUN scons \
-    SKIPSTUBS=all \
-    SKIPPLUGINS=all \
-    SKIPUTILS=all \
-    SKIPMISC=all \
-    NSIS_CONFIG_CONST_DATA_PATH=no \
-    PREFIX=/build/install/linux \
-    VERSION=${NSIS_BRANCH_OR_COMMIT} \
-    install-compiler
+# The binary is now at /build/install/bin/makensis
+RUN chmod +x /build/install/bin/makensis
 
-# Download NSIS data files and plugins
-RUN git clone --branch ${NSIS_BRANCH_OR_COMMIT} --depth=1 https://github.com/kichik/nsis.git /build/nsis-data
+# Verify the binary works
+RUN /build/install/bin/makensis -VERSION || true
 
-# Download additional plugins
-WORKDIR /build/plugins
-RUN curl -sL "http://nsis.sourceforge.net/mediawiki/images/1/18/NsProcess.zip" -o nsprocess.zip \
-    && curl -sL "http://nsis.sourceforge.net/mediawiki/images/8/8f/UAC.zip" -o uac.zip \
-    && curl -sL "http://nsis.sourceforge.net/mediawiki/images/5/54/WinShell.zip" -o winshell.zip \
-    && curl -sL "http://nsis.sourceforge.net/mediawiki/images/5/5a/NsJSON.zip" -o nsjson.zip \
-    && curl -sL "http://nsis.sourceforge.net/mediawiki/images/4/4c/NsArray.zip" -o nsarray.zip \
-    && curl -sL "http://nsis.sourceforge.net/mediawiki/images/c/c9/Inetc.zip" -o inetc.zip
+# Create output directory
+RUN mkdir -p /output && \
+    cp /build/install/bin/makensis /output/makensis
 
-# Extract plugins
-RUN for zip in *.zip; do \
-        name=$(basename "$zip" .zip); \
-        mkdir -p "$name"; \
-        7z x "$zip" -o"$name" 2>/dev/null || unzip -q "$zip" -d "$name" || true; \
-    done
-
-# Organize bundle structure
-WORKDIR /out
-RUN mkdir -p nsis-bundle/linux nsis-bundle/win32 nsis-bundle/share/nsis
-
-# Copy binaries
-RUN ls -R /build/install && \
-    cp /build/install/linux/makensis nsis-bundle/linux/ && \
-    cp /build/install/win32/makensis nsis-bundle/win32/ && \
-    chmod +x nsis-bundle/linux/makensis
-
-# Copy NSIS data files
-RUN ls /build/nsis-data && \
-    cp -r /build/nsis-data/Contrib nsis-bundle/share/nsis/ && \
-    cp -r /build/nsis-data/Include nsis-bundle/share/nsis/ && \
-    cp -r /build/nsis-data/Plugins nsis-bundle/share/nsis/ || true && \
-    cp -r /build/nsis-data/Stubs nsis-bundle/share/nsis/ || true
-
-# Install additional plugins
-RUN for plugin_dir in /build/plugins/*/; do \
-        plugin_name=$(basename "$plugin_dir"); \
-        echo "Installing plugin: $plugin_name"; \
-        find "$plugin_dir" -name "*.dll" -path "*/x86-ansi/*" -exec cp {} nsis-bundle/share/nsis/Plugins/x86-ansi/ \; 2>/dev/null || true; \
-        find "$plugin_dir" -name "*.dll" -path "*/x86-unicode/*" -exec cp {} nsis-bundle/share/nsis/Plugins/x86-unicode/ \; 2>/dev/null || true; \
-        find "$plugin_dir" -name "*.dll" -path "*/ansi/*" -exec cp {} nsis-bundle/share/nsis/Plugins/x86-ansi/ \; 2>/dev/null || true; \
-        find "$plugin_dir" -name "*.dll" -path "*/unicode/*" -exec cp {} nsis-bundle/share/nsis/Plugins/x86-unicode/ \; 2>/dev/null || true; \
-        find "$plugin_dir" -name "*.nsh" -exec cp {} nsis-bundle/share/nsis/Include/ \; 2>/dev/null || true; \
-        find "$plugin_dir" -name "*.nsi" -exec cp {} nsis-bundle/share/nsis/Include/ \; 2>/dev/null || true; \
-    done
-
-# Clean up docs and examples
-RUN rm -rf nsis-bundle/share/nsis/Docs nsis-bundle/share/nsis/Examples
-
-# Create version info
-RUN echo "NSIS Version: ${NSIS_BRANCH_OR_COMMIT}" > nsis-bundle/linux/VERSION.txt && \
-    echo "zlib Version: ${ZLIB_VERSION}" >> nsis-bundle/linux/VERSION.txt && \
-    echo "Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> nsis-bundle/linux/VERSION.txt
-
-# Package bundle
-WORKDIR /out
-RUN zip -r9q nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip nsis-bundle
-
-# Final stage - just the output
-FROM scratch AS output
-COPY --from=builder /out/*.zip /
 DOCKERFILE_END
 
 # =============================================================================
 # Build Docker Image
 # =============================================================================
 
-echo "🔨 Building Docker image and extracting artifacts (this may take several minutes)..."
-docker buildx build \
-    --platform linux/amd64 \
-    --build-arg NSIS_BRANCH_OR_COMMIT="$NSIS_BRANCH_OR_COMMIT" \
-    --build-arg NSIS_SHA256="$NSIS_SHA256" \
-    --build-arg ZLIB_VERSION="$ZLIB_VERSION" \
-    --output type=local,dest="$BASEDIR/out/nsis" \
-    --progress=plain \
-    --tag "$IMAGE_NAME" \
-    -f "$BASEDIR/build/Dockerfile" \
-    "$BASEDIR"
-
-echo "✅ Build artifacts extracted to: $BASEDIR/out/"
-
-# =============================================================================
-# Extract and Verify Bundle
-# =============================================================================
-
-echo "📦 Extracting bundle..."
-unzip -oq "${OUT_DIR}/${OUTPUT_ARCHIVE}" -d "${OUT_DIR}"
-
-# Add additional version info
-cat >> "${OUT_DIR}/nsis-bundle/linux/VERSION.txt" <<EOF
-Architecture: $(uname -m)
-Build System: Docker (ubuntu:22.04)
-EOF
-
-# Repackage with updated metadata
-cd "${OUT_DIR}"
-rm -f "${OUTPUT_ARCHIVE}"
-zip -r9q "${OUTPUT_ARCHIVE}" nsis-bundle
-
 echo ""
-echo "✅ Linux build complete!"
-echo "📁 Bundle: ${OUT_DIR}/${OUTPUT_ARCHIVE}"
-echo "📊 Size: $(du -h "${OUT_DIR}/${OUTPUT_ARCHIVE}" | cut -f1)"
-echo ""
+echo "🔨 Building Docker image (this may take 5-10 minutes on first run)..."
 
-# Verify bundle contents
-echo "📋 Bundle contents:"
-echo "   Linux binary:   nsis-bundle/linux/makensis"
-echo "   Windows binary: nsis-bundle/win32/makensis.exe"
-echo "   Data:           nsis-bundle/share/nsis/"
-if [ -d "${OUT_DIR}/nsis-bundle/share/nsis/Plugins" ]; then
-    plugin_count=$(find "${OUT_DIR}/nsis-bundle/share/nsis/Plugins" -name "*.dll" | wc -l | xargs)
-    echo "   Plugins:        $plugin_count installed"
+docker build \
+    --build-arg NSIS_BRANCH="$NSIS_BRANCH" \
+    -t "$IMAGE_NAME" \
+    -f "$DOCKERFILE" \
+    "$OUT_DIR"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Docker build failed"
+    exit 1
 fi
 
-# Cleanup extracted directory
-rm -rf "${OUT_DIR}/nsis-bundle"
+echo "  ✓ Docker image built successfully"
+
+# =============================================================================
+# Extract Compiled Binary
+# =============================================================================
+
+echo ""
+echo "📦 Extracting compiled Linux binary..."
+
+# Create container
+docker create --name "$CONTAINER_NAME" "$IMAGE_NAME" /bin/true
+
+# Create temp directory for extraction
+TEMP_BINARY="$OUT_DIR/temp-linux-binary"
+mkdir -p "$TEMP_BINARY"
+
+# Copy binary from container
+docker cp "$CONTAINER_NAME:/output/makensis" "$TEMP_BINARY/makensis"
+
+if [ ! -f "$TEMP_BINARY/makensis" ]; then
+    echo "❌ Failed to extract Linux binary"
+    exit 1
+fi
+
+chmod +x "$TEMP_BINARY/makensis"
+echo "  ✓ Linux binary extracted"
+
+# Verify binary
+echo "  → Verifying binary..."
+if file "$TEMP_BINARY/makensis" | grep -q "ELF"; then
+    echo "  ✓ Valid Linux ELF binary"
+else
+    echo "  ⚠️  Binary verification inconclusive"
+fi
+
+# =============================================================================
+# Inject into Base Bundle
+# =============================================================================
+
+echo ""
+echo "📂 Injecting Linux binary into base bundle..."
+
+# Extract base bundle
+rm -rf "$BUNDLE_DIR"
+unzip -q "$BASE_ARCHIVE" -d "$OUT_DIR"
+
+if [ ! -d "$BUNDLE_DIR" ]; then
+    echo "❌ Failed to extract base bundle"
+    exit 1
+fi
+
+# Create Linux directory and copy binary
+mkdir -p "$BUNDLE_DIR/linux"
+cp "$TEMP_BINARY/makensis" "$BUNDLE_DIR/linux/makensis"
+chmod +x "$BUNDLE_DIR/linux/makensis"
+
+echo "  ✓ Linux binary added to bundle"
+
+# =============================================================================
+# Create Version Metadata
+# =============================================================================
+
+echo ""
+echo "📝 Creating Linux version metadata..."
+
+cat > "$BUNDLE_DIR/linux/VERSION.txt" <<EOF
+Platform: Linux
+Binary: makensis (native ELF binary)
+Architecture: x86_64
+Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+Compiled from source: NSIS $NSIS_BRANCH
+Compiler: GCC (Ubuntu 22.04)
+Build system: SCons
+Docker image: ubuntu:22.04
+
+This binary is compiled from source with:
+- Static linking where possible
+- NSIS_MAX_STRLEN=8192
+- NSIS_CONFIG_CONST_DATA_PATH=no
+
+Usage:
+  ./linux/makensis -DNSISDIR=\$(pwd)/share/nsis your-script.nsi
+
+Or set environment:
+  export NSISDIR="\$(pwd)/share/nsis"
+  ./linux/makensis your-script.nsi
+EOF
+
+# =============================================================================
+# Create Final Archive
+# =============================================================================
+
+echo ""
+echo "📦 Creating final Linux bundle..."
+
+cd "$OUT_DIR"
+rm -f "$OUTPUT_ARCHIVE"
+zip -r9q "$OUTPUT_ARCHIVE" nsis-bundle
+
+# =============================================================================
+# Cleanup
+# =============================================================================
+
+rm -f "$DOCKERFILE"
+rm -rf "$TEMP_BINARY"
+
+# =============================================================================
+# Summary
+# =============================================================================
+
+echo ""
+echo "================================================================"
+echo "  ✅ Linux Build Complete!"
+echo "================================================================"
+echo "  📁 Archive: $OUTPUT_ARCHIVE"
+echo "  📊 Size:    $(du -h "$OUTPUT_ARCHIVE" | cut -f1)"
+echo "================================================================"
+echo ""
+echo "📋 Bundle now contains:"
+echo "   ✓ windows/makensis.exe   (Windows binary)"
+echo "   ✓ linux/makensis         (Linux native binary)"
+echo "   ✓ share/nsis/            (Complete NSIS data)"
+echo ""
+echo "🧪 Test the Linux binary:"
+echo "   cd $BUNDLE_DIR"
+echo "   ./linux/makensis -VERSION"
+echo ""
+echo "💡 Next step:"
+echo "   Run assets/nsis-mac.sh to add macOS binary"
+echo ""

@@ -1,130 +1,277 @@
-name: Build Windows NSIS toolset
+name: Build NSIS
 
 on:
-  workflow_dispatch:
   workflow_call:
-    outputs:
-      artifactName:
-        description: "win-nsis artifacts"
-        value: win-nsis-artifacts
+  workflow_dispatch:
+    inputs:
+      nsis_version:
+        description: 'NSIS Version'
+        required: false
+        default: '3.10'
+      nsis_branch:
+        description: 'NSIS Branch/Tag'
+        required: false
+        default: 'v310'
+
+env:
+  NSIS_VERSION: ${{ github.event.inputs.nsis_version || '3.10' }}
+  NSIS_BRANCH_OR_COMMIT: ${{ github.event.inputs.nsis_branch || 'v310' }}
 
 jobs:
-  linux:
+  # Build base bundle (Windows binary + plugins + data)
+  # Runs on Linux since the script is bash and doesn't need Windows
+  base:
+    name: Build Base Bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226
-      - name: Enable Corepack for pnpm
-        run: |
-          corepack enable
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: "22" }
-      - name: Install dependencies & build
-        run: |
-          pnpm i --frozen-lockfile
-          bash ./packages/nsis/build.sh linux
-      - name: Upload win-nsis Linux artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: nsis-linux
-          path: ./packages/nsis/out/**/*.zip
-          if-no-files-found: error
-          retention-days: 1
-
-  windows:
-    runs-on: windows-latest
-    timeout-minutes: 20
-    steps:
-      - name: Enable Corepack for pnpm
-        run: |
-          corepack enable
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: "22" }
-      - name: Install dependencies & build
-        run: |
-          pnpm i --frozen-lockfile
-          bash ./packages/nsis/build.sh windows
-      - name: Upload win-nsis Windows artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: nsis-windows
-          path: ./packages/nsis/out/**/*.zip
-          if-no-files-found: error
-          retention-days: 1
-
-  mac:
-    runs-on: macos-latest
-    timeout-minutes: 20
-    steps:
-      - name: Enable Corepack for pnpm
-        run: |
-          corepack enable
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: "22" }
-      - name: Install dependencies & build
-        run: |
-          pnpm i --frozen-lockfile
-          bash ./packages/nsis/build.sh mac
-      - name: Upload win-nsis Windows artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: nsis-mac
-          path: ./packages/nsis/out/**/*.zip
-          if-no-files-found: error
-          retention-days: 1
-
-  combine-artifacts:
-    runs-on: macos-latest
-    needs: [mac, linux, windows]
-    steps:
-      - name: Enable Corepack for pnpm
-        run: |
-          corepack enable
-        shell: bash
-
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-     
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: '22' }
-     
-      - name: Download all nsis artifacts
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
-        with:
-          pattern: nsis-*
-          path: packages/nsis/out
-          merge-multiple: true
+        uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Zip bundle
-        run: zip ./nsis/nsis-bundle.zip -r ./*
-        working-directory: ./packages/nsis/out
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip p7zip-full
         shell: bash
 
-      - name: Delete all previous build stage artifacts
-        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-        with:
-          name: nsis-*
+      - name: Build base bundle
+        run: bash ./assets/nsis-windows.sh
+        shell: bash
+        working-directory: .
 
-      - name: Upload combined artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      - name: Upload base artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-temp-base
+          path: out/nsis/nsis-bundle-base-*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  # Build native macOS binaries
+  mac:
+    name: Build macOS Binary
+    runs-on: ${{ matrix.runner }}
+    needs: base
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13
+            arch: x64
+          - runner: macos-14
+            arch: arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download base bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: nsis-temp-base
+          path: out/nsis
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --user scons
+          echo "$HOME/Library/Python/3.*/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Build macOS binary
+        run: bash ./assets/nsis-mac.sh
+        shell: bash
+        working-directory: .
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-temp-macos-${{ matrix.arch }}
+          path: out/nsis/nsis-bundle-mac-*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  # Build native Linux binary using Docker
+  linux:
+    name: Build Linux Binary
+    runs-on: ubuntu-latest
+    needs: base
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download base bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: nsis-temp-base
+          path: out/nsis
+
+      - name: Build Linux binary
+        run: bash ./assets/nsis-linux.sh
+        shell: bash
+        working-directory: .
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-temp-linux
+          path: out/nsis/nsis-bundle-linux-*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  # Combine all artifacts into final bundle
+  combine-artifacts:
+    name: Combine All Bundles
+    runs-on: ubuntu-latest
+    needs: [base, mac, linux]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all NSIS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nsis-temp-*
+          path: out/nsis
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -lh out/nsis/
+        shell: bash
+
+      - name: Combine bundles
+        run: bash ./assets/nsis-combine.sh
+        shell: bash
+        working-directory: .
+
+      - name: Delete intermediate artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: nsis-temp-*
+
+      - name: Upload combined bundle
+        uses: actions/upload-artifact@v4
         with:
           name: nsis-bundle
+          path: out/nsis/nsis-bundle-complete-*.tar.gz
           if-no-files-found: error
-          path: packages/nsis/out/**/*.zip
-          retention-days: 1
+          retention-days: 30
+
+  # Test the combined bundle on all platforms
+  test-bundle:
+    name: Test Bundle on ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    needs: combine-artifacts
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            runner: windows-latest
+            binary: windows/makensis.exe
+          - platform: Linux
+            runner: ubuntu-latest
+            binary: linux/makensis
+          - platform: macOS-x64
+            runner: macos-13
+            binary: mac/makensis
+          - platform: macOS-arm64
+            runner: macos-14
+            binary: mac/makensis
+    steps:
+      - name: Download combined bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: nsis-bundle
+          path: bundle
+
+      - name: Extract bundle
+        shell: bash
+        run: |
+          cd bundle
+          tar -xzf *.tar.gz
+          ls -la
+
+      - name: Test makensis binary
+        shell: bash
+        run: |
+          cd bundle/nsis-bundle
+          
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            ./${{ matrix.binary }} -VERSION
+          else
+            chmod +x ./${{ matrix.binary }}
+            ./${{ matrix.binary }} -VERSION
+          fi
+
+      - name: Create test script
+        shell: bash
+        run: |
+          cd bundle/nsis-bundle
+          
+          cat > test.nsi << 'EOF'
+          !include "MUI2.nsh"
+          
+          Name "Test Installer"
+          OutFile "test-installer.exe"
+          InstallDir "$PROGRAMFILES\TestApp"
+          
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+          
+          !insertmacro MUI_LANGUAGE "English"
+          
+          Section "Main"
+            SetOutPath "$INSTDIR"
+            WriteUninstaller "$INSTDIR\Uninstall.exe"
+          SectionEnd
+          
+          Section "Uninstall"
+            Delete "$INSTDIR\Uninstall.exe"
+            RMDir "$INSTDIR"
+          SectionEnd
+          EOF
+
+      - name: Compile test script
+        shell: bash
+        run: |
+          cd bundle/nsis-bundle
+          
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            ./${{ matrix.binary }} test.nsi
+          else
+            export NSISDIR="$(pwd)/share/nsis"
+            ./${{ matrix.binary }} test.nsi
+          fi
+
+      - name: Verify output
+        shell: bash
+        run: |
+          cd bundle/nsis-bundle
+          
+          if [ -f "test-installer.exe" ]; then
+            echo "✅ Test compilation successful!"
+            ls -lh test-installer.exe
+          else
+            echo "❌ Test compilation failed - no output file"
+            exit 1
+          fi
+
+      - name: Test plugins
+        shell: bash
+        run: |
+          cd bundle/nsis-bundle
+          
+          echo "Checking plugin count..."
+          plugin_count=$(find share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l)
+          echo "Found $plugin_count plugin DLLs"
+          
+          if [ "$plugin_count" -lt 20 ]; then
+            echo "⚠️  Warning: Expected more plugins"
+          else
+            echo "✅ Plugin count looks good"
+          fi
