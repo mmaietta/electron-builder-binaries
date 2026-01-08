@@ -244,9 +244,8 @@ jobs:
         shell: pwsh
         run: |
           $BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
-          echo "Running PowerShell binary: \"$BINARY_PATH\""
-          & "$BINARY_PATH" -VERSION
-          & "$BINARY_PATH" test.nsi
+          & $BINARY_PATH -VERSION
+          & $BINARY_PATH test.nsi
 
       # Step: Test makensis binary (CMD on Windows)
       - name: Test makensis (CMD)
@@ -254,9 +253,8 @@ jobs:
         shell: cmd
         run: |
           set BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
-          echo "Running CMD binary: \"%BINARY_PATH%\""
-          "%BINARY_PATH%" -VERSION
-          "%BINARY_PATH%" test.nsi
+          %BINARY_PATH% -VERSION
+          %BINARY_PATH% test.nsi
 
       # Step: Test makensis binary (Linux/macOS)
       - name: Test makensis (Unix)
@@ -264,7 +262,6 @@ jobs:
         shell: bash
         run: |
           BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
-          chmod +x "$BINARY_PATH"
           "$BINARY_PATH" -VERSION
           "$BINARY_PATH" test.nsi
 
