@@ -67,7 +67,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nsis-temp-base
-          path: packages/nsis/out/nsis
 
       - name: Install dependencies
         run: |
@@ -104,7 +103,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nsis-temp-base
-          path: packages/nsis/out/nsis
 
       - name: Build Linux binary
         run: bash ./assets/nsis-linux.sh
@@ -132,7 +130,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: nsis-temp-*
-          path: packages/nsis/out/nsis
           merge-multiple: true
 
       - name: List downloaded artifacts
