@@ -19,7 +19,6 @@ env:
 
 jobs:
   # Build base bundle (Windows binary + plugins + data)
-  # Runs on Linux since the script is bash and doesn't need Windows
   base:
     name: Build Base Bundle
     runs-on: ubuntu-latest
@@ -48,9 +47,8 @@ jobs:
 
   # Build native macOS binaries
   mac:
-    name: Build macOS Binary
+    name: Build macOS Binary (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
-    needs: base
     strategy:
       fail-fast: false
       matrix:
@@ -63,16 +61,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download base bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: nsis-temp-base
-
       - name: Install dependencies
         run: |
-          python3 -m pip install --user scons
-          echo "$HOME/Library/Python/3.*/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y curl unzip p7zip-full
+          brew install scons
         shell: bash
+
+      - name: Build base bundle
+        run: bash ./assets/nsis-windows.sh
+        shell: bash
+        working-directory: ./packages/nsis
 
       - name: Build macOS binary
         run: bash ./assets/nsis-mac.sh
@@ -91,7 +90,6 @@ jobs:
   linux:
     name: Build Linux Binary
     runs-on: ubuntu-latest
-    needs: base
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -99,10 +97,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download base bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: nsis-temp-base
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip p7zip-full
+        shell: bash
+
+      - name: Build base bundle
+        run: bash ./assets/nsis-windows.sh
+        shell: bash
+        working-directory: ./packages/nsis
 
       - name: Build Linux binary
         run: bash ./assets/nsis-linux.sh
@@ -130,12 +134,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: nsis-temp-*
+          path: packages/nsis/out/nsis
           merge-multiple: true
 
       - name: List downloaded artifacts
         run: |
           echo "Downloaded artifacts:"
-          ls -lh packages/nsis/out/nsis
+          ls -lh packages/nsis/out/nsis/
         shell: bash
 
       - name: Combine bundles
@@ -172,11 +177,11 @@ jobs:
             runner: ubuntu-latest
             binary: linux/makensis
           - platform: macOS-x64
-            runner: macos-13
-            binary: mac/makensis
+            runner: macos-15-intel
+            binary: mac/x64/makensis
           - platform: macOS-arm64
-            runner: macos-14
-            binary: mac/makensis
+            runner: macos-15
+            binary: mac/arm64/makensis
     steps:
       - name: Download combined bundle
         uses: actions/download-artifact@v4

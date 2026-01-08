@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -exuo pipefail
 
 # =============================================================================
 # Linux NSIS Binary Builder (Docker-based)
