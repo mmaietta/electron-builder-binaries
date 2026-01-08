@@ -124,8 +124,10 @@ if [ -n "$MAC_BUNDLES" ]; then
         tar -xzf "$mac_bundle" -C "$TEMP_MAC"
         
         if [ -d "$TEMP_MAC/nsis-bundle/mac" ]; then
-            # Check if this is first mac binary or additional architecture
-            cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/mac/${mac_bundle##*/}"
+            arch="${mac_bundle##*-mac-}"
+            arch="${arch%%-*}"
+            mkdir -p "$BUILD_DIR/nsis-bundle/mac/$arch"
+            cp "$TEMP_MAC/nsis-bundle/mac"/* "$BUILD_DIR/nsis-bundle/mac/$arch"
             echo "  ✓ macOS binary added ($(basename "$mac_bundle"))"
         else
             echo "  ⚠️  macOS binary not found in $(basename "$mac_bundle")"
@@ -178,9 +180,17 @@ case "$PLATFORM" in
 esac
 
 # Find the binary
-BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis"
 if [ "$PLATFORM_DIR" = "windows" ]; then
-    BINARY="${BINARY}.exe"
+    BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis.exe"
+elif [ "$PLATFORM_DIR" = "mac" ]; then
+    case "$ARCH" in
+        x86_64) ARCH_DIR="x64" ;;
+        arm64)  ARCH_DIR="arm64" ;;
+        *) ARCH_DIR="$ARCH" ;;
+    esac
+    BINARY="$SCRIPT_DIR/$PLATFORM_DIR/$ARCH_DIR/makensis"
+else
+    BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis"
 fi
 
 # Check if binary exists
@@ -331,7 +341,7 @@ Or use platform-specific binary:
   export NSISDIR="\$(pwd)/share/nsis"
   ./windows/makensis.exe your-script.nsi
   ./linux/makensis your-script.nsi
-  ./mac/makensis your-script.nsi
+  ./mac/arm64/makensis your-script.nsi
 EOF
 
 echo "  ✓ VERSION.txt updated"

@@ -67,7 +67,7 @@ build_linux() {
     echo ""
     
     # Check if base exists
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.zip"
+    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
     if [ ! -f "$base_bundle" ]; then
         echo "⚠️  Base bundle not found, building it first..."
         build_base
@@ -87,7 +87,7 @@ build_mac() {
     echo ""
     
     # Check if base exists
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.zip"
+    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
     if [ ! -f "$base_bundle" ]; then
         echo "⚠️  Base bundle not found, building it first..."
         build_base
@@ -115,9 +115,9 @@ verify_builds() {
     echo "📦 Build Summary"
     echo "═══════════════════════════════════════════════════════════════"
     
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.zip"
-    local linux_bundle="$OUT_DIR/nsis/nsis-bundle-linux-$NSIS_BRANCH_OR_COMMIT.zip"
-    local mac_bundle="$OUT_DIR/nsis/nsis-bundle-mac-$NSIS_BRANCH_OR_COMMIT.zip"
+    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
+    local linux_bundle="$OUT_DIR/nsis/nsis-bundle-linux-$NSIS_BRANCH_OR_COMMIT.tar.gz"
+    local mac_bundle="$OUT_DIR/nsis/nsis-bundle-mac-$NSIS_BRANCH_OR_COMMIT.tar.gz"
     
     if [ -f "$base_bundle" ]; then
         local size=$(du -h "$base_bundle" | cut -f1)

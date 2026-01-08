@@ -21,7 +21,7 @@ NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 IMAGE_NAME="nsis-linux-builder:${NSIS_BRANCH}"
 CONTAINER_NAME="nsis-linux-build-$$"
 
-OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-linux-$NSIS_BRANCH.zip"
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-linux-$NSIS_BRANCH.tar.gz"
 
 echo "🐧 Building native Linux makensis binary..."
 echo "   Version: $NSIS_VERSION"
@@ -193,7 +193,7 @@ echo ""
 echo "📦 Creating Linux bundle archive..."
 
 cd "$TEMP_DIR"
-tar -czf "${OUTPUT_ARCHIVE%.zip}.tar.gz" nsis-bundle
+tar -czf "${OUTPUT_ARCHIVE}" nsis-bundle
 
 # =============================================================================
 # Cleanup
