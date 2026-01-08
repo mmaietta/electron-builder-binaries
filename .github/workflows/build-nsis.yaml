@@ -84,3 +84,47 @@ jobs:
           path: ./packages/nsis/out/**/*.zip
           if-no-files-found: error
           retention-days: 1
+
+  combine-artifacts:
+    runs-on: macos-latest
+    needs: [mac, linux, windows]
+    steps:
+      - name: Enable Corepack for pnpm
+        run: |
+          corepack enable
+        shell: bash
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+     
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
+        with: { node-version: '22' }
+     
+      - name: Download all nsis artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+        with:
+          pattern: nsis-*
+          path: packages/nsis/out
+          merge-multiple: true
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: tar bundle
+        run: tar -czvf ./nsis/nsis-bundle.tar.gz ./*
+        working-directory: ./packages/nsis/out
+        shell: bash
+
+      - name: Delete all previous build stage artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: nsis-*
+
+      - name: Upload combined artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+        with:
+          name: nsis-bundle
+          if-no-files-found: error
+          path: packages/nsis/out/**/*.tar.gz
+          retention-days: 1
