@@ -36,7 +36,7 @@ jobs:
       - name: Build base bundle
         run: bash ./assets/nsis-windows.sh
         shell: bash
-        working-directory: .
+        working-directory: ./packages/nsis
 
       - name: Upload base artifact
         uses: actions/upload-artifact@v4
@@ -78,7 +78,7 @@ jobs:
       - name: Build macOS binary
         run: bash ./assets/nsis-mac.sh
         shell: bash
-        working-directory: .
+        working-directory: ./packages/nsis
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
@@ -109,7 +109,7 @@ jobs:
       - name: Build Linux binary
         run: bash ./assets/nsis-linux.sh
         shell: bash
-        working-directory: .
+        working-directory: ./packages/nsis
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -144,7 +144,7 @@ jobs:
       - name: Combine bundles
         run: bash ./assets/nsis-combine.sh
         shell: bash
-        working-directory: .
+        working-directory: ./packages/nsis
 
       - name: Delete intermediate artifacts
         uses: geekyeggo/delete-artifact@v5
