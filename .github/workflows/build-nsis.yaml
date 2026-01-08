@@ -196,11 +196,11 @@ jobs:
           echo "Using archive: ${archives[0]}"
 
           # Extract into NSIS_BUNDLE folder explicitly
-          tar -xzf "${archives[0]}" -C "$NSIS_BUNDLE"
+          tar -xzf "${archives[0]}" -C "$BUNDLE_PATH"
 
           # Verify contents
           echo "Listing extracted files:"
-          ls -lhR "$NSIS_BUNDLE"
+          ls -lh "$NSIS_BUNDLE/nsis-bundle" || ls -lh "$NSIS_BUNDLE"
 
           # Final sanity check
           if [ ! -d "$NSIS_BUNDLE" ]; then
