@@ -240,7 +240,7 @@ jobs:
 
       # Step: Test makensis binary (PowerShell on Windows)
       - name: Test makensis (PowerShell)
-        if: runner.os == 'Windows' && endsWith(matrix.binary, '.exe')
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
           ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle"
