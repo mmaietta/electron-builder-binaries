@@ -243,8 +243,8 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          $BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
-          echo "Running PowerShell binary: $BINARY_PATH"
+          $BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
+          echo "Running PowerShell binary: \"$BINARY_PATH\""
           & "$BINARY_PATH" -VERSION
           & "$BINARY_PATH" test.nsi
 
@@ -253,8 +253,8 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          set BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
-          echo Running CMD binary: %BINARY_PATH%
+          set BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
+          echo "Running CMD binary: \"%BINARY_PATH%\""
           "%BINARY_PATH%" -VERSION
           "%BINARY_PATH%" test.nsi
 
