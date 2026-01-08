@@ -149,69 +149,80 @@ cat > "$BUILD_DIR/nsis-bundle/makensis" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-# =============================================================================
-# NSIS Universal Entrypoint
-# =============================================================================
-# Auto-detects platform and architecture, sets NSISDIR, and executes makensis
-# =============================================================================
-
-# Determine script directory
+# ----------------------------------------
+# Resolve script directory
+# ----------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Auto-detect platform
-PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(uname -m)
+UNAME_S="$(uname -s)"
+UNAME_M="$(uname -m)"
 
-# Map to binary location
-case "$PLATFORM" in
-    darwin*)
-        PLATFORM_DIR="mac"
-        ;;
-    linux*)
-        PLATFORM_DIR="linux"
-        ;;
-    mingw*|msys*|cygwin*)
-        PLATFORM_DIR="windows"
-        ;;
-    *)
-        echo "❌ Unsupported platform: $PLATFORM" >&2
-        exit 1
-        ;;
+# Normalize ARCH
+case "$UNAME_M" in
+  x86_64|amd64) ARCH="x86_64" ;;
+  arm64|aarch64) ARCH="arm64" ;;
+  *) ARCH="$UNAME_M" ;;
 esac
 
-# Find the binary
-if [ "$PLATFORM_DIR" = "windows" ]; then
-    BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis.exe"
-elif [ "$PLATFORM_DIR" = "mac" ]; then
+# ----------------------------------------
+# Windows (Git Bash / MSYS / CI runners)
+# ----------------------------------------
+if [[ "$UNAME_S" == MINGW* || "$UNAME_S" == MSYS* || "$UNAME_S" == CYGWIN* ]]; then
+  PLATFORM_DIR="windows"
+
+  WIN_NSISDIR="$(cd "$SCRIPT_DIR/share/nsis" && pwd -W)"
+  WIN_BINARY="$(cd "$SCRIPT_DIR/$PLATFORM_DIR" && pwd -W)/makensis.exe"
+
+  if [[ ! -f "$WIN_BINARY" ]]; then
+    echo "❌ makensis.exe not found: $WIN_BINARY" >&2
+    exit 1
+  fi
+
+  export NSISDIR="$WIN_NSISDIR"
+
+  # Hand off to native Windows shell (NO MSYS argument mangling)
+  exec cmd.exe /d /s /c "\"$WIN_BINARY\" $*"
+fi
+
+# ----------------------------------------
+# macOS / Linux
+# ----------------------------------------
+case "$UNAME_S" in
+  Darwin)
+    PLATFORM_DIR="mac"
     case "$ARCH" in
-        x86_64) ARCH_DIR="x64" ;;
-        arm64)  ARCH_DIR="arm64" ;;
-        *) ARCH_DIR="$ARCH" ;;
+      x86_64) ARCH_DIR="x64" ;;
+      arm64)  ARCH_DIR="arm64" ;;
+      *)      ARCH_DIR="$ARCH" ;;
     esac
     BINARY="$SCRIPT_DIR/$PLATFORM_DIR/$ARCH_DIR/makensis"
-else
+    ;;
+  Linux)
+    PLATFORM_DIR="linux"
     BINARY="$SCRIPT_DIR/$PLATFORM_DIR/makensis"
-fi
-
-# Check if binary exists
-if [ ! -f "$BINARY" ]; then
-    echo "❌ makensis binary not found: $BINARY" >&2
-    echo "" >&2
-    echo "Available binaries:" >&2
-    find "$SCRIPT_DIR" -name "makensis*" -type f 2>/dev/null || echo "  (none found)" >&2
+    ;;
+  *)
+    echo "❌ Unsupported platform: $UNAME_S" >&2
     exit 1
+    ;;
+esac
+
+# ----------------------------------------
+# Validate + execute
+# ----------------------------------------
+if [[ ! -f "$BINARY" ]]; then
+  echo "❌ makensis binary not found: $BINARY" >&2
+  exit 1
 fi
 
-# Make sure it's executable
-chmod +x "$BINARY" 2>/dev/null || true
-
-# Set NSISDIR if not already set
-if [ -z "${NSISDIR:-}" ]; then
-    export NSISDIR="$SCRIPT_DIR/share/nsis"
+if [[ ! -x "$BINARY" ]]; then
+  chmod +x "$BINARY"
 fi
 
-# Execute makensis with all arguments
+export NSISDIR="$SCRIPT_DIR/share/nsis"
+
 exec "$BINARY" "$@"
+
 EOF
 
 chmod +x "$BUILD_DIR/nsis-bundle/makensis"
