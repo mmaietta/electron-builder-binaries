@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nsis-temp-base
-          path: out/nsis/nsis-bundle-base-*.zip
+          path: packages/nsis/out/**/*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nsis-temp-macos-${{ matrix.arch }}
-          path: out/nsis/nsis-bundle-mac-*.zip
+          path: packages/nsis/out/**/*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -115,7 +115,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nsis-temp-linux
-          path: out/nsis/nsis-bundle-linux-*.zip
+          path: packages/nsis/out/**/*.zip
           if-no-files-found: error
           retention-days: 1
 
@@ -155,7 +155,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nsis-bundle
-          path: out/nsis/nsis-bundle-complete-*.tar.gz
+          path: packages/nsis/out/**/*.tar.gz
           if-no-files-found: error
           retention-days: 30
 
