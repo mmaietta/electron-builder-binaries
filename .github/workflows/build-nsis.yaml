@@ -164,33 +164,28 @@ jobs:
           path: packages/nsis/out
 
       - name: Find NSIS bundle
+        shell: bash
         run: |
           BUNDLE_PATH="./packages/nsis/out/nsis"
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
-          cd $BUNDLE_PATH
 
-          ls -lh
-          
-          shopt -s nullglob || true  # Enable nullglob on Unix shells
-          archives=( *complete*.tar.gz )
-          
-          if [[ ${#archives[@]} -eq 0 ]]; then
-              echo "ERROR: no *complete*.tar.gz files found"
-              exit 1
+          # Convert to Windows path for CMD / PowerShell
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # GitHub Actions uses /d/... style; convert to D:\... style
+            WIN_NSIS_BUNDLE=$(echo "$NSIS_BUNDLE" | sed -E 's#^/([a-zA-Z])/#\1:\\#; s#/#\\#g')
+            echo "NSIS_BUNDLE=$WIN_NSIS_BUNDLE" >> $GITHUB_ENV
+          else
+            echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
           fi
-          
-          echo "Using archive: ${archives[0]}"
-          tar -xzf "${archives[0]}"
-          echo "NSIS bundle extracted to $NSIS_BUNDLE"
-          echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
-        shell: bash
+
+          echo "NSIS bundle: $NSIS_BUNDLE"
 
       # Step: Test makensis binary (PowerShell on Windows)
       - name: Test makensis (PowerShell)
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          $BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
+          $BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
           echo "Running PowerShell binary: $BINARY_PATH"
           & "$BINARY_PATH" -VERSION
 
@@ -199,7 +194,7 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          set BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
+          set BINARY_PATH=${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}
           echo Running CMD binary: %BINARY_PATH%
           "%BINARY_PATH%" -VERSION
 
