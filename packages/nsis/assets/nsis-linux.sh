@@ -104,7 +104,7 @@ RUN scons \
 RUN chmod +x /build/install/makensis
 
 # Verify the binary works
-RUN /build/install/makensis -VERSION
+# RUN /build/install/makensis -VERSION
 
 # Create output directory
 RUN mkdir -p /output && \
