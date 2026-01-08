@@ -286,7 +286,7 @@ Unblock-File $Makensis
 Set-Location $ScriptDir
 
 Write-Host "Running makensis from: $Makensis"
-dumpbin /dependents $Makensis
+# dumpbin /dependents $Makensis
 $env:COMPLUS_LoadFromRemoteSources=1
 $env:NTDLL_LOG_LOADER=1
 # Run makensis safely with arguments
