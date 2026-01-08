@@ -132,6 +132,7 @@ jobs:
 
   test-nsis:
     runs-on: ${{ matrix.runner }}
+    needs: combine-artifacts
     strategy:
       matrix:
         include:
@@ -153,6 +154,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Download combined bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: nsis-bundle
+          path: packages/nsis/out
+
 
       - name: Set up environment
         run: |
