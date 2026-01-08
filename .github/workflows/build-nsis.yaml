@@ -140,7 +140,7 @@ jobs:
         include:
           - platform: Windows
             runner: windows-latest
-            binary: makensis.ps1
+            binary: windows\makensis.exe
           - platform: Windows
             runner: windows-latest
             binary: makensis.cmd
