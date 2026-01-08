@@ -8,16 +8,17 @@ PLATFORM="${1:-}"
 BINARY_PATH="${2:-}"
 BUNDLE_PATH="${3:-./nsis}"
 
-if [[ -z "$PLATFORM" || -z "$BINARY_PATH" ]]; then
-  echo "Usage: $0 <platform> <binary-path>"
-  echo "Example: $0 macOS-arm64 mac/arm64/makensis"
+if [[ -z "$PLATFORM" || -z "$BINARY_PATH" || -z "$BUNDLE_PATH" ]]; then
+  echo "Usage: $0 <platform> <binary-path> <bundle-path>"
+  echo "Example: $0 macOS-arm64 mac/arm64/makensis ./out/nsis"
   exit 1
 fi
 
 echo "🧪 Testing NSIS bundle"
 echo "Platform: $PLATFORM"
 echo "Binary:   $BINARY_PATH"
-echo
+echo "Bundle:   $BUNDLE_PATH"
+echo ""
 
 # ----------------------------------------
 # Step: Extract bundle
@@ -85,7 +86,7 @@ EOF
 echo "⚙️  Compiling test installer..."
 
 if [[ "$PLATFORM" == Windows* ]]; then
-  "./$BINARY_PATH" test.nsi
+  cmd.exe /c "./$BINARY_PATH" test.nsi
 else
   export NSISDIR="$(pwd)/share/nsis"
   "./$BINARY_PATH" test.nsi
