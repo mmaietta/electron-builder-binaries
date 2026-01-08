@@ -168,16 +168,28 @@ jobs:
         run: |
           BUNDLE_PATH="./packages/nsis/out/nsis"
           ls -lhR "$BUNDLE_PATH"
+          cd "$BUNDLE_PATH"
+          
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
-
-          # Convert to Windows path for CMD / PowerShell
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Convert to Windows path for CMD / PowerShell
             # GitHub Actions uses /d/... style; convert to D:\... style
             WIN_NSIS_BUNDLE=$(echo "$NSIS_BUNDLE" | sed -E 's#^/([a-zA-Z])/#\1:\\#; s#/#\\#g')
             echo "NSIS_BUNDLE=$WIN_NSIS_BUNDLE" >> $GITHUB_ENV
           else
             echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
           fi
+
+          shopt -s nullglob || true  # Enable nullglob on Unix shells
+          archives=( *complete*.tar.gz )
+
+          if [[ ${#archives[@]} -eq 0 ]]; then
+              echo "ERROR: no *complete*.tar.gz files found"
+              exit 1
+          fi
+
+          echo "Using archive: ${archives[0]}"
+          tar -xzf "${archives[0]}"
 
           echo "NSIS bundle: $NSIS_BUNDLE"
           if [ ! -d "$NSIS_BUNDLE" ]; then
