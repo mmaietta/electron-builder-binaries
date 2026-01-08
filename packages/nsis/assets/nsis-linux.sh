@@ -42,6 +42,8 @@ fi
 
 if [ ! -f "$BASE_ARCHIVE" ]; then
     echo "❌ Base bundle not found: $BASE_ARCHIVE"
+    echo "Contents:"
+    ls -l "$OUT_DIR"
     echo "   Run assets/nsis-windows.sh first to create the base bundle"
     exit 1
 fi
