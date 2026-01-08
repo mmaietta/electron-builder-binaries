@@ -243,6 +243,9 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
+          ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle"
+          ls "$env:GITHUB_WORKSPACE\packages\nsis\out\nsis\nsis-bundle\windows"
+
           $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE "packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
           Write-Host "Binary path: $BINARY_PATH"
           Unblock-File "$BINARY_PATH"
@@ -255,6 +258,8 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
+          ls "%GITHUB_WORKSPACE%\packages\nsis\out\nsis\nsis-bundle"
+
           set "BINARY_PATH=%GITHUB_WORKSPACE%\packages\nsis\out\nsis\nsis-bundle\${{ matrix.binary }}"
           if not exist "%BINARY_PATH%" (
               echo ERROR: Binary not found: %BINARY_PATH%
