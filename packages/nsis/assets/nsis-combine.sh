@@ -125,7 +125,7 @@ if [ -n "$MAC_BUNDLES" ]; then
         
         if [ -d "$TEMP_MAC/nsis-bundle/mac" ]; then
             # Check if this is first mac binary or additional architecture
-            cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/mac/$ARCH_NAME"
+            cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/mac/${mac_bundle##*/}"
             echo "  ✓ macOS binary added ($(basename "$mac_bundle"))"
         else
             echo "  ⚠️  macOS binary not found in $(basename "$mac_bundle")"

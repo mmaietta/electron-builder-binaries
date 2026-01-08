@@ -191,7 +191,17 @@ jobs:
         shell: bash
         run: |
           cd bundle
-          tar -xzf *.tar.gz
+          ls -la
+          shopt -s nullglob
+          archives=( *.tar.gz )
+
+          if (( ${#archives[@]} == 0 )); then
+            echo "ERROR: no .tar.gz files found"
+            exit 1
+          fi
+
+          tar -xzf "${archives[0]}"
+          # tar -xzf *.tar.gz --- IGNORE ---
           ls -la
 
       - name: Test makensis binary
