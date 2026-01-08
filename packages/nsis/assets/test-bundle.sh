@@ -95,11 +95,11 @@ fi
 # ----------------------------------------
 # Step: Verify output
 # ----------------------------------------
-echo "✅ Verifying output..."
+echo "✅ Verifying output files..."
+ls -al
 
 if [[ -f test-installer.exe ]]; then
   echo "✅ Test compilation successful!"
-  ls -lh test-installer.exe
 else
   echo "❌ Test compilation failed – no output file"
   exit 1
