@@ -43,7 +43,7 @@ cd $BUNDLE_PATH/nsis-bundle
 echo "🔍 Testing makensis binary..."
 
 if [[ "$PLATFORM" == Windows* ]]; then
-  "./$BINARY_PATH" -VERSION
+  cmd.exe /c "./$BINARY_PATH" -VERSION
 else
   chmod +x "./$BINARY_PATH"
   "./$BINARY_PATH" -VERSION
