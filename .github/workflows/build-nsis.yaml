@@ -167,6 +167,7 @@ jobs:
         shell: bash
         run: |
           BUNDLE_PATH="./packages/nsis/out/nsis"
+          ls -lhR "$BUNDLE_PATH"
           NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
 
           # Convert to Windows path for CMD / PowerShell
