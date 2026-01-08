@@ -88,7 +88,6 @@ echo "⚙️  Compiling test installer..."
 if [[ "$PLATFORM" == Windows* ]]; then
   cmd.exe /c "./$BINARY_PATH" test.nsi
 else
-  export NSISDIR="$(pwd)/share/nsis"
   "./$BINARY_PATH" test.nsi
 fi
 

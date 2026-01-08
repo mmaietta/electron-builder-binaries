@@ -19,8 +19,8 @@ ASSETS_DIR="$SCRIPT_DIR/assets"
 OUT_DIR="$SCRIPT_DIR/out"
 
 # Build configuration
-export NSIS_VERSION="${NSIS_VERSION:-3.11}"
-export NSIS_BRANCH_OR_COMMIT="${NSIS_BRANCH_OR_COMMIT:-v311}"
+export NSIS_VERSION="3.11"
+export NSIS_BRANCH_OR_COMMIT="v311"
 
 # Detect current OS
 OS_TYPE=${TARGET:-$(uname -s | tr '[:upper:]' '[:lower:]')}
@@ -51,52 +51,18 @@ print_banner() {
 build_base() {
     echo "📦 Building base bundle (Windows + plugins)..."
     echo ""
-    
-    if [ ! -f "$ASSETS_DIR/nsis-windows.sh" ]; then
-        echo "❌ Missing nsis-windows.sh"
-        exit 1
-    fi
-    
     bash "$ASSETS_DIR/nsis-windows.sh"
 }
 
 build_linux() {
     echo "🐧 Building Linux binary..."
     echo ""
-    
-    # Check if base exists
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
-    if [ ! -f "$base_bundle" ]; then
-        echo "⚠️  Base bundle not found, building it first..."
-        build_base
-        echo ""
-    fi
-    
-    if [ ! -f "$ASSETS_DIR/nsis-linux.sh" ]; then
-        echo "❌ Missing nsis-linux.sh"
-        exit 1
-    fi
-    
     bash "$ASSETS_DIR/nsis-linux.sh"
 }
 
 build_mac() {
     echo "🍎 Building macOS binary..."
     echo ""
-    
-    # Check if base exists
-    local base_bundle="$OUT_DIR/nsis/nsis-bundle-base-$NSIS_BRANCH_OR_COMMIT.tar.gz"
-    if [ ! -f "$base_bundle" ]; then
-        echo "⚠️  Base bundle not found, building it first..."
-        build_base
-        echo ""
-    fi
-    
-    if [ ! -f "$ASSETS_DIR/nsis-mac.sh" ]; then
-        echo "❌ Missing nsis-mac.sh"
-        exit 1
-    fi
-    
     bash "$ASSETS_DIR/nsis-mac.sh"
 }
 
@@ -106,6 +72,12 @@ build_all() {
     build_base
     build_mac
     build_linux
+}
+
+combine() {
+    echo "🔗 Combining builds..."
+    echo ""
+    bash "$ASSETS_DIR/nsis-combine.sh"
 }
 
 verify_builds() {
@@ -201,6 +173,9 @@ case "$BUILD_TARGET" in
         ;;
     mac|macos|darwin)
         build_mac
+        ;;
+    combine)
+        combine
         ;;
     *)
         echo "❌ Unknown target: $BUILD_TARGET"
