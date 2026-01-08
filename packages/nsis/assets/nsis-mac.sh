@@ -19,8 +19,6 @@ BUILD_DIR="$OUT_DIR/build-mac"
 NSIS_VERSION=${NSIS_VERSION:-3.10}
 NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
 
-OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-mac-$NSIS_BRANCH.zip"
-
 # Detect architecture
 ARCH=$(uname -m)
 case "$ARCH" in
@@ -28,6 +26,8 @@ case "$ARCH" in
     arm64) ARCH_NAME="arm64" ;;
     *) ARCH_NAME="$ARCH" ;;
 esac
+
+OUTPUT_ARCHIVE="$OUT_DIR/nsis-bundle-mac-$ARCH_NAME-$NSIS_BRANCH.tar.gz"
 
 echo "🍎 Building native macOS makensis binary..."
 echo "   Version:      $NSIS_VERSION"
@@ -197,7 +197,7 @@ echo ""
 echo "📦 Creating macOS bundle archive..."
 
 cd "$TEMP_DIR"
-tar -czf "${OUTPUT_ARCHIVE%.zip}.tar.gz" nsis-bundle
+tar -czf "${OUTPUT_ARCHIVE}" nsis-bundle
 
 # =============================================================================
 # Cleanup

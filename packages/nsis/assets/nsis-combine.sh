@@ -103,6 +103,7 @@ if [ -n "$LINUX_BUNDLE" ]; then
         echo "  ✓ Linux binary added"
     else
         echo "  ⚠️  Linux binary not found in bundle"
+        exit 1
     fi
     
     rm -rf "$TEMP_LINUX"
@@ -124,17 +125,11 @@ if [ -n "$MAC_BUNDLES" ]; then
         
         if [ -d "$TEMP_MAC/nsis-bundle/mac" ]; then
             # Check if this is first mac binary or additional architecture
-            if [ ! -d "$BUILD_DIR/nsis-bundle/mac" ]; then
-                # First mac binary - copy directly
-                cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/"
-                echo "  ✓ macOS binary added ($(basename "$mac_bundle"))"
-            else
-                # Additional architecture - merge
-                cp -r "$TEMP_MAC/nsis-bundle/mac"/* "$BUILD_DIR/nsis-bundle/mac/"
-                echo "  ✓ macOS binary merged ($(basename "$mac_bundle"))"
-            fi
+            cp -r "$TEMP_MAC/nsis-bundle/mac" "$BUILD_DIR/nsis-bundle/mac/$ARCH_NAME"
+            echo "  ✓ macOS binary added ($(basename "$mac_bundle"))"
         else
             echo "  ⚠️  macOS binary not found in $(basename "$mac_bundle")"
+            exit 1
         fi
         
         rm -rf "$TEMP_MAC"
