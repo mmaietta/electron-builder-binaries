@@ -5,10 +5,11 @@ set -e
 # Builds FFmpeg binaries compatible with Electron for multiple platforms
 # Uses native macOS builds when running on macOS, Docker Buildx for other platforms
 
-FFMPEG_VERSION="6.1"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-OUTPUT_DIR="${SCRIPT_DIR}/ffmpeg-builds"
-DIST_DIR="${SCRIPT_DIR}/out/ffmpeg"
+FFMPEG_VERSION="8.0.1"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${ROOT}/build"
+OUTPUT_DIR="${SCRIPT_DIR}/ffmpeg"
+DIST_DIR="${ROOT}/out/ffmpeg"
 
 # Emoji output
 log_info() { echo "ℹ️  $1"; }
@@ -47,11 +48,14 @@ create_dockerfile_linux() {
     log_info "Creating Linux Dockerfile..."
     
     cat > "$dockerfile_path" <<'EOF'
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS builder
 
 ARG TARGETARCH
+ARG TARGETOS=linux
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TARGETOS=${TARGETOS}
+ENV TARGETARCH=${TARGETARCH}
 
 # Install base dependencies
 RUN apt-get update && apt-get install -y \
@@ -73,6 +77,15 @@ WORKDIR /build
 
 COPY build-ffmpeg-docker.sh /build/build-ffmpeg.sh
 RUN chmod +x /build/build-ffmpeg.sh
+
+ARG FFMPEG_VERSION
+ENV FFMPEG_VERSION=${FFMPEG_VERSION}
+# Run the build script during image build
+RUN /build/build-ffmpeg.sh
+
+# Export stage - only contains output files
+FROM scratch AS export
+COPY --from=builder /build/output /
 EOF
 }
 
@@ -83,9 +96,14 @@ create_dockerfile_windows() {
     log_info "Creating Windows cross-compilation Dockerfile..."
     
     cat > "$dockerfile_path" <<'EOF'
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS builder
+
+ARG TARGETOS=windows
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TARGETOS=${TARGETOS}
+ENV TARGETARCH=${TARGETARCH}
 
 # Install base dependencies and MinGW for Windows cross-compilation
 RUN apt-get update && apt-get install -y \
@@ -108,6 +126,16 @@ WORKDIR /build
 
 COPY build-ffmpeg-docker.sh /build/build-ffmpeg.sh
 RUN chmod +x /build/build-ffmpeg.sh
+
+ARG FFMPEG_VERSION
+ENV FFMPEG_VERSION=${FFMPEG_VERSION}
+
+# Run the build script during image build
+RUN /build/build-ffmpeg.sh
+
+# Export stage - only contains output files
+FROM scratch AS export
+COPY --from=builder /build/output /
 EOF
 }
 
@@ -186,6 +214,7 @@ case "${TARGETOS}" in
                     --target-os=mingw32 \
                     --enable-cross-compile \
                     --cross-prefix=x86_64-w64-mingw32- \
+                    --disable-schannel \
                     --extra-cflags="-static" \
                     --extra-ldflags="-static" \
                     --pkg-config-flags=--static
@@ -261,7 +290,7 @@ fi
 cd "ffmpeg-${FFMPEG_VERSION}"
 
 # Determine architecture
-if [ "$TARGET_ARCH" = "x86_64" ]; then
+if [ "$TARGET_ARCH" = "x64" ]; then
     ARCH_FLAGS="--arch=x86_64"
     MACOS_MIN_VERSION="10.13"
 elif [ "$TARGET_ARCH" = "arm64" ]; then
@@ -404,25 +433,16 @@ build_docker_platform() {
             ;;
     esac
     
-    # Build with buildx
+    # Build with buildx - the build script runs during image build now
+    log_info "Building and compiling FFmpeg in one step..."
     docker buildx build \
         --platform "$docker_platform" \
         $build_args \
         --build-arg FFMPEG_VERSION="${FFMPEG_VERSION}" \
-        --load \
-        -t "$image_name" \
+        --target export \
+        --output "type=local,dest=${OUTPUT_DIR}/${output_name}" \
         -f "${SCRIPT_DIR}/${dockerfile}" \
         "${SCRIPT_DIR}"
-    
-    # Run the build script inside the container
-    docker run --rm \
-        --platform "$docker_platform" \
-        -v "${OUTPUT_DIR}/${output_name}:/build/output" \
-        -e FFMPEG_VERSION="${FFMPEG_VERSION}" \
-        -e TARGETOS="$(echo $platform | cut -d'/' -f1)" \
-        -e TARGETARCH="$(echo $platform | cut -d'/' -f2)" \
-        "$image_name" \
-        /bin/bash -c "/build/build-ffmpeg.sh"
     
     # Verify output
     if [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg" ] || [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg.exe" ]; then
@@ -479,6 +499,58 @@ cleanup_temp() {
     rm -rf "${SCRIPT_DIR}"/build-temp-*
 }
 
+# Clean all build artifacts and caches
+clean_all() {
+    log_info "🧹 Cleaning all build directories and artifacts..."
+    
+    # Remove output directories
+    if [ -d "${OUTPUT_DIR}" ]; then
+        log_info "Removing ${OUTPUT_DIR}..."
+        rm -rf "${OUTPUT_DIR}"
+    fi
+    
+    if [ -d "${DIST_DIR}" ]; then
+        log_info "Removing ${DIST_DIR}..."
+        rm -rf "${DIST_DIR}"
+    fi
+    
+    # Remove temp build directories
+    if ls "${SCRIPT_DIR}"/build-temp-* 1> /dev/null 2>&1; then
+        log_info "Removing temporary build directories..."
+        rm -rf "${SCRIPT_DIR}"/build-temp-*
+    fi
+    
+    # Remove generated Dockerfiles
+    if [ -f "${SCRIPT_DIR}/Dockerfile.linux" ]; then
+        log_info "Removing Dockerfile.linux..."
+        rm -f "${SCRIPT_DIR}/Dockerfile.linux"
+    fi
+    
+    if [ -f "${SCRIPT_DIR}/Dockerfile.windows" ]; then
+        log_info "Removing Dockerfile.windows..."
+        rm -f "${SCRIPT_DIR}/Dockerfile.windows"
+    fi
+    
+    # Remove build scripts
+    if [ -f "${SCRIPT_DIR}/build-ffmpeg-docker.sh" ]; then
+        log_info "Removing build-ffmpeg-docker.sh..."
+        rm -f "${SCRIPT_DIR}/build-ffmpeg-docker.sh"
+    fi
+    
+    if [ -f "${SCRIPT_DIR}/build-ffmpeg-macos.sh" ]; then
+        log_info "Removing build-ffmpeg-macos.sh..."
+        rm -f "${SCRIPT_DIR}/build-ffmpeg-macos.sh"
+    fi
+    
+    # Remove Docker buildx cache if it exists
+    if [ -d "${SCRIPT_DIR}/.buildx-cache" ]; then
+        log_info "Removing Docker buildx cache..."
+        rm -rf "${SCRIPT_DIR}/.buildx-cache"
+    fi
+    
+    log_success "Clean complete!"
+}
+
 # Main function
 main() {
     log_info "🎬 FFmpeg Cross-Compilation Script for Electron"
@@ -487,8 +559,15 @@ main() {
     # Detect host platform
     detect_host_platform
     
-    # Create output directory
+    # Handle clean command
+    if [[ " $* " =~ " --clean " ]]; then
+        clean_all
+        exit 0
+    fi
+    
+    # Create output directories
     mkdir -p "$OUTPUT_DIR"
+    mkdir -p "$DIST_DIR"
     
     # Parse arguments
     local platforms=()
@@ -503,6 +582,9 @@ main() {
                 ;;
             --cleanup)
                 cleanup_temp_dirs=true
+                ;;
+            --clean)
+                # Handled earlier in main()
                 ;;
             --all)
                 platforms=("linux-x64" "linux-arm64" "windows-x64" "macos-x64" "macos-arm64")
@@ -606,14 +688,14 @@ main() {
     log_info "🎉 Build process complete!"
     log_info "📁 Binaries are in: ${OUTPUT_DIR}"
     
-    mkdir -p "$DIST_DIR"
+    # Show summary
     echo ""
     log_info "📊 Build Summary:"
     for platform in "${platforms[@]}"; do
         local output_name="$platform"
         
         if [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg" ] || [ -f "${OUTPUT_DIR}/${output_name}/bin/ffmpeg.exe" ]; then
-            cp -r "${OUTPUT_DIR}/${output_name}/bin" "${DIST_DIR}/${output_name}/bin"
+            cp -r "${OUTPUT_DIR}/${output_name}/bin" "${DIST_DIR}/${output_name}"
             echo "  ✅ ${output_name}"
         elif [[ " ${skipped_builds[@]} " =~ " ${platform} " ]]; then
             echo "  ⏭️  ${output_name} (skipped - requires macOS host)"
