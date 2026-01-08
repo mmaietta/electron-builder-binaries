@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -exuo pipefail
 
 # ----------------------------------------
 # Args (simulate matrix)
@@ -95,7 +95,7 @@ fi
 # Step: Verify output
 # ----------------------------------------
 echo "✅ Verifying output files..."
-ls -alR
+ls -l
 
 if [[ -f test-installer.exe ]]; then
   echo "✅ Test compilation successful!"
