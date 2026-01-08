@@ -211,6 +211,7 @@ jobs:
           echo "✅ NSIS bundle ready at $NSIS_BUNDLE"
 
       - name: Create test NSIS script
+        shell: bash
         run: |
           cat > test.nsi << 'EOF'
           !include "MUI2.nsh"
