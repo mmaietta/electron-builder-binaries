@@ -218,6 +218,69 @@ chmod +x "$BUILD_DIR/nsis-bundle/makensis"
 echo "  ✓ Created universal makensis wrapper"
 
 # =============================================================================
+# Create Windows CMD Entrypoint
+# =============================================================================
+
+echo ""
+echo "🪟 Creating Windows CMD entrypoint..."
+
+cat > "$BUILD_DIR/nsis-bundle/makensis.cmd" <<'EOF'
+@echo off
+setlocal ENABLEEXTENSIONS
+
+REM =============================================================
+REM NSIS Windows CMD Entrypoint
+REM =============================================================
+REM Sets NSISDIR and forwards all arguments to makensis.exe
+REM Suitable for Node.js execSync({ shell: false })
+REM =============================================================
+
+REM Determine directory of this script
+set SCRIPT_DIR=%~dp0
+REM Remove trailing backslash
+set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
+
+REM Set NSISDIR if not already defined
+if not defined NSISDIR (
+  set NSISDIR=%SCRIPT_DIR%\share\nsis
+)
+
+REM Execute makensis
+"%SCRIPT_DIR%\windows\makensis.exe" %*
+set EXITCODE=%ERRORLEVEL%
+
+endlocal & exit /b %EXITCODE%
+EOF
+
+echo "  ✓ makensis.cmd created"
+
+# =============================================================================
+# Create Windows PowerShell Entrypoint
+# =============================================================================
+
+echo ""
+echo "🪟 Creating Windows PowerShell entrypoint..."
+
+cat > "$BUILD_DIR/nsis-bundle/makensis.ps1" <<'EOF'
+# =============================================================
+# NSIS Windows PowerShell Entrypoint
+# =============================================================
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+if (-not $env:NSISDIR) {
+  $env:NSISDIR = Join-Path $ScriptDir "share\nsis"
+}
+
+$Makensis = Join-Path $ScriptDir "windows\makensis.exe"
+
+& $Makensis @args
+exit $LASTEXITCODE
+EOF
+
+echo "  ✓ makensis.ps1 created"
+
+# =============================================================================
 # Create README
 # =============================================================================
 
@@ -244,7 +307,14 @@ This bundle contains NSIS (Nullsoft Scriptable Install System) binaries for mult
 The wrapper automatically detects your platform and sets \`NSISDIR\`:
 
 \`\`\`bash
+# Linux/macOS/Git Bash
 ./makensis your-script.nsi
+
+# Windows CMD
+makensis.cmd your-script.nsi
+
+# Windows PowerShell
+.\makensis.ps1 your-script.nsi
 \`\`\`
 
 ### Option 2: Use Platform-Specific Binary
@@ -389,7 +459,7 @@ fi
 
 echo "  ✓ Complete NSIS data"
 echo "  ✓ 8 community plugins"
-echo "  ✓ Universal entrypoint wrapper"
+echo "  ✓ Universal entrypoint wrappers (bash, CMD, PowerShell)"
 echo "  ✓ Language file patches"
 echo ""
 

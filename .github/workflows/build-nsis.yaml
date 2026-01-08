@@ -154,16 +154,16 @@ jobs:
         include:
           - platform: Windows
             runner: windows-latest
-            binary: windows/makensis.exe
+            binary: makensis.cmd
           - platform: Linux
             runner: ubuntu-latest
-            binary: linux/makensis
+            binary: makensis
           - platform: macOS-x64
             runner: macos-15-intel
-            binary: mac/x64/makensis
+            binary: makensis
           - platform: macOS-arm64
             runner: macos-15
-            binary: mac/arm64/makensis
+            binary: makensis
     steps:
 
       - name: Checkout repository
@@ -183,5 +183,5 @@ jobs:
       - name: Run tests
         shell: bash
         run: |
-          bash ./assets/test-bundle.sh "${{ matrix.platform }}" makensis `pwd`/out/nsis
+          bash ./assets/test-bundle.sh "${{ matrix.platform }}" "${{ matrix.binary }}" "`pwd`/out/nsis"
         working-directory: packages/nsis
