@@ -176,13 +176,15 @@ jobs:
           echo "Using archive: ${archives[0]}"
           tar -xzf "${archives[0]}"
           echo "NSIS bundle extracted to $NSIS_BUNDLE"
+          echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
+        shell: bash
 
       # Step: Test makensis binary (PowerShell on Windows)
       - name: Test makensis (PowerShell)
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
           echo "Running PowerShell binary: $BINARY_PATH"
           & "$BINARY_PATH" -VERSION
 
@@ -191,7 +193,7 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          BINARY_PATH="%NSIS_BUNDLE%\${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
           echo Running CMD binary: %BINARY_PATH%
           "%BINARY_PATH%" -VERSION
 
@@ -200,7 +202,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
           chmod +x "$BINARY_PATH"
           "$BINARY_PATH" -VERSION
 
@@ -236,7 +238,7 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
         shell: pwsh
         run: |
-          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
           & "$BINARY_PATH" test.nsi
 
       # Step: Compile installer (CMD)
@@ -244,7 +246,7 @@ jobs:
         if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
         shell: cmd
         run: |
-          BINARY_PATH="%NSIS_BUNDLE%\${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
           "%BINARY_PATH%" test.nsi
 
       # Step: Compile installer (Linux/macOS)
@@ -252,7 +254,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BINARY_PATH="$NSIS_BUNDLE/${{ matrix.binary }}"
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
           chmod +x "$BINARY_PATH"
           "$BINARY_PATH" test.nsi
 
