@@ -44,7 +44,8 @@ trap cleanup EXIT INT TERM
 # =============================================================================
 
 echo "📝 Creating Dockerfile..."
-cat > "$BASEDIR/assets/Dockerfile" <<'DOCKERFILE_END'
+mkdir -p "$BASEDIR/build"
+cat > "$BASEDIR/build/Dockerfile" <<'DOCKERFILE_END'
 FROM ubuntu:22.04 AS builder
 
 ARG NSIS_BRANCH_OR_COMMIT=v311
@@ -65,6 +66,7 @@ RUN apt-get update && apt-get install -y \
     p7zip-full \
     python3 \
     python3-pip \
+    zip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -164,7 +166,8 @@ RUN echo "NSIS Version: ${NSIS_BRANCH_OR_COMMIT}" > nsis-bundle/linux/VERSION.tx
     echo "Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> nsis-bundle/linux/VERSION.txt
 
 # Package bundle
-RUN cd /out && zip -r9q nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip nsis-bundle
+WORKDIR /out
+RUN zip -r9q nsis-bundle-linux-${NSIS_BRANCH_OR_COMMIT}.zip nsis-bundle
 
 # Final stage - just the output
 FROM scratch AS output
@@ -181,10 +184,10 @@ docker buildx build \
     --build-arg NSIS_BRANCH_OR_COMMIT="$NSIS_BRANCH_OR_COMMIT" \
     --build-arg NSIS_SHA256="$NSIS_SHA256" \
     --build-arg ZLIB_VERSION="$ZLIB_VERSION" \
-    --output type=local,dest="$BASEDIR/out" \
+    --output type=local,dest="$BASEDIR/out/nsis" \
     --progress=plain \
     --tag "$IMAGE_NAME" \
-    -f "$BASEDIR/assets/Dockerfile" \
+    -f "$BASEDIR/build/Dockerfile" \
     "$BASEDIR"
 
 echo "✅ Build artifacts extracted to: $BASEDIR/out/"
