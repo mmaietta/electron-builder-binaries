@@ -174,8 +174,8 @@ jobs:
       - name: Extract bundle
         shell: bash
         run: |
+          ls -lRh
           cd bundle
-          ls -la
           shopt -s nullglob
           archives=( *.tar.gz )
 
@@ -186,7 +186,7 @@ jobs:
 
           tar -xzf "${archives[0]}"
           # tar -xzf *.tar.gz --- IGNORE ---
-          ls -la
+          ls -lRh
 
       - name: Test makensis binary
         shell: bash
