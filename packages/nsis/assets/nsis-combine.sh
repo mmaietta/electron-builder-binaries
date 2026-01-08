@@ -285,7 +285,7 @@ Unblock-File $Makensis
 # Change working directory to script dir
 Set-Location $ScriptDir
 
-Print-Host "Running makensis from: $Makensis"
+Write-Host "Running makensis from: $Makensis"
 dumpbin /dependents $Makensis
 $env:COMPLUS_LoadFromRemoteSources=1
 $env:NTDLL_LOG_LOADER=1
