@@ -16,8 +16,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-OUT_DIR="$BASE_DIR/out"
-TEMPLATE_DIR="$OUT_DIR/electron-runtime-template"
+BUILD_DIR="$BASE_DIR/build"
+TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
+OUT_DIR="$BASE_DIR/out/snap-template"
 
 IMAGE_NAME="electron-core24-runtime-builder"
 BUILDER_NAME="electron-runtime-builder"
@@ -44,8 +45,8 @@ fi
 # Setup
 # =============================================================================
 
-mkdir -p "$OUT_DIR"
-rm -rf "$TEMPLATE_DIR"
+rm -rf "$TEMPLATE_DIR" "$BUILD_DIR" "$OUT_DIR"
+mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
 # Ensure buildx builder exists
 if ! docker buildx inspect "$BUILDER_NAME" >/dev/null 2>&1; then
@@ -61,7 +62,7 @@ docker buildx inspect --bootstrap >/dev/null
 # Create Dockerfile
 # =============================================================================
 
-DOCKERFILE="$OUT_DIR/Dockerfile.electron-runtime"
+DOCKERFILE="$BUILD_DIR/Dockerfile.electron-runtime"
 
 echo "📝 Writing Dockerfile..."
 
@@ -106,7 +107,9 @@ RUN set -eux; \
     OUT="/out/usr/lib/$ARCH"; \
     mkdir -p "$OUT/nss"; \
     \
-    # Core NSS libs (always present)
+    # ------------------------------------------------------------------
+    # Core NSS shared libraries (always present)
+    # ------------------------------------------------------------------
     cp -av /usr/lib/$ARCH/libnspr4.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libnss3.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libnssutil3.so "$OUT/"; \
@@ -115,22 +118,31 @@ RUN set -eux; \
     cp -av /usr/lib/$ARCH/libsmime3.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libssl3.so "$OUT/"; \
     \
-    # FreeBL modules (location varies)
-    for lib in libfreebl3.so libfreeblpriv3.so; do \
-      if [ -f "/usr/lib/$ARCH/$lib" ]; then \
-        cp -av "/usr/lib/$ARCH/$lib" "$OUT/nss/"; \
-      elif [ -f "/usr/lib/$ARCH/nss/$lib" ]; then \
-        cp -av "/usr/lib/$ARCH/nss/$lib" "$OUT/nss/"; \
-      fi; \
+    # ------------------------------------------------------------------
+    # NSS runtime modules + integrity (.chk) files
+    # Location varies on core24, so probe both paths
+    # ------------------------------------------------------------------
+    for name in \
+        libfreebl3 \
+        libfreeblpriv3 \
+        libsoftokn3 \
+        libnssckbi \
+        libnssdbm3; do \
+      for dir in "/usr/lib/$ARCH" "/usr/lib/$ARCH/nss"; do \
+        [ -f "$dir/$name.so" ]  && cp -av "$dir/$name.so"  "$OUT/nss/"; \
+        [ -f "$dir/$name.chk" ] && cp -av "$dir/$name.chk" "$OUT/nss/"; \
+      done; \
     done; \
     \
-    # Create expected Electron symlinks if modules exist
-    if [ -f "$OUT/nss/libfreebl3.so" ]; then \
+    # ------------------------------------------------------------------
+    # Historical Electron symlinks (only if targets exist)
+    # ------------------------------------------------------------------
+    [ -f "$OUT/nss/libfreebl3.so" ] && \
       ln -sf nss/libfreebl3.so "$OUT/libfreebl3.so"; \
-    fi; \
-    if [ -f "$OUT/nss/libfreeblpriv3.so" ]; then \
-      ln -sf nss/libfreeblpriv3.so "$OUT/libfreeblpriv3.so"; \
-    fi
+    \
+    [ -f "$OUT/nss/libfreeblpriv3.so" ] && \
+      ln -sf nss/libfreeblpriv3.so "$OUT/libfreeblpriv3.so";
+
 
 FROM scratch
 COPY --from=0 /out /
@@ -149,9 +161,21 @@ echo ""
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --output type=local,dest="$TEMPLATE_DIR" \
-  --progress=plain \
   -f "$DOCKERFILE" \
-  "$OUT_DIR"
+  "$BUILD_DIR"
+
+tree -a "$TEMPLATE_DIR" || find "$TEMPLATE_DIR" -ls
+
+# =============================================================================
+# Package into tar.gz
+# =============================================================================
+TARFILE="$OUT_DIR/electron-core24-runtime-template.tar.gz"
+(
+    cd "$BUILD_DIR" || exit 1
+    echo ""
+    echo "📦 Packaging runtime template: $TARFILE"
+    tar -czf "$TARFILE" "$(basename "$TEMPLATE_DIR")"
+)
 
 # =============================================================================
 # Cleanup
@@ -169,6 +193,7 @@ echo "  ✅ Electron core24 Runtime Templates Built"
 echo "================================================================"
 echo "  📁 Output directory:"
 echo "     $TEMPLATE_DIR"
+echo "     $TARFILE"
 echo ""
 echo "  📦 Architectures:"
 echo "     - amd64 (x86_64-linux-gnu)"
