@@ -2,15 +2,19 @@
 set -euo pipefail
 
 # =============================================================================
-# Main Build Script - Electron core24 Runtime Templates (Docker)
+# Main Build Script - Electron Runtime Templates (Docker)
 # =============================================================================
 # Orchestrates building Electron runtime template bundles for Linux using Docker buildx
-#
-# Output:
-#   out/electron-runtime-template/
+# Supports core22 and core24 runtime templates and functional testing.
 #
 # Platforms:
 #   - Linux (amd64 + arm64) via Docker buildx
+#
+# Usage:
+#   ./build.sh all      # build core22 + core24 + tests
+#   ./build.sh core22   # build only core22
+#   ./build.sh core24   # build only core24
+#   ./build.sh test     # run functional tests only
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +26,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 print_banner() {
   echo ""
   echo "═══════════════════════════════════════════════════════════════"
-  echo "  Electron core22 + 24 Runtime Template Builder (Docker)"
+  echo "  Electron core22 + core24 Runtime Template Builder (Docker)"
   echo "═══════════════════════════════════════════════════════════════"
   echo "  Platforms:   Linux (amd64 + arm64)"
   echo "  Snap Base:   core22 + core24"
@@ -32,42 +36,87 @@ print_banner() {
 
 show_usage() {
   cat << EOF
-Usage: $0 [options]
+Usage: $0 [TARGET]
+
+Targets:
+  all      Build core22 + core24 runtime templates and run functional tests
+  core22   Build only core22 runtime template
+  core24   Build only core24 runtime template
+  test     Run functional tests only (requires built templates)
 
 Requirements:
   - Docker
   - Docker buildx enabled
 
 Output:
-  build/<core>
+  build/core22/electron-runtime-template/
+  build/core24/electron-runtime-template/
   out/*.tar.gz
 
 EOF
+}
+
+build_core22() {
+  echo ""
+  echo "🐧 Building core22 runtime template..."
+  bash "$SCRIPT_DIR/assets/build-core22.sh"
+}
+
+build_core24() {
+  echo ""
+  echo "🐧 Building core24 runtime template..."
+  bash "$SCRIPT_DIR/assets/build-core24.sh"
+}
+
+run_tests() {
+  echo ""
+  echo "🧪 Running functional tests..."
+  bash "$SCRIPT_DIR/assets/test.sh"
 }
 
 # =============================================================================
 # Main
 # =============================================================================
 
+BUILD_TARGET="${1:-all}"
+
 # Help
-BUILD_TARGET="${1:-}"
 if [[ "$BUILD_TARGET" == "-h" || "$BUILD_TARGET" == "--help" ]]; then
   show_usage
   exit 0
 fi
 
-# Banner
 print_banner
 
-echo "🧹 Cleaning previous builds..."
-rm -rf "$SCRIPT_DIR/out" "$SCRIPT_DIR/build"
+# Clean previous builds only if building
+if [[ "$BUILD_TARGET" != "test" ]]; then
+  echo "🧹 Cleaning previous builds..."
+  rm -rf "$SCRIPT_DIR/out" "$SCRIPT_DIR/build"
+fi
+
+# Execute build/test according to target
+case "$BUILD_TARGET" in
+  all)
+    build_core22
+    build_core24
+    run_tests
+    ;;
+  core22)
+    build_core22
+    ;;
+  core24)
+    build_core24
+    ;;
+  test)
+    run_tests
+    ;;
+  *)
+    echo "❌ Unknown target: $BUILD_TARGET"
+    show_usage
+    exit 1
+    ;;
+esac
 
 echo ""
-echo "🐧 Building Linux runtime templates (amd64 + arm64) via Docker..."
-echo ""
-bash "$SCRIPT_DIR/assets/build-core22.sh"
-bash "$SCRIPT_DIR/assets/build-core24.sh"
-
-echo ""
-echo "✅ Build complete!"
+echo "✅ Build script finished for target: $BUILD_TARGET"
 echo ""
