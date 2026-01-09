@@ -22,10 +22,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 print_banner() {
   echo ""
   echo "═══════════════════════════════════════════════════════════════"
-  echo "  Electron core24 Runtime Template Builder (Docker)"
+  echo "  Electron core22 + 24 Runtime Template Builder (Docker)"
   echo "═══════════════════════════════════════════════════════════════"
   echo "  Platforms:   Linux (amd64 + arm64)"
-  echo "  Snap Base:   core24"
+  echo "  Snap Base:   core22 + core24"
   echo "═══════════════════════════════════════════════════════════════"
   echo ""
 }
@@ -39,7 +39,7 @@ Requirements:
   - Docker buildx enabled
 
 Output:
-  build/electron-runtime-template/
+  build/<core>
   out/*.tar.gz
 
 EOF
@@ -59,9 +59,14 @@ fi
 # Banner
 print_banner
 
+echo "🧹 Cleaning previous builds..."
+rm -rf "$SCRIPT_DIR/out" "$SCRIPT_DIR/build"
+
+echo ""
 echo "🐧 Building Linux runtime templates (amd64 + arm64) via Docker..."
 echo ""
-bash "$SCRIPT_DIR/assets/build-linux.sh"
+bash "$SCRIPT_DIR/assets/build-core22.sh"
+bash "$SCRIPT_DIR/assets/build-core24.sh"
 
 echo ""
 echo "✅ Build complete!"

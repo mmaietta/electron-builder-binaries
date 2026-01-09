@@ -16,7 +16,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_DIR="$BASE_DIR/build"
+BUILD_DIR="$BASE_DIR/build/core24"
 TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
 OUT_DIR="$BASE_DIR/out/snap-template"
 
@@ -45,7 +45,7 @@ fi
 # Setup
 # =============================================================================
 
-rm -rf "$TEMPLATE_DIR" "$BUILD_DIR" "$OUT_DIR"
+rm -rf "$TEMPLATE_DIR" "$BUILD_DIR"
 mkdir -p "$BUILD_DIR" "$OUT_DIR"
 
 # Ensure buildx builder exists
