@@ -94,11 +94,10 @@ echo "📋 Copying Windows binaries..."
 # Copy Windows binaries - THIS IS THE KEY PART
 # Copy the ACTUAL makensis.exe and ALL its dependencies
 cp -r ${NSIS_EXTRACTED}/Bin/* "$BUNDLE_DIR/windows/"
-# cp ${NSIS_EXTRACTED}/*.dll "$BUNDLE_DIR/windows/" 2>/dev/null || true
-# cp ${NSIS_EXTRACTED}/nsisconf.nsh "$BUNDLE_DIR/windows/" 2>/dev/null || true
+cp ${NSIS_EXTRACTED}/*.dll "$BUNDLE_DIR/windows/" 2>/dev/null || true
+cp ${NSIS_EXTRACTED}/nsisconf.nsh "$BUNDLE_DIR/windows/" 2>/dev/null || true
 
 # Copy share directory (Contrib, Include, Plugins, Stubs)
-cp -r ${NSIS_EXTRACTED}/Bin "$BUNDLE_DIR/share/nsis/"
 cp -r ${NSIS_EXTRACTED}/Contrib "$BUNDLE_DIR/share/nsis/"
 cp -r ${NSIS_EXTRACTED}/Include "$BUNDLE_DIR/share/nsis/"
 cp -r ${NSIS_EXTRACTED}/Plugins "$BUNDLE_DIR/share/nsis/"
@@ -297,27 +296,6 @@ fi
 # Create Version Metadata
 # =============================================================================
 
-echo ""
-echo "📝 Creating version metadata..."
-
-cat > "$BUNDLE_DIR/VERSION.txt" <<EOF
-NSIS Base Bundle
-================
-NSIS Version: $NSIS_VERSION
-Branch/Tag: $NSIS_BRANCH
-Build Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-Source: SourceForge official release
-Plugins: $DOWNLOADED_COUNT additional plugins
-
-This is the base bundle containing:
-- Windows makensis.exe (official binary)
-- Complete NSIS data files (Contrib, Include, Plugins, Stubs)
-- Additional community plugins
-- Language file patches applied
-
-Platform-specific binaries (Linux, macOS) are added during bundle combination.
-EOF
-
 cat > "$BUNDLE_DIR/windows/VERSION.txt" <<EOF
 Platform: Windows
 Binary: makensis.exe (official pre-built)
@@ -357,9 +335,4 @@ if [ -d "$BUNDLE_DIR/share/nsis/Plugins" ]; then
 fi
 
 echo "================================================================"
-echo ""
-echo "📋 Archive contains:"
-echo "   windows/makensis.exe"
-echo "   share/nsis/ (complete NSIS data)"
-echo "   VERSION.txt"
 echo ""
