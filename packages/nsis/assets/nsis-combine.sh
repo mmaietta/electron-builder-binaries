@@ -233,11 +233,11 @@ REM Remove trailing backslash
 set SCRIPT_DIR=%SCRIPT_DIR:~0,-1%
 
 REM Set NSISDIR if not already defined
-REM if not defined NSISDIR (
+if not defined NSISDIR (
   set NSISDIR=%SCRIPT_DIR%\share\nsis
-REM )
+)
 
-REM Execute makensis
+REM Execute makensis.exe with all passed arguments
 "%SCRIPT_DIR%\windows\makensis.exe" %*
 set EXITCODE=%ERRORLEVEL%
 
@@ -267,26 +267,14 @@ if ($ScriptDir -match '^/([a-zA-Z])/(.*)') {
     $ScriptDir = "$($matches[1]):\$($matches[2] -replace '/', '\')"
 }
 
-# Instead of changing directory, use absolute paths
 $env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
 $Makensis = Join-Path $ScriptDir "windows" "makensis.exe"
-
 if (-not (Test-Path $Makensis)) {
     Write-Error "makensis.exe not found at: $Makensis"
     exit 1
 }
 
 Unblock-File $Makensis
-
-$env:COMPLUS_LoadFromRemoteSources=1
-$env:NTDLL_LOG_LOADER=1
-
-# Check if makensis.exe has all its dependencies
-Write-Host "Checking makensis.exe dependencies..."
-$windowsDir = Join-Path $ScriptDir "windows"
-Get-ChildItem $windowsDir | ForEach-Object { Write-Host "  - $($_.Name)" }
-
-# Run from current directory, not script directory
 & "$Makensis" @args
 
 # Exit with same code
@@ -392,44 +380,6 @@ NSIS Complete Bundle
 NSIS Version: $NSIS_VERSION
 Branch/Tag: $NSIS_BRANCH
 Bundle Date: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-Platforms Included:
--------------------
-EOF
-
-if [ -f "$BUILD_DIR/nsis-bundle/windows/makensis.exe" ]; then
-    echo "✓ Windows: windows/makensis.exe (official pre-built)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/linux/makensis" ]; then
-    echo "✓ Linux: linux/makensis (native ELF, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/mac/makensis" ]; then
-    echo "✓ macOS: mac/makensis (native Mach-O, compiled from source)" >> "$BUILD_DIR/nsis-bundle/VERSION.txt"
-fi
-
-cat >> "$BUILD_DIR/nsis-bundle/VERSION.txt" <<EOF
-
-Components:
------------
-✓ 8 community plugins installed
-✓ Complete NSIS data files (Contrib, Include, Plugins, Stubs)
-✓ Universal entrypoint wrapper (makensis)
-✓ Language file patches applied
-
-Usage:
-------
-./makensis your-script.nsi
-
-The wrapper automatically sets:
-  NSISDIR=\$(pwd)/share/nsis
-
-Or use platform-specific binary:
-  export NSISDIR="\$(pwd)/share/nsis"
-  ./windows/makensis.exe your-script.nsi
-  ./linux/makensis your-script.nsi
-  ./mac/arm64/makensis your-script.nsi
 EOF
 
 echo "  ✓ VERSION.txt updated"
@@ -460,25 +410,6 @@ echo "================================================================"
 echo "  📁 Archive: $OUT_DIR/$ARCHIVE_NAME"
 echo "  📊 Size:    $(du -h "$OUT_DIR/$ARCHIVE_NAME" | cut -f1)"
 echo "================================================================"
-echo ""
-echo "📋 Combined bundle contains:"
-
-if [ -f "$BUILD_DIR/nsis-bundle/windows/makensis.exe" ]; then
-    echo "  ✓ Windows binary"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/linux/makensis" ]; then
-    echo "  ✓ Linux binary"
-fi
-
-if [ -f "$BUILD_DIR/nsis-bundle/mac/makensis" ]; then
-    echo "  ✓ macOS binary"
-fi
-
-echo "  ✓ Complete NSIS data"
-echo "  ✓ 8 community plugins"
-echo "  ✓ Universal entrypoint wrappers (bash, CMD, PowerShell)"
-echo "  ✓ Language file patches"
 echo ""
 
 # =============================================================================
