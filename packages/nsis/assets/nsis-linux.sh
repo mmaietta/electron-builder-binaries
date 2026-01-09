@@ -14,8 +14,8 @@ BASE_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
 OUT_DIR="$BASE_DIR/out/nsis"
 
 # Version configuration
-NSIS_VERSION=${NSIS_VERSION:-3.10}
-NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
+NSIS_VERSION=${NSIS_VERSION:-3.11}
+NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v311}
 
 # Docker configuration
 IMAGE_NAME="nsis-linux-builder:${NSIS_BRANCH}"

@@ -14,8 +14,8 @@ OUT_DIR="${OUT_DIR:-$BASE_DIR/out/nsis}"
 BUILD_DIR="/tmp/nsis-bundle-combine"
 
 # Version info
-NSIS_VERSION=${NSIS_VERSION:-3.10}
-NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v310}
+NSIS_VERSION=${NSIS_VERSION:-3.11}
+NSIS_BRANCH=${NSIS_BRANCH_OR_COMMIT:-v311}
 
 echo "🔗 Combining NSIS bundles..."
 echo "   Version: $NSIS_VERSION"
@@ -77,6 +77,7 @@ echo ""
 echo "📦 Extracting base bundle..."
 mkdir -p "$BUILD_DIR"
 tar -xzf "$BASE_BUNDLE" -C "$BUILD_DIR"
+rm -f "$BASE_BUNDLE"
 
 if [ ! -d "$BUILD_DIR/nsis-bundle" ]; then
     echo "❌ Base bundle extraction failed - nsis-bundle directory not found"
@@ -106,7 +107,7 @@ if [ -n "$LINUX_BUNDLE" ]; then
         exit 1
     fi
     
-    rm -rf "$TEMP_LINUX"
+    rm -rf "$TEMP_LINUX" "$LINUX_BUNDLE"
 fi
 
 # =============================================================================
@@ -134,7 +135,7 @@ if [ -n "$MAC_BUNDLES" ]; then
             exit 1
         fi
         
-        rm -rf "$TEMP_MAC"
+        rm -rf "$TEMP_MAC" "$mac_bundle"
     done
 fi
 
@@ -315,7 +316,7 @@ This bundle contains NSIS (Nullsoft Scriptable Install System) binaries for mult
 - **Linux**: \`linux/makensis\` (native ELF binary, compiled from source)
 - **macOS**: \`mac/makensis\` (native Mach-O binary, compiled from source)
 - **NSIS Data**: \`share/nsis/\` (Contrib, Include, Plugins, Stubs)
-- **Universal Wrapper**: \`makensis\` (auto-detects platform)
+- **Universal Wrapper**: \`makensis\` (auto-detects platform, sets \`NSISDIR\`) [.cmd and .ps1 versions for Windows]
 
 ## Quick Start
 
@@ -440,7 +441,7 @@ echo "  ✓ VERSION.txt updated"
 echo ""
 echo "📦 Creating final tar.gz archive..."
 
-ARCHIVE_NAME="nsis-bundle-complete-$NSIS_BRANCH.tar.gz"
+ARCHIVE_NAME="nsis-bundle-$NSIS_VERSION.tar.gz"
 rm -f "$OUT_DIR/$ARCHIVE_NAME"
 
 (
