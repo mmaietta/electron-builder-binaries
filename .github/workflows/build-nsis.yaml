@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Install dependencies
         run: |
@@ -25,7 +25,7 @@ jobs:
         working-directory: ./packages/nsis
 
       - name: Upload base artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nsis-temp-base
           path: packages/nsis/out/**/*.tar.gz
@@ -46,7 +46,7 @@ jobs:
             arch: arm64
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Install dependencies
         run: |
@@ -59,7 +59,7 @@ jobs:
         working-directory: ./packages/nsis
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nsis-temp-macos-${{ matrix.arch }}
           path: packages/nsis/out/**/*.tar.gz
@@ -72,10 +72,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Build Linux binary
         run: bash ./build.sh linux
@@ -83,7 +83,7 @@ jobs:
         working-directory: ./packages/nsis
 
       - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nsis-temp-linux
           path: packages/nsis/out/**/*.tar.gz
@@ -97,10 +97,10 @@ jobs:
     needs: [base, mac, linux]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Download all NSIS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           pattern: nsis-temp-*
           path: packages/nsis/out
@@ -118,12 +118,12 @@ jobs:
         working-directory: ./packages/nsis
 
       - name: Delete intermediate artifacts
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b
         with:
           name: nsis-temp-*
 
       - name: Upload combined bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nsis-bundle
           path: packages/nsis/out/**/*.tar.gz
@@ -155,10 +155,10 @@ jobs:
             binary: makensis
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Download combined bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: nsis-bundle
           path: packages/nsis/out
