@@ -91,8 +91,17 @@ fi
 echo ""
 echo "📋 Copying Windows binaries..."
 
-cp "$NSIS_EXTRACTED/makensis.exe" "$BUNDLE_DIR/windows/makensis.exe"
-chmod +x "$BUNDLE_DIR/windows/makensis.exe"
+# Copy Windows binaries - THIS IS THE KEY PART
+# Copy the ACTUAL makensis.exe and ALL its dependencies
+cp ${NSIS_EXTRACTED}/makensis.exe "$BUNDLE_DIR/windows/"
+cp ${NSIS_EXTRACTED}/*.dll "$BUNDLE_DIR/windows/" 2>/dev/null || true
+cp ${NSIS_EXTRACTED}/nsisconf.nsh "$BUNDLE_DIR/windows/" 2>/dev/null || true
+
+# Copy share directory (Contrib, Include, Plugins, Stubs)
+cp -r ${NSIS_EXTRACTED}/Contrib "$BUNDLE_DIR/share/nsis/"
+cp -r ${NSIS_EXTRACTED}/Include "$BUNDLE_DIR/share/nsis/"
+cp -r ${NSIS_EXTRACTED}/Plugins "$BUNDLE_DIR/share/nsis/"
+cp -r ${NSIS_EXTRACTED}/Stubs "$BUNDLE_DIR/share/nsis/"
 
 echo "  ✓ Windows makensis.exe"
 

@@ -266,12 +266,8 @@ if ($ScriptDir -match '^/([a-zA-Z])/(.*)') {
     $ScriptDir = "$($matches[1]):\$($matches[2] -replace '/', '\')"
 }
 
-# Set NSISDIR if not set
-# if (-not $env:NSISDIR) {
-    $env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
-# }
-
-# Path to makensis.exe
+# Instead of changing directory, use absolute paths
+$env:NSISDIR = Join-Path $ScriptDir "share" "nsis"
 $Makensis = Join-Path $ScriptDir "windows" "makensis.exe"
 
 if (-not (Test-Path $Makensis)) {
@@ -279,22 +275,18 @@ if (-not (Test-Path $Makensis)) {
     exit 1
 }
 
-# Unblock makensis.exe in case it's blocked
 Unblock-File $Makensis
 
-# Change working directory to script dir
-Set-Location $ScriptDir
-
-Write-Host "Running makensis from: $Makensis"
-# dumpbin /dependents $Makensis
 $env:COMPLUS_LoadFromRemoteSources=1
 $env:NTDLL_LOG_LOADER=1
-# Run makensis safely with arguments
-if ($args.Count -gt 0) {
-    & "$Makensis" --% @args
-} else {
-    & "$Makensis"
-}
+
+# Check if makensis.exe has all its dependencies
+Write-Host "Checking makensis.exe dependencies..."
+$windowsDir = Join-Path $ScriptDir "windows"
+Get-ChildItem $windowsDir | ForEach-Object { Write-Host "  - $($_.Name)" }
+
+# Run from current directory, not script directory
+& "$Makensis" @args
 
 # Exit with same code
 exit $LASTEXITCODE
