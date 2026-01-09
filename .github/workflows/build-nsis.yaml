@@ -283,14 +283,3 @@ jobs:
               echo "❌ Test compilation failed – no output file"
               exit 1
           fi
-
-      - name: Check NSIS plugins
-        shell: bash
-        run: |
-          plugin_count="$(find ${{ env.NSIS_BUNDLE }}/share/nsis/Plugins -name "*.dll" 2>/dev/null | wc -l | tr -d ' ')"
-          echo "Found $plugin_count plugin DLLs"
-          if (( plugin_count < 20 )); then
-              echo "⚠️  Warning: Expected more plugins"
-          else
-              echo "✅ Plugin count looks good"
-          fi
