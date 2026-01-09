@@ -128,7 +128,7 @@ RUN unsquashfs -d /tmp/test-snap /tmp/template.snap && \\
             echo "🔹 Checking libraries in \$ARCH_DIR/nss"; \\
             for so in \$ARCH_DIR/nss/*.so; do \\
                 echo "  Testing: \$so"; \\
-                ldd \$so || echo "  ⚠ Could not resolve: \$so"; \\
+                ldd \$so || ( echo "  ⚠ Could not resolve: \$so"; exit 1; ); \\
             done; \\
             for chk in libfreebl3.chk libfreeblpriv3.chk libsoftokn3.chk libnssckbi.chk libnssdbm3.chk; do \\
                 if [ ! -f \$ARCH_DIR/nss/\$chk ]; then \\
@@ -148,6 +148,7 @@ RUN unsquashfs -d /tmp/test-snap /tmp/template.snap && \\
         \$ELECTRON_BIN --version || exit 1; \\
     else \\
         echo "⚠ Electron binary not found"; \\
+        exit 1; \\
     fi
 EOF
 
