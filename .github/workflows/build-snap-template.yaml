@@ -18,16 +18,19 @@ jobs:
           corepack enable
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Build snap-template for Linux
+      - name: Build snap-template for core22
         run: |
-          bash packages/snap-template/build.sh
+          bash packages/snap-template/build.sh core22
+      - name: Build snap-template for core24
+        run: |
+          bash packages/snap-template/build.sh core24
       - name: Run tests for snap-template
         run: |
-          bash packages/snap-template/assets/test.sh
+          bash packages/snap-template/build.sh test
       - name: Upload snap-templates artifact
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: snap-templates-linux
-          path: packages/snap-template/out
+          path: packages/snap-template/out/**/*.tar.gz
           if-no-files-found: error
           retention-days: 1
