@@ -65,6 +65,11 @@ jobs:
     uses: ./.github/workflows/build-ran.yaml
     needs: detect
 
+  nsis:
+    if: contains(needs.detect.outputs.matrix, '"nsis"')
+    uses: ./.github/workflows/build-nsis.yaml
+    needs: detect
+
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
 
@@ -75,6 +80,7 @@ jobs:
         win-codesign,
         appimage,
         ran,
+        nsis,
         # squirrel
       ]
     if: |
