@@ -1,103 +1,285 @@
-name: Build Makensis
+name: Build NSIS
 
 on:
   workflow_call:
   workflow_dispatch:
-    
+
 jobs:
-  nsis-unix:
-    runs-on: ${{ matrix.node }}
+  # Build base bundle (Windows binary + plugins + data)
+  base:
+    name: Build Base Bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip p7zip-full
+        shell: bash
+
+      - name: Build base bundle
+        run: bash ./build.sh windows
+        shell: bash
+        working-directory: ./packages/nsis
+
+      - name: Upload base artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-temp-base
+          path: packages/nsis/out/**/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  # Build native macOS binaries
+  mac:
+    name: Build macOS Binary (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        node: [ubuntu-latest, macos-latest]
+        include:
+          - runner: macos-15-intel
+            arch: x64
+          - runner: macos-15
+            arch: arm64
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { submodules: true }
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda
-        with: { version: 9.4.0 }
-
-      - name: Setup Node.js
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
-        with: { node-version: '22' }
+        uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: pnpm i --frozen-lockfile
-
-      - name: Build Makensis
-        run: bash packages/nsis/build.sh
+        run: |
+          brew install scons
         shell: bash
 
-      - name: Upload Makensis artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      - name: Build macOS binary
+        run: bash ./build.sh mac
+        shell: bash
+        working-directory: ./packages/nsis
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: makensis-artifacts-${{ matrix.node }}
-          path: packages/nsis/out
+          name: nsis-temp-macos-${{ matrix.arch }}
+          path: packages/nsis/out/**/*.tar.gz
           if-no-files-found: error
           retention-days: 1
 
-  nsis-windows:
-    runs-on: windows-2022
-    env:
-      DOTNET_NOLOGO: true
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-      DOTNET_CLI_TELEMETRY_OPTOUT: true
-      NUGET_XMLDOC_MODE: skip
-    steps:
-      - name: Enable Git long paths
-        run: git config --system core.longpaths true
-      
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { submodules: true }
-
-      - name: Install prereqs
-        run: .\packages\nsis\assets\nsis-windows-setup.ps1
-        shell: pwsh
-
-      - name: Build makensis.exe
-        run: .\packages\nsis\assets\nsis-windows.ps1
-        shell: pwsh
-      
-      - name: Upload Makensis artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        with:
-          name: makensis-artifacts-windows
-          path: packages/nsis/out/*/nsis-bundle-*.zip
-          if-no-files-found: error
-          retention-days: 1
-
-  combine-artifacts:
+  # Build native Linux binary using Docker
+  linux:
+    name: Build Linux Binary
     runs-on: ubuntu-latest
-    needs: [nsis-windows, nsis-unix]
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Linux binary
+        run: bash ./build.sh linux
+        shell: bash
+        working-directory: ./packages/nsis
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-temp-linux
+          path: packages/nsis/out/**/*.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  # Combine all artifacts into final bundle
+  combine-artifacts:
+    name: Combine All Bundles
+    runs-on: macos-latest
+    needs: [base, mac, linux]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { submodules: true }
+        uses: actions/checkout@v4
 
-      - name: Download all Makensis artifacts
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      - name: Download all NSIS artifacts
+        uses: actions/download-artifact@v4
         with:
-          pattern: makensis-artifacts-*
+          pattern: nsis-temp-*
           path: packages/nsis/out
           merge-multiple: true
 
-      - name: Combine Makensis artifacts
-        run: bash packages/nsis/assets/combine-makensis.sh
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -lhR packages/nsis/out
         shell: bash
 
-      - name: Delete all previous build stage artifacts
-        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
-        with:
-          name: makensis-artifacts-*
+      - name: Combine bundles
+        run: bash ./assets/nsis-combine.sh
+        shell: bash
+        working-directory: ./packages/nsis
 
-      - name: Upload combined artifact
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      - name: Delete intermediate artifacts
+        uses: geekyeggo/delete-artifact@v5
         with:
-          name: makensis-unified
+          name: nsis-temp-*
+
+      - name: Upload combined bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: nsis-bundle
+          path: packages/nsis/out/**/*.tar.gz
           if-no-files-found: error
+          retention-days: 30
+
+  test-nsis:
+    name: Test NSIS Bundle (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    needs: combine-artifacts
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            runner: windows-latest
+            binary: makensis.ps1
+          - platform: Windows
+            runner: windows-latest
+            binary: makensis.cmd
+          - platform: Linux
+            runner: ubuntu-latest
+            binary: makensis
+          - platform: macOS-x64
+            runner: macos-15-intel
+            binary: makensis
+          - platform: macOS-arm64
+            runner: macos-15
+            binary: makensis
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Download combined bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: nsis-bundle
           path: packages/nsis/out
-          retention-days: 1
+
+      - name: Find NSIS bundle
+        shell: bash
+        run: |
+          BUNDLE_PATH="./packages/nsis/out/nsis"
+          echo "Listing bundle folder:"
+          ls -lhR "$BUNDLE_PATH"
+
+          # Determine extraction target
+          NSIS_BUNDLE="$BUNDLE_PATH/nsis-bundle"
+          mkdir -p "$NSIS_BUNDLE"
+
+          # Convert path for Windows runners
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # GitHub Actions /d/... -> D:\...
+            WIN_NSIS_BUNDLE=$(echo "$NSIS_BUNDLE" | sed -E 's#^/([a-zA-Z])/#\1:\\#; s#/#\\#g')
+            echo "NSIS_BUNDLE=$WIN_NSIS_BUNDLE" >> $GITHUB_ENV
+          else
+            echo "NSIS_BUNDLE=$NSIS_BUNDLE" >> $GITHUB_ENV
+          fi
+
+          # Enable nullglob for pattern matching
+          shopt -s nullglob || true
+
+          # Find the archive
+          archives=( "$BUNDLE_PATH"/*.tar.gz )
+          if (( ${#archives[@]} == 0 )); then
+              echo "ERROR: no *.tar.gz files found in $BUNDLE_PATH"
+              exit 1
+          fi
+
+          echo "Using archive: ${archives[0]}"
+
+          # Extract into NSIS_BUNDLE folder explicitly
+          tar -xzf "${archives[0]}" -C "$BUNDLE_PATH"
+
+          # Verify contents
+          echo "Listing extracted files:"
+          ls -lh "$NSIS_BUNDLE/nsis-bundle" || ls -lh "$NSIS_BUNDLE"
+
+          # Final sanity check
+          if [ ! -d "$NSIS_BUNDLE" ]; then
+            echo "❌ NSIS bundle directory not found after extraction!"
+            exit 1
+          fi
+
+          echo "✅ NSIS bundle ready at $NSIS_BUNDLE"
+
+      - name: Create test NSIS script
+        shell: bash
+        run: |
+          cat > test.nsi << 'EOF'
+          !include "MUI2.nsh"
+
+          Name "Test Installer"
+          OutFile "test-installer.exe"
+          InstallDir "$PROGRAMFILES\TestApp"
+
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "Main"
+            SetOutPath "$INSTDIR"
+            WriteUninstaller "$INSTDIR\Uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            Delete "$INSTDIR\Uninstall.exe"
+            RMDir "$INSTDIR"
+          SectionEnd
+          EOF
+
+      # Step: Test makensis binary (PowerShell on Windows)
+      - name: Test makensis (PowerShell)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.ps1')
+        shell: pwsh
+        run: |
+          $BINARY_PATH = Join-Path $env:GITHUB_WORKSPACE ${{ env.NSIS_BUNDLE }} ${{ matrix.binary }}
+          if (-not (Test-Path $BINARY_PATH)) {
+              Write-Host "❌ makensis.exe not found!"
+              exit 1
+          }
+          Unblock-File "$BINARY_PATH"
+          & "$BINARY_PATH" -VERSION
+          & "$BINARY_PATH" "test.nsi"
+
+      # Step: Test makensis binary (CMD on Windows)
+      - name: Test makensis (CMD)
+        if: runner.os == 'Windows' && endsWith(matrix.binary, '.cmd')
+        shell: cmd
+        run: |
+          set "BINARY_PATH=%GITHUB_WORKSPACE%\${{ env.NSIS_BUNDLE }}\${{ matrix.binary }}"
+          if not exist "%BINARY_PATH%" (
+              echo ERROR: Binary not found: %BINARY_PATH%
+              exit /b 1
+          )
+          "%BINARY_PATH%" test.nsi
+
+      # Step: Test makensis binary (Linux/macOS)
+      - name: Test makensis (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BINARY_PATH="${{ env.NSIS_BUNDLE }}/${{ matrix.binary }}"
+          "$BINARY_PATH" -VERSION
+          "$BINARY_PATH" test.nsi
+
+      - name: Verify output installer
+        shell: bash
+        run: |
+          ls -l
+          if [[ -f test-installer.exe ]]; then
+              echo "Found installer"
+          else
+              echo "❌ Test compilation failed – no output file"
+              exit 1
+          fi
