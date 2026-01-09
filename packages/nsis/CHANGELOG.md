@@ -1,5 +1,11 @@
 # nsis
 
+## 5.0.0
+
+### Major Changes
+
+- [#81](https://github.com/mmaietta/electron-builder-binaries/pull/81) [`383b7f4`](https://github.com/mmaietta/electron-builder-binaries/commit/383b7f4b5970b584fa57eef913f9ebaa45d633f0) Thanks [@mmaietta](https://github.com/mmaietta)! - feat: upgrade makensis to 3.11
+
 ## 4.0.4
 
 ### Patch Changes
