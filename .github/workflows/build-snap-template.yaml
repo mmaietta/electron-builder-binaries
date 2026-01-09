@@ -1,4 +1,4 @@
-name: Build FPM
+name: Build Snap Template
 
 on:
   workflow_call:

@@ -40,7 +40,8 @@ if ! command -v snapcraft &> /dev/null; then
         fi
     else
         sudo apt-get update
-        sudo apt-get install -y snapcraft squashfs-tools
+        sudo apt-get install -y squashfs-tools snapd
+        snap install snapcraft --classic
     fi
 fi
 
