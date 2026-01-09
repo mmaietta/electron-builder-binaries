@@ -187,9 +187,9 @@ jobs:
           shopt -s nullglob || true
 
           # Find the archive
-          archives=( "$BUNDLE_PATH"/*complete*.tar.gz )
+          archives=( "$BUNDLE_PATH"/*.tar.gz )
           if (( ${#archives[@]} == 0 )); then
-              echo "ERROR: no *complete*.tar.gz files found in $BUNDLE_PATH"
+              echo "ERROR: no *.tar.gz files found in $BUNDLE_PATH"
               exit 1
           fi
 
