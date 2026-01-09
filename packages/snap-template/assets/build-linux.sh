@@ -86,24 +86,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Resolve multiarch directory
 ARG TARGETARCH
-RUN echo "Determining architecture for TARGETARCH=$TARGETARCH" \
-    case "$TARGETARCH" in \
-      amd64) echo x86_64-linux-gnu > /arch ;; \
-      arm64) echo aarch64-linux-gnu > /arch ;; \
-      *) echo "Unsupported arch: $TARGETARCH" && exit 1 ;; \
-    esac
+RUN set -eux; \
+    case "$(uname -m)" in \
+      x86_64) ARCH=x86_64-linux-gnu ;; \
+      aarch64) ARCH=aarch64-linux-gnu ;; \
+      *) echo "Unsupported arch" && exit 1 ;; \
+    esac; \
+    echo "$ARCH" > /arch
+
 
 # Assemble runtime template
 RUN set -eux; \
-    ARCH="$(cat /arch)"; \
+    case "$(uname -m)" in \
+      x86_64) ARCH=x86_64-linux-gnu ;; \
+      aarch64) ARCH=aarch64-linux-gnu ;; \
+      *) echo "Unsupported architecture" && exit 1 ;; \
+    esac; \
+    \
     OUT="/out/usr/lib/$ARCH"; \
     mkdir -p "$OUT/nss"; \
     \
-    cp -av /usr/lib/$ARCH/libappindicator3.so.* "$OUT/"; \
-    cp -av /usr/lib/$ARCH/libindicator3.so.* "$OUT/"; \
-    cp -av /usr/lib/$ARCH/libdbusmenu-glib.so.* "$OUT/"; \
-    cp -av /usr/lib/$ARCH/libdbusmenu-gtk3.so.* "$OUT/"; \
-    cp -av /usr/lib/$ARCH/libXss.so.* "$OUT/"; \
+    # Core NSS libs (always present)
     cp -av /usr/lib/$ARCH/libnspr4.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libnss3.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libnssutil3.so "$OUT/"; \
@@ -112,11 +115,22 @@ RUN set -eux; \
     cp -av /usr/lib/$ARCH/libsmime3.so "$OUT/"; \
     cp -av /usr/lib/$ARCH/libssl3.so "$OUT/"; \
     \
-    cp -av /usr/lib/$ARCH/nss/"*.so" "$OUT/nss/"; \
-    cp -av /usr/lib/$ARCH/nss/"*.chk" "$OUT/nss/"; \
+    # FreeBL modules (location varies)
+    for lib in libfreebl3.so libfreeblpriv3.so; do \
+      if [ -f "/usr/lib/$ARCH/$lib" ]; then \
+        cp -av "/usr/lib/$ARCH/$lib" "$OUT/nss/"; \
+      elif [ -f "/usr/lib/$ARCH/nss/$lib" ]; then \
+        cp -av "/usr/lib/$ARCH/nss/$lib" "$OUT/nss/"; \
+      fi; \
+    done; \
     \
-    ln -sf nss/libfreebl3.so "$OUT/libfreebl3.so"; \
-    ln -sf nss/libfreeblpriv3.so "$OUT/libfreeblpriv3.so"
+    # Create expected Electron symlinks if modules exist
+    if [ -f "$OUT/nss/libfreebl3.so" ]; then \
+      ln -sf nss/libfreebl3.so "$OUT/libfreebl3.so"; \
+    fi; \
+    if [ -f "$OUT/nss/libfreeblpriv3.so" ]; then \
+      ln -sf nss/libfreeblpriv3.so "$OUT/libfreeblpriv3.so"; \
+    fi
 
 FROM scratch
 COPY --from=0 /out /
@@ -131,9 +145,9 @@ echo "🔨 Building runtime templates (amd64 + arm64)..."
 echo "   This may take a few minutes on first run."
 echo ""
 
-#   --platform linux/amd64,linux/arm64 \
+#   --platform linux/amd64 \
 docker buildx build \
-  --platform linux/amd64 \
+  --platform linux/amd64,linux/arm64 \
   --output type=local,dest="$TEMPLATE_DIR" \
   --progress=plain \
   -f "$DOCKERFILE" \
