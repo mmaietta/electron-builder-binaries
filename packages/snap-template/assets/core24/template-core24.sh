@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -ex
 
 # Automated offline snap template builder
@@ -7,11 +7,12 @@ set -ex
 # Usage: ./build-offline-template.sh [architecture]
 # Example: ./build-offline-template.sh amd64
 
-ARCH="${1:-amd64}"
-TEMPLATE_VERSION="3"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="$ROOT/build/core24"
-TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
+
+TEMPLATE_VERSION="1"
+ARCH="${1:-amd64}"
+TEMPLATE_DIR="${2:-$BUILD_DIR/electron-runtime-template}"
 
 TEMPLATE_NAME="snap-template-electron-core24-v${TEMPLATE_VERSION}-${ARCH}"
 WORK_DIR="$BUILD_DIR/work-$ARCH"
@@ -23,7 +24,7 @@ cleanup() {
   fi
 }
 # trap cleanup EXIT
-cleanup
+# cleanup
 mkdir -p "$WORK_DIR"
 
 echo "======================================================================="
@@ -34,60 +35,52 @@ echo "Template Version: $TEMPLATE_VERSION"
 echo "Output Directory: $TEMPLATE_DIR"
 echo ""
 
-# Check for required commands
-for cmd in snapcraft unsquashfs python3; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: $cmd is required but not installed."
-    exit 1
-  fi
-done
-
 # Step 1: Create reference snap with gnome extension
 echo "[1/7] Creating reference snap with gnome extension..."
 SNAP_DIR="$WORK_DIR/reference-snap"
 mkdir -p "$SNAP_DIR"
 cd "$SNAP_DIR"
 
-# Create dummy executable
-mkdir -p "bin"
-echo "#!/bin/sh\nexit 0" > "bin/hello"
-chmod +x "bin/hello"
+# # Create dummy executable
+# mkdir -p "bin"
+# echo "#!/bin/sh\nexit 0" > "bin/hello"
+# chmod +x "bin/hello"
 
-cat > snapcraft.yaml << 'EOF'
-name: reference-app
-base: core24
-version: '1.0'
-summary: Reference app to extract gnome extension
-description: Temporary snap to extract extension configuration
+# cat > snapcraft.yaml << 'EOF'
+# name: reference-app
+# base: core24
+# version: '1.0'
+# summary: Reference app to extract gnome extension
+# description: Temporary snap to extract extension configuration
 
-grade: stable
-confinement: strict
+# grade: stable
+# confinement: strict
 
-apps:
-  reference-app:
-    command: bin/hello
-    extensions: [gnome]
-    plugs:
-      - home
-      - network
-      - browser-support
-      - audio-playback
+# apps:
+#   reference-app:
+#     command: bin/hello
+#     extensions: [gnome]
+#     plugs:
+#       - home
+#       - network
+#       - browser-support
+#       - audio-playback
 
-parts:
-    dummy:
-        plugin: dump
-        source: .
-        stage:
-            - bin/hello
-EOF
+# parts:
+#     dummy:
+#         plugin: dump
+#         source: .
+#         stage:
+#             - bin/hello
+# EOF
 
-echo "Building reference snap (this may take several minutes)..."
-if snapcraft pack --verbose 2>&1 | tee "$WORK_DIR/build.log"; then
-    echo "Executing snapcraft pack ouptput..."
-else
-  echo "❌ Failed to build snap. Check $WORK_DIR/build.log for details"
-  exit 1
-fi
+# echo "Building reference snap (this may take several minutes)..."
+# if snapcraft pack --verbose 2>&1 | tee "$WORK_DIR/build.log"; then
+#     echo "Executing snapcraft pack ouptput..."
+# else
+#   echo "❌ Failed to build snap. Check $WORK_DIR/build.log for details"
+#   exit 1
+# fi
 
 SNAP_FILE=$(ls *.snap 2>/dev/null | head -1)
 if [ -z "$SNAP_FILE" ] || [ ! -f "$SNAP_FILE" ]; then
@@ -101,6 +94,7 @@ echo "✅ Built: $SNAP_FILE"
 echo ""
 echo "[2/7] Extracting snap contents..."
 EXTRACT_DIR="$WORK_DIR/extracted"
+rm -rf "$EXTRACT_DIR"
 unsquashfs -q -d "$EXTRACT_DIR" "$SNAP_FILE"
 
 if [ ! -d "$EXTRACT_DIR" ]; then
@@ -115,26 +109,21 @@ echo ""
 echo "[3/7] Extracting actual snap metadata..."
 
 SNAP_YAML="$EXTRACT_DIR/meta/snap.yaml"
-if [ ! -f "$SNAP_YAML" ]; then
-  echo "❌ snap.yaml not found"
-  exit 1
-fi
 
-# Parse snap.yaml to extract metadata
-python3 << PYTHON_SCRIPT
+cd "$WORK_DIR"
+
+python3 << 'PYTHON_SCRIPT'
 import yaml
 import json
 import sys
 
 try:
-    with open('${SNAP_YAML}', 'r') as f:
+    with open('extracted/meta/snap.yaml', 'r') as f:
         snap_data = yaml.safe_load(f)
-    
-    # Get the app configuration
+
     app_name = list(snap_data['apps'].keys())[0]
     app_config = snap_data['apps'][app_name]
-    
-    # Extract metadata
+
     metadata = {
         'environment': app_config.get('environment', {}),
         'plugs': app_config.get('plugs', []),
@@ -143,21 +132,20 @@ try:
         'assumes': snap_data.get('assumes', []),
         'command': app_config.get('command', '')
     }
-    
-    # Save to JSON files
+
     with open('metadata.json', 'w') as f:
         json.dump(metadata, f, indent=2)
-    
+
     with open('environment.json', 'w') as f:
         json.dump(metadata['environment'], f, indent=2)
-    
+
     with open('plugs.json', 'w') as f:
         json.dump(metadata['plugs'], f, indent=2)
-    
+
     print(f"✅ Extracted {len(metadata['environment'])} environment variables")
     print(f"✅ Extracted {len(metadata['plugs'])} plugs")
     print(f"✅ Command: {metadata['command']}")
-    
+
 except Exception as e:
     print(f"❌ Error parsing snap.yaml: {e}", file=sys.stderr)
     sys.exit(1)
@@ -167,6 +155,7 @@ if [ $? -ne 0 ]; then
   echo "❌ Failed to parse snap metadata"
   exit 1
 fi
+ls -lh "$WORK_DIR" | grep -E 'environment.json|plugs.json|metadata.json'
 
 cd "$WORK_DIR"
 
@@ -299,7 +288,11 @@ echo "[6/7] Copying actual snap.yaml as reference..."
 
 mkdir -p "$FINAL_TEMPLATE_DIR/meta-reference"
 cp "$SNAP_YAML" "$FINAL_TEMPLATE_DIR/meta-reference/snap.yaml"
-cp "$WORK_DIR/metadata.json" "$FINAL_TEMPLATE_DIR/"
+if [ -f "$WORK_DIR/metadata.json" ]; then
+  cp "$WORK_DIR/metadata.json" "$FINAL_TEMPLATE_DIR/"
+else
+  echo "ℹ️ metadata.json not present (expected for snapcraft pack)"
+fi
 cp "$WORK_DIR/environment.json" "$FINAL_TEMPLATE_DIR/"
 cp "$WORK_DIR/plugs.json" "$FINAL_TEMPLATE_DIR/"
 
