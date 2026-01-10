@@ -1,0 +1,5 @@
+libgtk-4.so
+libadwaita
+libQt
+libKF5
+libsystemd
