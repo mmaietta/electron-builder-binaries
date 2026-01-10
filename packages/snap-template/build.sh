@@ -88,10 +88,11 @@ fi
 
 print_banner
 
-# Clean previous builds only if building
-if [[ "$BUILD_TARGET" != "test" ]]; then
+# Clean previous builds only if cleaning is requested
+if [[ "$BUILD_TARGET" = "clean" ]]; then
   echo "🧹 Cleaning previous builds..."
   rm -rf "$SCRIPT_DIR/out" "$SCRIPT_DIR/build"
+  exit 0
 fi
 
 # Execute build/test according to target
