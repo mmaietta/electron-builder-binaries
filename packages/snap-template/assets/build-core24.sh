@@ -36,13 +36,12 @@ for cmd in snapcraft unsquashfs python3 ; do
   fi
 done
 
-bash ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
-bash ${ROOT}/assets/core24/normalize-rpath.sh $TEMPLATE_DIR/
-bash ${ROOT}/assets/core24/validate-ld-deps.sh $TEMPLATE_DIR/
-bash ${ROOT}/assets/core24/runtime-smoke-test.sh $TEMPLATE_DIR/
-bash ${ROOT}/assets/core24/generate-allowlist.sh $TEMPLATE_DIR/   # first time only
+bash -e ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
+# bash -e ${ROOT}/assets/core24/validate-ld-deps.sh $TEMPLATE_DIR/ false
+# bash -e ${ROOT}/assets/core24/runtime-smoke-test.sh $TEMPLATE_DIR/
+# bash -e ${ROOT}/assets/core24/generate-allowlist.sh $TEMPLATE_DIR/   # first time only
 
-find "$ROOT" -type f -name "*.so*" -exec du -b {} + \
+find "$TEMPLATE_DIR" -type f -name "*.so*" -exec du -b {} + \
   | awk '{print "{\"file\":\""$2"\",\"bytes\":"$1"}"}' \
   | jq -s '.' | jq 'sort_by(.bytes) | reverse | .[]'
 

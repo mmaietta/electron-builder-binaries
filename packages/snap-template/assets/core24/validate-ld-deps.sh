@@ -1,105 +1,125 @@
 #!/bin/bash
 # validate-ld-deps.sh
-# Validate dynamic library dependencies in a snap template
-# Generates allowlist/denylist JSON
-# Works on Linux + macOS (Darwin)
-# Optional: remove Wayland libs
+# Portable LD dependency validator for GTK/Electron runtime templates
+#
+# Usage:
+#   ./validate-ld-deps.sh /path/to/template [skip-wayland]
+# Example:
+#   ./validate-ld-deps.sh ./snap-template false
 
-set -exuo pipefail
+set -e
 
-###########################
-# Config / Input
-###########################
+TEMPLATE_DIR="${1:-.}"
+SKIP_WAYLAND="${2:-false}"
+GENERATED_DIR="$TEMPLATE_DIR/generated"
+rm -rf "$GENERATED_DIR"
+mkdir -p "$GENERATED_DIR"
+ALLOWLIST_FILE="$GENERATED_DIR/ld-allowlist.json"
+DENYLIST_FILE="$GENERATED_DIR/ld-denylist.json"
+SIZE_REPORT="$GENERATED_DIR/binary-size-report.txt"
 
-TEMPLATE_DIR="${1:-.}"   # Path to extracted snap template
-SKIP_WAYLAND="${2:-false}" # true|false
 
 echo "🔍 Validating LD dependencies in $TEMPLATE_DIR"
 echo "Platform: $(uname)"
 echo "Skip Wayland libs: $SKIP_WAYLAND"
-
-# Temp files
-TMP_ALLOW="/tmp/ld-allowlist.txt"
-TMP_DENY="/tmp/ld-denylist.txt"
-> "$TMP_ALLOW"
-> "$TMP_DENY"
-
-###########################
-# Find binaries
-###########################
-
 echo "Scanning binaries..."
-BINARIES=$(find "$TEMPLATE_DIR" -type f -perm +111 -exec file {} \; | grep 'Mach-O\|ELF' | cut -d: -f1)
 
-if [ -z "$BINARIES" ]; then
-    echo "⚠️ No binaries found in $TEMPLATE_DIR"
+BINARIES=()
+
+# Find executables
+if [[ "$(uname)" == "Darwin" ]]; then
+    # macOS: Mach-O executables
+    while IFS= read -r line; do
+        BINARIES+=("$line")
+    done < <(find "$TEMPLATE_DIR" -type f -perm -111 -exec file '{}' \; | grep 'Mach-O' | cut -d: -f1)
+else
+    # Linux: ELF executables
+    while IFS= read -r line; do
+        BINARIES+=("$line")
+    done < <(find "$TEMPLATE_DIR" -type f -perm /111 -exec file '{}' \; | grep 'ELF' | cut -d: -f1)
 fi
 
-###########################
-# Dependency extraction
-###########################
+echo "Found ${#BINARIES[@]} binaries"
+echo ""
+if [ "${#BINARIES[@]}" -eq 0 ]; then
+    echo "❌ No binaries found to scan."
+    exit 1
+fi
 
-for bin in $BINARIES; do
-    echo "Processing: $bin"
+# Prepare allow/deny lists
+ALLOWLIST=()
+DENYLIST=()
 
+# Prepare binary size report
+echo "Binary Size Report" > "$SIZE_REPORT"
+echo "==================" >> "$SIZE_REPORT"
+
+# Helper: normalize library paths for comparison
+normalize_lib() {
+    local lib="$1"
+    basename "$lib" | sed 's/\.[0-9][0-9]*//g'
+}
+
+# Scan each binary
+for bin in "${BINARIES[@]}"; do
+    echo "🔹 Scanning $bin..."
+
+    # Record size
+    size_bytes=$(stat -f%z "$bin" 2>/dev/null || stat -c %s "$bin" 2>/dev/null)
+    echo "$bin: $size_bytes bytes" >> "$SIZE_REPORT"
+
+    # Get dynamic dependencies
     if [[ "$(uname)" == "Darwin" ]]; then
-        # macOS: otool -L
-        DEPS=$(otool -L "$bin" | tail -n +2 | awk '{print $1}')
+        deps=$(otool -L "$bin" 2>/dev/null | tail -n +2 | awk '{print $1}')
     else
-        # Linux: ldd
-        DEPS=$(ldd "$bin" | awk '{print $1}' | grep -v '^$')
+        deps=$(ldd "$bin" 2>/dev/null | awk '{print $1}' | grep -v '^$')
     fi
 
-    for dep in $DEPS; do
-        dep_name=$(basename "$dep")
+    # Check each dependency
+    while IFS= read -r dep; do
+        # Skip empty
+        [[ -z "$dep" ]] && continue
 
         # Optionally skip Wayland libs
-        if [[ "$SKIP_WAYLAND" == "true" ]] && [[ "$dep_name" == libwayland* ]]; then
+        if [[ "$SKIP_WAYLAND" == "true" && "$dep" == *wayland* ]]; then
             continue
         fi
 
-        # Simple heuristic: allow system libs (libc, libm, libX, libglib, etc.)
-        case "$dep_name" in
-            libc*|libm*|libpthread*|libdl*|libX11*|libGL*|libgobject*|libglib*|libgtk*|libcairo*|libpango*|libatk*|libgdk*)
-                echo "$dep_name" >> "$TMP_ALLOW"
-                ;;
-            *)
-                echo "$dep_name" >> "$TMP_DENY"
-                ;;
-        esac
-    done
+        # Normalize library name
+        lib_name=$(normalize_lib "$dep")
+
+        # Track allow/deny lists
+        if [[ -f "$dep" ]]; then
+            ALLOWLIST+=("$lib_name")
+        else
+            DENYLIST+=("$lib_name")
+            echo "❌ Missing: $lib_name (required by $bin)"
+        fi
+    done <<< "$deps"
+
 done
 
-###########################
-# Deduplicate and export JSON
-###########################
+# Deduplicate allow/deny lists
+ALLOWLIST_JSON=$(printf '%s\n' "${ALLOWLIST[@]}" | sort -u | jq -R . | jq -s .)
+DENYLIST_JSON=$(printf '%s\n' "${DENYLIST[@]}" | sort -u | jq -R . | jq -s .)
 
-ALLOW_JSON="$TEMPLATE_DIR/allowlist.json"
-DENY_JSON="$TEMPLATE_DIR/denylist.json"
+# Write JSON files
+echo "$ALLOWLIST_JSON" > "$ALLOWLIST_FILE"
+echo "$DENYLIST_JSON" > "$DENYLIST_FILE"
 
-python3 - <<PYTHON
-import json
+# Summary
+echo ""
+echo "✅ Validation complete"
+echo "Allowed libraries written to: $ALLOWLIST_FILE"
+echo "Missing libraries written to: $DENYLIST_FILE"
+echo "Binary size report: $SIZE_REPORT"
+echo ""
 
-def read_lines(path):
-    try:
-        with open(path) as f:
-            return sorted(set(line.strip() for line in f if line.strip()))
-    except FileNotFoundError:
-        return []
-
-allow = read_lines("$TMP_ALLOW")
-deny = read_lines("$TMP_DENY")
-
-with open("$ALLOW_JSON", "w") as f:
-    json.dump(allow, f, indent=2)
-
-with open("$DENY_JSON", "w") as f:
-    json.dump(deny, f, indent=2)
-
-print(f"✅ Allowlist ({len(allow)} libs): {', '.join(allow[:10])}{'...' if len(allow)>10 else ''}")
-print(f"✅ Denylist ({len(deny)} libs): {', '.join(deny[:10])}{'...' if len(deny)>10 else ''}")
-PYTHON
-
-echo "✅ LD dependency validation complete"
-echo "Allowlist: $ALLOW_JSON"
-echo "Denylist: $DENY_JSON"
+# CI Gate: fail if any missing libraries
+if [[ ${#DENYLIST[@]} -gt 0 ]]; then
+    echo "❌ CI Gate: Found ${#DENYLIST[@]} missing libraries"
+    exit 1
+else
+    echo "✅ All dynamic libraries satisfied"
+    exit 0
+fi
