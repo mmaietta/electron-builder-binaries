@@ -19,12 +19,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Build snap-template for amd64
+        shell: bash
         run: |
           bash packages/snap-template/build.sh amd64
       - name: Build snap-template for arm64
+        shell: bash
         run: |
           bash packages/snap-template/build.sh arm64
       - name: Run tests for snap-template
+        shell: bash
         run: |
           bash packages/snap-template/build.sh test
       - name: Upload snap-templates artifact

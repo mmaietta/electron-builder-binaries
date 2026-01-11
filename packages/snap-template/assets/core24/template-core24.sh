@@ -17,6 +17,7 @@ OUT_DIR="$BASE_DIR/out/snap-template"
 
 TEMPLATE_NAME="snap-template-electron-core24-v${TEMPLATE_VERSION}-${ARCH}"
 WORK_DIR="$BUILD_DIR/work-$ARCH"
+mkdir -p "$WORK_DIR"
 
 cleanup() {
     echo "Cleaning up temporary directories..."
