@@ -30,15 +30,17 @@ for ARCH in "${ARCHES[@]}"; do
     --platform="linux/${ARCH}" \
     -v "$OUT_DIR/$ARCH":/out \
     ubuntu:24.04 bash -c "
-      set -euo pipefail
+      set -exuo pipefail
 
       apt update
       apt install -y snapd
 
+      echo 'Installing snapd core...'
       snap download core24 \
         --channel=${CORE_CHANNEL} \
         --target-directory=/out
 
+      echo 'Installing GNOME 42 extension...'
       snap download gnome-42-2204 \
         --channel=${CORE_CHANNEL} \
         --target-directory=/out
