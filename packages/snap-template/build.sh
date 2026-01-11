@@ -26,10 +26,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 print_banner() {
   echo ""
   echo "═══════════════════════════════════════════════════════════════"
-  echo "  Electron core22 + core24 Runtime Template Builder (Docker)"
+  echo "  Electron core24 Runtime Template Builder (Docker)"
   echo "═══════════════════════════════════════════════════════════════"
   echo "  Platforms:   Linux (amd64 + arm64)"
-  echo "  Snap Base:   core22 + core24"
+  echo "  Snap Base:   core24"
   echo "═══════════════════════════════════════════════════════════════"
   echo ""
 }
@@ -39,9 +39,7 @@ show_usage() {
 Usage: $0 [TARGET]
 
 Targets:
-  all      Build core22 + core24 runtime templates and run functional tests
-  core22   Build only core22 runtime template
-  core24   Build only core24 runtime template
+  all      Build arm64 + amd64 runtime templates and run functional tests
   test     Run functional tests only (requires built templates)
 
 Requirements:
@@ -49,23 +47,16 @@ Requirements:
   - Docker buildx enabled
 
 Output:
-  build/core22/electron-runtime-template/
   build/core24/electron-runtime-template/
   out/*.tar.gz
 
 EOF
 }
 
-build_core22() {
-  echo ""
-  echo "🐧 Building core22 runtime template..."
-  bash "$SCRIPT_DIR/assets/build-core22.sh"
-}
-
 build_core24() {
   echo ""
-  echo "🐧 Building core24 runtime template..."
-  bash "$SCRIPT_DIR/assets/build-core24.sh"
+  echo "🐧 Building core24 ($1) runtime template..."
+  bash "$SCRIPT_DIR/assets/build-core24.sh"  $1
 }
 
 run_tests() {
@@ -98,15 +89,15 @@ fi
 # Execute build/test according to target
 case "$BUILD_TARGET" in
   all)
-    build_core22
-    build_core24
+    build_core24 amd64
+    build_core24 arm64
     run_tests
     ;;
-  core22)
-    build_core22
+  arm64)
+    build_core24 arm64
     ;;
-  core24)
-    build_core24
+  amd64)
+    build_core24 amd64
     ;;
   test)
     run_tests

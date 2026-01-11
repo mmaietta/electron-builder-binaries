@@ -18,9 +18,9 @@ jobs:
           corepack enable
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Build snap-template for core22
-        run: |
-          bash packages/snap-template/build.sh core22
+      # - name: Build snap-template for core22
+      #   run: |
+      #     bash packages/snap-template/build.sh core22
       - name: Build snap-template for core24
         run: |
           bash packages/snap-template/build.sh core24
