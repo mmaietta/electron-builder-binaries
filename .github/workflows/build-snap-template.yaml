@@ -17,6 +17,10 @@ jobs:
         uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: DEBUG
+        shell: bash
+        run: |
+          bash packages/snap-template/assets/build-core24.sh doctor
       - name: Build snap-template for amd64
         shell: bash
         run: |

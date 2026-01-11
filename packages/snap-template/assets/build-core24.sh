@@ -78,21 +78,21 @@ case "$CMD" in
   clean)
     # clean build artifacts except the reference-snap for locat testing
     rm -rf "$BUILD_DIR/vendor"
-    rm -rf "$BUILD_DIR/electron"
     rm -rf "$BUILD_DIR/extracted"
+    rm -rf "$ROOT/build/electron"
     rm -rf "$TEMPLATE_DIR"
     echo "🧹 Cleaned build artifacts"
     ;;
   # build machine CI
   all)
     # "$BASE_DIR/core24/preflight-offline-check.sh"
-    # "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$BUILD_DIR/electron"
+    "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$ROOT/build/electron"
     "$BASE_DIR/core24/download-core.sh" arm64 "$BUILD_DIR/vendor"
     "$BASE_DIR/core24/download-core.sh" amd64 "$BUILD_DIR/vendor"
 
     ( 
       cd "$BUILD_DIR"
-      tar -czf "$BUILD_DIR/${CORE_BASE}-snaps-${CORE_CHANNEL}.tar.gz" .
+      tar -czf "$BUILD_DIR/core24-snaps-${CORE_CHANNEL}.tar.gz" .
     )
     # "$BASE_DIR/core24/template.sh" arm64 "$TEMPLATE_DIR" "$ROOT/out/snap-template"
     # snapcraft --offline
