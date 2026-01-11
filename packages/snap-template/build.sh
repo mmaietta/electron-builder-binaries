@@ -88,15 +88,11 @@ fi
 # Execute build/test according to target
 case "$BUILD_TARGET" in
   all)
-    build_core24 amd64
-    build_core24 arm64
+    build_core24 all
     run_tests
     ;;
-  arm64)
-    build_core24 arm64
-    ;;
-  amd64)
-    build_core24 amd64
+  arm64|amd64)
+    build_core24 "$BUILD_TARGET"
     ;;
   test)
     run_tests

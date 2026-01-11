@@ -3,12 +3,21 @@ set -euo pipefail
 
 CORE_BASE="core24"
 CORE_CHANNEL="stable"
-ARCHES=(amd64 arm64)
+ARCHES=${1:-all}
 OUT_DIR="${2:-./offline-assets/core24}"
 
-rm -rf "$OUT_DIR"
+if [ "$ARCHES" == "all" ]; then
+  ARCHES=("amd64" "arm64")
+else
+  IFS=' ' read -r -a ARCHES <<< "$ARCHES"
+fi
 
-echo "📦 Downloading $CORE_BASE and gnome extensions"
+if ! command -v docker &> /dev/null; then
+  echo "⚠️  Docker is not installed. Please install Docker to proceed."
+  exit 1
+fi
+
+rm -rf "$OUT_DIR"
 
 echo "➡️ Downloading $CORE_BASE for ${ARCHES[*]}..."
 
@@ -45,4 +54,4 @@ done
 
 echo "✓ Downloaded $CORE_BASE and GNOME extensions to $OUT_DIR"
 echo "Contents:"
-tree "$OUT_DIR" | find "$OUT_DIR" -type f
+tree "$OUT_DIR" || find "$OUT_DIR" -type f
