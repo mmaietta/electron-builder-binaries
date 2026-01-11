@@ -6,14 +6,14 @@ set -e
 # Works on: macOS, Linux, GitHub Actions
 # Uses: Native snapcraft with LXD
 #############################################
-
-ARCH="${1:-amd64}"
 TEMPLATE_VERSION="1"
 
-BASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-BUILD_DIR="$BASE_DIR/build/core24"
+ARCH="${1:-amd64}"
+BASE_DIR="${2:-$(cd "$(dirname "$0")/../.." && pwd)}"
+OUT_DIR="${3:-$BASE_DIR/out/snap-template}"
+
+BUILD_DIR="$BASE_DIR/core24"
 TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
-OUT_DIR="$BASE_DIR/out/snap-template"
 
 TEMPLATE_NAME="snap-template-electron-core24-v${TEMPLATE_VERSION}-${ARCH}"
 WORK_DIR="$BUILD_DIR/work-$ARCH"

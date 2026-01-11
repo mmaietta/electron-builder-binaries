@@ -69,4 +69,62 @@ if [ -n "$MISSING_CMDS" ]; then
   fi
 fi
 
-bash ${ROOT}/assets/core24/template.sh $ARCH $TEMPLATE_DIR
+CMD="${1:-help}"
+shift || true
+
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+case "$CMD" in
+  clean)
+    # clean build artifacts except the reference-snap for locat testing
+    rm -rf "$BUILD_DIR/vendor"
+    rm -rf "$BUILD_DIR/electron"
+    rm -rf "$BUILD_DIR/extracted"
+    rm -rf "$TEMPLATE_DIR"
+    echo "🧹 Cleaned build artifacts"
+    ;;
+  # build machine CI
+  all)
+    # "$BASE_DIR/core24/preflight-offline-check.sh"
+    "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$BUILD_DIR/electron"
+    "$BASE_DIR/core24/download-core.sh" arm64 "$BUILD_DIR/vendor"
+    "$BASE_DIR/core24/template.sh" arm64 "$TEMPLATE_DIR" "$ROOT/out/snap-template"
+    # snapcraft --offline
+    ;;
+  # install local pinned base snaps
+  bootstrap)
+    "$BASE_DIR/core24/bootstrap-offline.sh"
+    ;;
+  # preflight check for offline build - using bootstrapped snaps
+  preflight)
+    "$BASE_DIR/core24/preflight-offline-check.sh"
+    ;;
+  # validate electron runtime completeness for pinned electron for full template output
+  validate-electron)
+    "$BASE_DIR/core24/validate-electron-runtime.sh" "$@"
+    ;;
+  # full build: preflight + snapcraft --offline
+  build)
+    "$BASE_DIR/core24/preflight-offline-check.sh"
+    # "$BASE_DIR/core24/download-electron.sh"
+    snapcraft --offline
+    ;;
+  doctor)
+    "$BASE_DIR/core24/offline-doctor.sh"
+    ;;
+  validate-electron)
+    "$BASE_DIR/core24/validate-electron-runtime.sh" "$@"
+  ;;
+  help|*)
+    cat <<EOF
+Offline Snap Template CLI
+
+Commands:
+  bootstrap           Install pinned base snaps (offline)
+  preflight           Verify build will be 100% offline
+  validate-electron   Validate Electron runtime completeness
+  build               Run preflight + snapcraft --offline
+  doctor              Full diagnostics report
+EOF
+    ;;
+esac
