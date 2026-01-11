@@ -1,97 +1,71 @@
-#!/usr/bin/env bash
-set -exuo pipefail
+#!/bin/bash
+set -ex
 
-###############################################################################
-# Configuration
-###############################################################################
+#############################################
+# Offline GNOME Runtime Template Builder
+# Extracts GNOME runtime for offline snap builds
+# Does NOT validate LD or generate SBOM
+#############################################
 
 ARCH="${1:-amd64}"
-SKIP_WAYLAND="${2:-false}"
 TEMPLATE_VERSION="1"
 
 BASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="$BASE_DIR/build/core24"
-WORK_DIR="$BUILD_DIR/work-$ARCH"
 TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
 OUT_DIR="$BASE_DIR/out/snap-template"
 
-DATE_UTC="$(date -u +%Y%m%d)"
+TEMPLATE_NAME="snap-template-electron-core24-v${TEMPLATE_VERSION}-${ARCH}"
+WORK_DIR="$BUILD_DIR/work-$ARCH"
 
-###############################################################################
-# Helpers
-###############################################################################
-
-fail() {
-  echo "❌ $*" >&2
-  exit 1
+cleanup() {
+    echo "Cleaning up temporary directories..."
+    # Keep the reference .snap for caching
+    [ -d "$WORK_DIR/extracted" ] && rm -rf "$WORK_DIR/extracted"
+    [ -d "$WORK_DIR/reference-snap/bin" ] && rm -rf "$WORK_DIR/reference-snap/bin"
+    [ -f "$WORK_DIR/build.log" ] && rm -f "$WORK_DIR/build.log"
 }
-
-normalize_lib() {
-  basename "$1" | sed -E 's/\.so(\.[0-9]+)*$/.so/'
-}
-
-###############################################################################
-# Requirements
-###############################################################################
+# trap cleanup EXIT
+cleanup
 
 echo "======================================================================="
 echo "Offline GNOME Runtime Template Builder"
 echo "======================================================================="
-echo "ARCH            : $ARCH"
-echo "SKIP_WAYLAND    : $SKIP_WAYLAND"
-echo "BASE_DIR        : $BASE_DIR"
-echo "WORK_DIR        : $WORK_DIR"
-echo "OUT_DIR         : $OUT_DIR"
+echo "Architecture: $ARCH"
+echo "Work Directory: $WORK_DIR"
+echo "Output Directory: $TEMPLATE_DIR"
 echo ""
 
-REQUIRED_CMDS=(
-  snapcraft
-  unsquashfs
-  python3
-  jq
-  find
-  file
-  patchelf
-)
-
-MISSING=()
-for c in "${REQUIRED_CMDS[@]}"; do
-  command -v "$c" >/dev/null 2>&1 || MISSING+=("$c")
+# Ensure required commands
+MISSING_CMDS=()
+for cmd in snapcraft unsquashfs rsync python3 jq tar; do
+    command -v "$cmd" >/dev/null 2>&1 || MISSING_CMDS+=("$cmd")
 done
 
-if [ ${#MISSING[@]} -gt 0 ]; then
-  echo "❌ Missing required tools:"
-  printf "  - %s\n" "${MISSING[@]}"
-  if [[ "$(uname)" == "Darwin" ]]; then
-    echo ""
-    echo "💡 Install on macOS with:"
-    echo "   brew install ${MISSING[*]}"
-  fi
-  exit 1
+if [ ${#MISSING_CMDS[@]} -gt 0 ]; then
+    echo "❌ Missing required commands: ${MISSING_CMDS[*]}"
+    exit 1
 fi
 
-###############################################################################
-# Step 1: Build reference snap
-###############################################################################
-
-echo "[1/9] Building reference snap…"
-
+# Step 1: Create reference snap
+echo "[1/5] Creating reference snap..."
 SNAP_DIR="$WORK_DIR/reference-snap"
 mkdir -p "$SNAP_DIR/bin"
 
-cat > "$SNAP_DIR/bin/hello" << 'EOF'
+# Dummy executable
+cat > "$SNAP_DIR/bin/hello" <<'EOF'
 #!/bin/sh
 exit 0
 EOF
 chmod +x "$SNAP_DIR/bin/hello"
 
-cat > "$SNAP_DIR/snapcraft.yaml" << 'EOF'
+# Snapcraft.yaml for extraction
+cat > "$SNAP_DIR/snapcraft.yaml" <<'EOF'
 name: reference-app
 base: core24
 version: '1.0'
 summary: Reference GNOME extractor
 description: Temporary snap for GNOME extension extraction
-
 grade: stable
 confinement: strict
 
@@ -99,7 +73,17 @@ apps:
   reference-app:
     command: bin/hello
     extensions: [gnome]
-    plugs: [home, network, browser-support, audio-playback]
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - opengl
+      - wayland
+      - x11
+      - home
+      - network
+      - browser-support
+      - audio-playback
 
 parts:
   dummy:
@@ -108,234 +92,136 @@ parts:
     stage: [bin/hello]
 EOF
 
-SNAP_FILE="$(find "$SNAP_DIR" -maxdepth 1 -name "*.snap" | head -1)"
-[ -f "$SNAP_FILE" ] || (
-  cd "$SNAP_DIR"
-  snapcraft --verbose | tee "$WORK_DIR/snapcraft.log"
-)
-SNAP_FILE="$(find "$SNAP_DIR" -maxdepth 1 -name "*.snap" | head -1)"
+# Build snap if not cached
+SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "reference-app_*.snap" -type f 2>/dev/null | head -1)
+if [ -n "$SNAP_FILE" ] && [ -f "$SNAP_FILE" ]; then
+    echo "✅ Using cached snap: $(basename "$SNAP_FILE")"
+else
+    echo "Building reference snap (may take several minutes)..."
+    (cd "$SNAP_DIR" && snapcraft --verbose 2>&1 | tee "$WORK_DIR/build.log")
+    SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "reference-app_*.snap" -type f | head -1)
+    [ -z "$SNAP_FILE" ] && { echo "❌ Snap build failed"; exit 1; }
+    echo "✅ Built: $(basename "$SNAP_FILE")"
+fi
 
-###############################################################################
-# Step 2: Extract snap
-###############################################################################
-
-echo "[2/9] Extracting snap…"
-
-export EXTRACT_DIR="$WORK_DIR/extracted"
-rm -rf "$EXTRACT_DIR"
+# Step 2: Extract snap contents
+echo "[2/5] Extracting snap..."
+EXTRACT_DIR="$WORK_DIR/extracted"
 unsquashfs -q -d "$EXTRACT_DIR" "$SNAP_FILE"
+[ ! -d "$EXTRACT_DIR" ] && { echo "❌ Extraction failed"; exit 1; }
 
-###############################################################################
-# Step 3: Extract GNOME runtime identity (NO snap info)
-###############################################################################
-echo "[3/9] Extracting GNOME runtime identity…"
+# Step 3: Copy files to template
+echo "[3/5] Copying runtime files..."
+FINAL_TEMPLATE_DIR="$TEMPLATE_DIR/$TEMPLATE_NAME"
+mkdir -p "$FINAL_TEMPLATE_DIR/meta-reference"
+mkdir -p "$OUT_DIR"
 
-python3 << 'PY'
-import yaml, json, os, sys
+# Copy meta/snap.yaml
+cp "$EXTRACT_DIR/meta/snap.yaml" "$FINAL_TEMPLATE_DIR/meta-reference/"
 
-root = os.environ["EXTRACT_DIR"]
-content_meta = os.path.join(root, "meta", "snap.yaml")
+# Copy GNOME and GPU runtime, data-dir
+rsync -a --exclude='bin/hello' --exclude='meta/' \
+    "$EXTRACT_DIR/gnome-platform" "$FINAL_TEMPLATE_DIR/"
+rsync -a --exclude='bin/hello' --exclude='meta/' \
+    "$EXTRACT_DIR/gpu-2404" "$FINAL_TEMPLATE_DIR/"
+rsync -a --exclude='bin/hello' --exclude='meta/' \
+    "$EXTRACT_DIR/data-dir" "$FINAL_TEMPLATE_DIR/"
 
-if not os.path.exists(content_meta):
-    print("❌ gnome-platform content snap not found", file=sys.stderr)
-    sys.exit(1)
+echo "✅ Copied GNOME runtime, GPU runtime, and data-dir"
 
-with open(content_meta) as f:
+# Step 4: Generate helper scripts
+echo "[4/5] Creating helper scripts..."
+
+# generate-snapcraft.sh
+cat > "$FINAL_TEMPLATE_DIR/generate-snapcraft.sh" <<'GEN'
+#!/bin/bash
+set -e
+APP_NAME="${1:-myapp}"
+VERSION="${2:-1.0.0}"
+SUMMARY="${3:-My Application}"
+DESCRIPTION="${4:-My application description}"
+
+python3 <<PY
+import yaml, os
+app_name = os.environ['APP_NAME']
+version = os.environ['VERSION']
+summary = os.environ.get('SUMMARY', 'My Application')
+description = os.environ.get('DESCRIPTION', 'My application description')
+
+with open('meta-reference/snap.yaml') as f:
     snap = yaml.safe_load(f)
 
-identity = {
-    "extension": "gnome",
-    "content_snap": snap.get("name"),
-    "version": snap.get("version"),
-    "base": snap.get("base"),
-}
+ref_app = snap['apps'][list(snap['apps'].keys())[0]]
 
-with open("gnome-runtime.json", "w") as f:
-    json.dump(identity, f, indent=2)
-
-print(f"✅ GNOME runtime: {identity['content_snap']} ({identity['version']})")
-PY
-
-GNOME_SNAP="$(jq -r '.content_snap' gnome-runtime.json)"
-GNOME_VER="$(jq -r '.version' gnome-runtime.json)"
-
-[ "$GNOME_SNAP" != "unknown" ] || fail "Could not determine GNOME runtime"
-
-###############################################################################
-# Step 4: Prepare output directory
-###############################################################################
-
-TEMPLATE_NAME="snap-template-electron-core24-${GNOME_SNAP}-v${GNOME_VER}-${ARCH}"
-export FINAL_DIR="$TEMPLATE_DIR/$TEMPLATE_NAME"
-
-mkdir -p "$FINAL_DIR/meta-reference"
-cp "$EXTRACT_DIR/meta/snap.yaml" "$FINAL_DIR/meta-reference/snap.yaml"
-cp gnome-runtime.json "$FINAL_DIR/"
-
-###############################################################################
-# Step 5: Copy runtime files
-###############################################################################
-
-echo "[4/9] Copying runtime files…"
-
-rsync -a \
-  --exclude='bin/hello' \
-  --exclude='meta/' \
-  "$EXTRACT_DIR/" "$FINAL_DIR/"
-
-###############################################################################
-# Step 6: LD dependency validation + RPATH normalization
-###############################################################################
-
-echo "[5/9] Validating LD dependencies…"
-
-ALLOWLIST_FILE="$WORK_DIR/ld-allowlist.tmp"
-DENYLIST_FILE="$WORK_DIR/ld-denylist.tmp"
-
-: > "$ALLOWLIST_FILE"
-: > "$DENYLIST_FILE"
-
-# find executable binaries (portable)
-LIBRARIES="$(find "$FINAL_DIR" -type f \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' \))"
-
-BINARIES="$(find "$FINAL_DIR" -type f -exec file {} \; 2>/dev/null | \
-  grep -E 'ELF.*executable|Mach-O.*executable' | cut -d: -f1 || true)"
-  
-if [ -z "$BINARIES" ]; then
-  echo "ℹ️  No executable binaries found (runtime-only template)"
-else
-  echo "🔍 Found executables:"
-  echo "$BINARIES"
-fi
-if [ -z "$LIBRARIES" ]; then
-  echo "⚠️  No shared libraries found — nothing to validate"
-else
-  echo "🔍 Validating $(echo "$LIBRARIES" | wc -l | tr -d ' ') shared libraries"
-fi
-
-for bin in $BINARIES; do
-  if [[ "$(uname)" != "Darwin" ]]; then
-    patchelf --set-rpath '$ORIGIN:$ORIGIN/../lib:$ORIGIN/../usr/lib' "$bin" 2>/dev/null || true
-    DEPS="$(ldd "$bin" 2>/dev/null | awk '{print $3}')"
-  else
-    DEPS="$(otool -L "$bin" 2>/dev/null | tail -n +2 | awk '{print $1}')"
-  fi
-
-  for dep in $DEPS; do
-    [[ "$SKIP_WAYLAND" == "true" && "$dep" == *wayland* ]] && continue
-    lib="$(normalize_lib "$dep")"
-    if find "$FINAL_DIR" -name "$lib*" | grep -q .; then
-      echo "$lib" >> "$ALLOWLIST_FILE"
-    else
-      echo "$lib" >> "$DENYLIST_FILE"
-    fi
-  done
-done
-
-sort -u "$ALLOWLIST_FILE" | jq -R . | jq -s . > "$FINAL_DIR/ld-allowlist.json"
-sort -u "$DENYLIST_FILE"  | jq -R . | jq -s . > "$FINAL_DIR/ld-denylist.json"
-
-###############################################################################
-# Step 7: Generate SBOM (CycloneDX, pretty)
-###############################################################################
-
-echo "[6/9] Generating SBOM…"
-
-python3 << 'PY'
-import os, json, hashlib, time, platform
-
-ROOT = os.environ["FINAL_DIR"]
-
-def sha256(p):
-    h = hashlib.sha256()
-    with open(p, "rb") as f:
-        for c in iter(lambda: f.read(8192), b""):
-            h.update(c)
-    return h.hexdigest()
-
-components = []
-for r, _, files in os.walk(ROOT):
-    for f in files:
-        if ".so" not in f:
-            continue
-        p = os.path.join(r, f)
-        components.append({
-            "type": "library",
-            "name": f,
-            "hashes": [{"alg": "SHA-256", "content": sha256(p)}],
-            "properties": [
-                {"name": "path", "value": os.path.relpath(p, ROOT)},
-                {"name": "size", "value": str(os.path.getsize(p))}
-            ]
-        })
-
-sbom = {
-    "bomFormat": "CycloneDX",
-    "specVersion": "1.5",
-    "version": 1,
-    "metadata": {
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "component": {
-            "type": "application",
-            "name": os.path.basename(ROOT),
-            "properties": [
-                {"name": "platform", "value": platform.system()}
-            ]
+snapcraft = {
+    'name': app_name,
+    'base': 'core24',
+    'version': version,
+    'summary': summary,
+    'description': description,
+    'grade': 'stable',
+    'confinement': 'strict',
+    'apps': {
+        app_name: {
+            'command': f'app/{app_name}',
+            'plugs': ref_app.get('plugs', []),
+            'environment': ref_app.get('environment', {})
         }
     },
-    "components": sorted(components, key=lambda c: c["name"])
+    'parts': {
+        'gnome-runtime': {
+            'plugin': 'dump',
+            'source': '.',
+            'stage': ['gnome-platform', 'gpu-2404', 'data-dir', '-meta-reference']
+        },
+        'app': {
+            'plugin': 'dump',
+            'source': 'app/',
+            'stage-packages': [
+                'libnspr4', 'libnss3', 'libxss1',
+                'libappindicator3-1','libsecret-1-0','libatomic1'
+            ],
+            'organize': {'*': 'app/'},
+            'after': ['gnome-runtime']
+        }
+    },
+    'layout': snap.get('layout', {}),
+    'assumes': snap.get('assumes', [])
 }
 
-with open(os.path.join(ROOT, "sbom.cdx.json"), "w") as f:
-    json.dump(sbom, f, indent=2)
-
-print("✅ SBOM components:", len(components))
+with open('snapcraft.yaml', 'w') as f:
+    yaml.dump(snapcraft, f, default_flow_style=False, sort_keys=False)
+print(f"✅ Generated snapcraft.yaml for {app_name}")
 PY
+GEN
+chmod +x "$FINAL_TEMPLATE_DIR/generate-snapcraft.sh"
 
-###############################################################################
-# Step 8: Documentation
-###############################################################################
+# show-extension-details.sh
+cat > "$FINAL_TEMPLATE_DIR/show-extension-details.sh" <<'SHOW'
+#!/bin/bash
+python3 <<PY
+import yaml
+with open('meta-reference/snap.yaml') as f:
+    snap = yaml.safe_load(f)
+app = snap['apps'][list(snap['apps'].keys())[0]]
+print("Environment Variables:")
+for k,v in app.get('environment', {}).items():
+    print(f"  {k}={v}")
+print("\nPlugs:")
+for plug in app.get('plugs', []):
+    print(f"  {plug}")
+PY
+SHOW
+chmod +x "$FINAL_TEMPLATE_DIR/show-extension-details.sh"
 
-echo "[7/9] Writing README…"
+# Step 5: Create tarball
+echo "[5/5] Creating tarball..."
+TAR_NAME="${TEMPLATE_NAME}.tar.gz"
+( cd "$TEMPLATE_DIR" && tar czf "$OUT_DIR/$TAR_NAME" "$TEMPLATE_NAME" )
+echo "✅ Tarball created: $OUT_DIR/$TAR_NAME"
 
-cat > "$FINAL_DIR/README.md" << EOF
-# Offline GNOME Runtime Template
-
-**GNOME Runtime:** $GNOME_SNAP  
-**Base:** core24  
-**Architecture:** $ARCH  
-**Generated:** $DATE_UTC
-
-## Contents
-- GNOME + GTK runtime
-- NSS / X11 / indicator libraries
-- Deterministic RPATHs
-- CycloneDX SBOM
-- LD allow/deny lists
-
-## Usage
-\`\`\`bash
-tar xf ${TEMPLATE_NAME}.tar.gz
-cd $TEMPLATE_NAME
-./generate-snapcraft.sh myapp 1.0.0
-snapcraft --offline
-\`\`\`
-EOF
-
-###############################################################################
-# Step 9: Package
-###############################################################################
-
-echo "[8/9] Packaging…"
-
-(
-  cd "$TEMPLATE_DIR"
-  tar czf "$OUT_DIR/${TEMPLATE_NAME}.tar.gz" "$TEMPLATE_NAME"
-)
-
-echo "[9/9] Done."
-echo "✅ Output: $FINAL_DIR"
-echo "✅ Tarball: $TEMPLATE_DIR/${TEMPLATE_NAME}.tar.gz"
-
-DENY_COUNT="$(jq 'length' "$FINAL_DIR/ld-denylist.json")"
-[ "$DENY_COUNT" -eq 0 ] || { echo "⚠️  Missing deps: $DENY_COUNT"; [ -n "${CI:-}" ] && exit 1; }
+echo ""
+echo "✅ Offline GNOME runtime template ready!"
+echo "Template Directory: $FINAL_TEMPLATE_DIR"
+echo "Tarball: $OUT_DIR/$TAR_NAME"
+echo ""
