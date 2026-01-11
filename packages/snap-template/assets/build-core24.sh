@@ -55,6 +55,7 @@ if [ -n "$MISSING_CMDS" ]; then
         fi
         echo "Installing snapcraft via snap..."
         sudo snap install snapcraft --classic
+        sudo snap install gnome-46-2404 --channel=latest/stable --dangerous || true
       else
         sudo apt-get install -y "$cmd" || echo "❌ Could not install $cmd via apt"
       fi
