@@ -94,13 +94,13 @@ parts:
 EOF
 
 # Build snap if not cached
-SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "reference-app_*.snap" -type f 2>/dev/null | head -1)
+SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "*.snap" -type f 2>/dev/null | head -1)
 if [ -n "$SNAP_FILE" ] && [ -f "$SNAP_FILE" ]; then
     echo "✅ Using cached snap: $(basename "$SNAP_FILE")"
 else
     echo "Building reference snap (may take several minutes)..."
-    (cd "$SNAP_DIR" && snapcraft --verbose 2>&1 | tee "$WORK_DIR/build.log")
-    SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "reference-app_*.snap" -type f | head -1)
+    (cd "$SNAP_DIR" && snapcraft pack --verbose 2>&1 | tee "$WORK_DIR/build.log")
+    SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "*.snap" -type f | head -1)
     [ -z "$SNAP_FILE" ] && { echo "❌ Snap build failed"; exit 1; }
     echo "✅ Built: $(basename "$SNAP_FILE")"
 fi
