@@ -11,9 +11,8 @@ set -euo pipefail
 #   - Linux (amd64 + arm64) via Docker buildx
 #
 # Usage:
-#   ./build.sh all      # build core22 + core24 + tests
-#   ./build.sh core22   # build only core22
-#   ./build.sh core24   # build only core24
+#   ./build.sh all      # build core24 + tests
+#   ./build.sh <arch>   # build only arm64 or amd64 runtime template
 #   ./build.sh test     # run functional tests only
 # =============================================================================
 
