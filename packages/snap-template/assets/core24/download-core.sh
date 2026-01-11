@@ -42,6 +42,8 @@ for ARCH in "${ARCHES[@]}"; do
       snap download gnome-42-2204 \
         --channel=${CORE_CHANNEL} \
         --target-directory=/out
+
+      chmod a+r /out/*.snap /out/*.assert
     "
 done
 
