@@ -99,7 +99,30 @@ if [ -n "$SNAP_FILE" ] && [ -f "$SNAP_FILE" ]; then
     echo "✅ Using cached snap: $(basename "$SNAP_FILE")"
 else
     echo "Building reference snap (may take several minutes)..."
-    (cd "$SNAP_DIR" && snapcraft pack --destructive-mode --verbose 2>&1 | tee "$WORK_DIR/build.log")
+docker run --rm --privileged \
+  --platform linux/amd64 \
+  -v "$SNAP_DIR":/work \
+  -w /work \
+  ubuntu:24.04 \
+  bash -lc '
+    set -e
+    apt update
+    apt install -y snapd squashfs-tools
+
+    # add snap CLI symlink
+    # ln -s /usr/lib/snapd/snap /usr/bin/snap
+
+    # start snapd daemon manually
+    mkdir -p /run/snapd
+    /usr/lib/snapd/snapd &
+    sleep 8
+
+    # install snapcraft and run build
+    snap install snapcraft --classic
+    snapcraft --version
+    snapcraft --build-for=amd64
+  '
+
     SNAP_FILE=$(find "$SNAP_DIR" -maxdepth 1 -name "*.snap" -type f | head -1)
     [ -z "$SNAP_FILE" ] && { echo "❌ Snap build failed"; exit 1; }
     echo "✅ Built: $(basename "$SNAP_FILE")"
@@ -122,11 +145,11 @@ cp "$EXTRACT_DIR/meta/snap.yaml" "$FINAL_TEMPLATE_DIR/meta-reference/"
 
 # Copy GNOME and GPU runtime, data-dir
 rsync -a --exclude='bin/hello' --exclude='meta/' \
-    "$EXTRACT_DIR/gnome-platform" "$FINAL_TEMPLATE_DIR/"
+"$EXTRACT_DIR/gnome-platform" "$FINAL_TEMPLATE_DIR/"
 rsync -a --exclude='bin/hello' --exclude='meta/' \
-    "$EXTRACT_DIR/gpu-2404" "$FINAL_TEMPLATE_DIR/"
+"$EXTRACT_DIR/gpu-2404" "$FINAL_TEMPLATE_DIR/"
 rsync -a --exclude='bin/hello' --exclude='meta/' \
-    "$EXTRACT_DIR/data-dir" "$FINAL_TEMPLATE_DIR/"
+"$EXTRACT_DIR/data-dir" "$FINAL_TEMPLATE_DIR/"
 
 echo "✅ Copied GNOME runtime, GPU runtime, and data-dir"
 
