@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 # =============================================================================
 # Electron core24 Runtime Template Builder (Docker buildx)

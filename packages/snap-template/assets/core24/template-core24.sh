@@ -26,8 +26,8 @@ cleanup() {
     [ -d "$WORK_DIR/reference-snap/bin" ] && rm -rf "$WORK_DIR/reference-snap/bin"
     [ -f "$WORK_DIR/build.log" ] && rm -f "$WORK_DIR/build.log"
 }
-# trap cleanup EXIT
-cleanup
+trap cleanup EXIT
+# cleanup
 
 echo "======================================================================="
 echo "Offline GNOME Runtime Template Builder"
