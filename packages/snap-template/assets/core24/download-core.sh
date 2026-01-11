@@ -3,25 +3,46 @@ set -euo pipefail
 
 CORE_BASE="core24"
 CORE_CHANNEL="stable"
-ARCH="${1:-$(uname -m | sed 's/x86_64/amd64/')}"
-
+ARCHES=(amd64 arm64)
 OUT_DIR="${2:-./offline-assets/core24}"
+
 rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR"
 
-echo "📦 Downloading $CORE_BASE for $ARCH"
+echo "📦 Downloading $CORE_BASE and gnome extensions"
 
-snap download "$CORE_BASE" --channel="$CORE_CHANNEL" --target-directory="$OUT_DIR"
-snap download snapcraft-gnome-3-38 --target-directory="$OUT_DIR"
-snap download snapcraft-gnome-42 --target-directory="$OUT_DIR"
+echo "➡️ Downloading $CORE_BASE for ${ARCHES[*]}..."
 
-SNAP_FILE="$(ls "$OUT_DIR"/${CORE_BASE}_*.snap)"
-ASSERT_FILE="$(ls "$OUT_DIR"/${CORE_BASE}_*.assert)"
+for ARCH in "${ARCHES[@]}"; do
+  echo "📦 Downloading snaps for ${ARCH}..."
 
-echo "🔐 Calculating checksums"
-sha256sum "$SNAP_FILE" > "$SNAP_FILE.sha256"
-sha256sum "$ASSERT_FILE" > "$ASSERT_FILE.sha256"
+  mkdir -p "$OUT_DIR/$ARCH"
 
-echo "✅ Downloaded:"
-echo "  - $(basename "$SNAP_FILE")"
-echo "  - $(basename "$ASSERT_FILE")"
+  docker run --rm \
+    --platform="linux/${ARCH}" \
+    -v "$OUT_DIR/$ARCH":/out \
+    ubuntu:24.04 bash -c "
+      set -euo pipefail
+
+      apt update
+      apt install -y snapd
+
+      snap download core24 \
+        --channel=${CORE_CHANNEL} \
+        --target-directory=/out
+
+      snap download gnome-42-2204 \
+        --channel=${CORE_CHANNEL} \
+        --target-directory=/out
+    "
+done
+
+for ARCH in "${ARCHES[@]}"; do
+  (
+    cd "$OUT_DIR/$ARCH"
+    shasum -a 256 *.snap *.assert > SHA256SUMS
+  )
+done
+
+echo "✓ Downloaded $CORE_BASE and GNOME extensions to $OUT_DIR"
+echo "Contents:"
+tree "$OUT_DIR" | find "$OUT_DIR" -type f
