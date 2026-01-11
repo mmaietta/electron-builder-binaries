@@ -69,7 +69,7 @@ if [ -n "$MISSING_CMDS" ]; then
   fi
 fi
 
-bash -e ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
+bash ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
 # bash -e ${ROOT}/assets/core24/validate-ld-deps.sh $TEMPLATE_DIR/ false
 # bash -e ${ROOT}/assets/core24/runtime-smoke-test.sh $TEMPLATE_DIR/
 # bash -e ${ROOT}/assets/core24/generate-allowlist.sh $TEMPLATE_DIR/   # first time only
