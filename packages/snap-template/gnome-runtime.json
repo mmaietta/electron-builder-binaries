@@ -1,0 +1,6 @@
+{
+  "extension": "gnome",
+  "content_snap": "reference-app",
+  "version": "1.0",
+  "base": "core24"
+}

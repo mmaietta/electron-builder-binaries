@@ -61,11 +61,7 @@ for root, _, files in os.walk(ROOT):
         packages.append(pkg)
 
 sbom = {
-    "spdxVersion": "SPDX-2.3",
-    "dataLicense": "CC0-1.0",
-    "SPDXID": "SPDXRef-DOCUMENT",
     "name": "electron-gnome-runtime",
-    "documentNamespace": f"https://example.org/sbom/{hash(str(ROOT))}",
     "creationInfo": {
         "created": subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], text=True).strip(),
         "creators": [
@@ -82,6 +78,7 @@ sbom = {
     ]
 }
 
+os.makedirs(os.path.dirname(SBOM_OUT), exist_ok=True)
 with open(SBOM_OUT, "w") as f:
     json.dump(sbom, f, indent=2)
 
