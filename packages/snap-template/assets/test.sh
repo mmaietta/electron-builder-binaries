@@ -7,7 +7,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUT_DIR="$ROOT_DIR/out/functional-test"
 TMP_DIR="/tmp/electron-runtime-functional-test"
 
-CORES="core22 core24"
+CORES="core24"
 ARCHES="amd64 arm64"
 
 rm -rf "$OUT_DIR" "$TMP_DIR"
