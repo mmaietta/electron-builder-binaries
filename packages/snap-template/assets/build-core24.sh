@@ -29,12 +29,22 @@ echo "=========================================="
 echo ""
 
 # Check for required commands
-for cmd in snapcraft unsquashfs python3 ; do
+MISSING_CMDS=""
+for cmd in snapcraft unsquashfs python3 tree; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: $cmd is required but not installed."
-    exit 1
+    MISSING_CMDS="$MISSING_CMDS $cmd"
   fi
 done
+if [ -n "$MISSING_CMDS" ]; then
+  if [[ $(uname -s) == "Linux" ]]; then
+    echo "Installing missing commands:$MISSING_CMDS"
+    sudo apt-get update
+    sudo apt-get install -y $MISSING_CMDS
+  else
+    brew install $MISSING_CMDS
+  fi
+fi
 
 bash -e ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
 # bash -e ${ROOT}/assets/core24/validate-ld-deps.sh $TEMPLATE_DIR/ false
@@ -44,4 +54,3 @@ bash -e ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
 find "$BUILD_DIR" -type f -name "*.so*" -exec du -b {} + \
   | awk '{print "{\"file\":\""$2"\",\"bytes\":"$1"}"}' \
   | jq -s '.' | jq 'sort_by(.bytes) | reverse | .[]'
-
