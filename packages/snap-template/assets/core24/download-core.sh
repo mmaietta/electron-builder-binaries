@@ -6,11 +6,14 @@ CORE_CHANNEL="stable"
 ARCH="${1:-$(uname -m | sed 's/x86_64/amd64/')}"
 
 OUT_DIR="${2:-./offline-assets/core24}"
+rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 echo "📦 Downloading $CORE_BASE for $ARCH"
 
 snap download "$CORE_BASE" --channel="$CORE_CHANNEL" --target-directory="$OUT_DIR"
+snap download snapcraft-gnome-3-38 --target-directory="$OUT_DIR"
+snap download snapcraft-gnome-42 --target-directory="$OUT_DIR"
 
 SNAP_FILE="$(ls "$OUT_DIR"/${CORE_BASE}_*.snap)"
 ASSERT_FILE="$(ls "$OUT_DIR"/${CORE_BASE}_*.assert)"

@@ -2,20 +2,23 @@
 set -euo pipefail
 
 # ----------------------------
-# Configuration
+# Paths
 # ----------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TEMPLATE_DIR="$ROOT/build/gnome-offline-template"
-CORE24_SNAP="$ROOT/build/vendor/core24-1244.snap"        # path to your core24.snap
-EXTENSIONS_SOURCE="/var/lib/snapd/snaps"           # location where GNOME extensions are installed
-GNOME_LIBS_SOURCE="/usr/lib/x86_64-linux-gnu"      # or your staged GNOME libs
-APP_DIR="./app"                                    # optional placeholder app
+BUILD_DIR="$ROOT/build/core24"
+
+TEMPLATE_DIR="$BUILD_DIR/gnome-offline-template"
+CORE24_SNAP="$BUILD_DIR/vendor/core24_1244.snap"
+EXTENSIONS_DIR="$BUILD_DIR/vendor/gnome-extensions"  # staged snaps for template
+APP_DIR="$BUILD_DIR/app"
+DOCKER_IMAGE="ubuntu:24.04"
 
 # ----------------------------
-# Create folder structure
+# Create template folder structure
 # ----------------------------
 echo "📂 Creating template folder structure..."
-mkdir -p "$TEMPLATE_DIR"/{meta,runtime,deps/gnome-libs,deps/gnome-extensions,scripts,app}
+rm -rf "$TEMPLATE_DIR"
+mkdir -p "$TEMPLATE_DIR"/{meta,scripts,app}
 
 # ----------------------------
 # Create meta/snap.yaml
@@ -27,6 +30,7 @@ summary: Fully offline GNOME Snapcraft template
 description: Template snap for offline builds with core24 and GNOME extensions
 confinement: devmode
 base: core24
+extensions: [gnome]
 
 parts:
   template-setup:
@@ -45,48 +49,91 @@ set -euo pipefail
 
 STAGE_DIR="${SNAPCRAFT_PART_INSTALL:-$PWD/stage}"
 
-echo "⏳ Staging core24 runtime..."
-mkdir -p "$STAGE_DIR/core24"
-cp -r ../runtime/core24/* "$STAGE_DIR/core24/"
-
-echo "⏳ Staging GNOME libraries..."
-mkdir -p "$STAGE_DIR/gnome-libs"
-cp -r ../deps/gnome-libs/* "$STAGE_DIR/gnome-libs/"
-
-echo "⏳ Staging GNOME extension hooks..."
-mkdir -p "$STAGE_DIR/gnome-extensions"
-cp -r ../deps/gnome-extensions/* "$STAGE_DIR/gnome-extensions/"
-
+echo "⏳ Staging combined core24 + GNOME extension tar..."
+mkdir -p "$STAGE_DIR"
+tar -C "$PWD/../" -xf gnome-offline-template.tar
 echo "✅ Pre-build staging complete."
 EOF
 
 chmod +x "$TEMPLATE_DIR/scripts/pre-build.sh"
 
 # ----------------------------
-# Extract core24.snap
+# Detect GNOME extension snaps
 # ----------------------------
-echo "📦 Extracting core24.snap..."
-unsquashfs -d "$TEMPLATE_DIR/runtime/core24" "$CORE24_SNAP"
+echo "🔍 Detecting GNOME extension snaps..."
+mkdir -p "$EXTENSIONS_DIR"
 
-# ----------------------------
-# Copy GNOME libraries
-# ----------------------------
-echo "📦 Copying GNOME libraries..."
-cp -r "$GNOME_LIBS_SOURCE"/* "$TEMPLATE_DIR/deps/gnome-libs/"
+# Example: look for snapcraft-gnome-*.snap in vendor folder
+REQUIRED_SNAPS=( "snapcraft-gnome-3-38.snap" "snapcraft-gnome-42.snap" )
 
-# ----------------------------
-# Copy GNOME extension hooks
-# ----------------------------
-echo "📦 Copying GNOME extension hooks..."
-# Example: find snapcraft GNOME extension snaps
-for ext_snap in "$EXTENSIONS_SOURCE"/snapcraft-gnome-*; do
-    echo "  - Extracting $(basename "$ext_snap")"
-    unsquashfs -d "$TEMPLATE_DIR/deps/gnome-extensions/$(basename "$ext_snap" .snap)" "$ext_snap"
+FOUND=()
+for snap in "${REQUIRED_SNAPS[@]}"; do
+    if [ -f "$BUILD_DIR/vendor/gnome-extensions/$snap" ]; then
+        cp "$BUILD_DIR/vendor/gnome-extensions/$snap" "$EXTENSIONS_DIR/"
+        FOUND+=("$snap")
+    fi
 done
 
+if [ ${#FOUND[@]} -eq 0 ]; then
+    echo "❌ Error: extensions: [gnome] declared but no GNOME extension snaps found in $EXTENSIONS_DIR"
+    exit 1
+else
+    echo "✅ Found GNOME extension snaps: ${FOUND[*]}"
+fi
+
 # ----------------------------
-# Placeholder app folder
+# Extract & combine everything in Docker
+# ----------------------------
+echo "📦 Extracting core24 and GNOME extensions in Docker..."
+docker run --rm -v "$BUILD_DIR":/mnt "$DOCKER_IMAGE" bash -c "
+  set -e
+  apt-get update && apt-get install -y squashfs-tools tar
+
+  # Temp dirs
+  mkdir -p /tmp/core24 /tmp/gnome-ext /tmp/combined
+
+  # Extract core24
+  echo '🔹 Extracting core24.snap...'
+  unsquashfs -d /tmp/core24 /mnt/vendor/core24_1244.snap
+
+  # Extract GNOME extension snaps
+  if compgen -G /mnt/vendor/gnome-extensions/*.snap > /dev/null; then
+      echo '🔹 Extracting GNOME extension snaps...'
+      for ext_snap in /mnt/vendor/gnome-extensions/*.snap; do
+          base_name=\$(basename \$ext_snap .snap)
+          mkdir -p /tmp/gnome-ext/\$base_name
+          unsquashfs -d /tmp/gnome-ext/\$base_name \$ext_snap
+      done
+  fi
+
+  # Combine everything
+  cp -r /tmp/core24/* /tmp/combined/
+  cp -r /tmp/gnome-ext/* /tmp/combined/ 2>/dev/null || true
+
+  # Create single combined tar
+  echo '🔹 Creating combined tar...'
+  tar -C /tmp/combined -cf /mnt/gnome-offline-template.tar .
+"
+
+# ----------------------------
+# Placeholder app
 # ----------------------------
 touch "$TEMPLATE_DIR/app/.placeholder"
 
-echo "✅ Offline GNOME Snapcraft template generated at $TEMPLATE_DIR"
+# ----------------------------
+# Validation
+# ----------------------------
+echo "🔍 Validating offline template..."
+if [ ! -f "$CORE24_SNAP" ]; then
+    echo "❌ core24.snap not found at $CORE24_SNAP"
+    exit 1
+fi
+
+if [ ! -f "$BUILD_DIR/gnome-offline-template.tar" ]; then
+    echo "❌ Combined tar file missing! Docker extraction failed."
+    exit 1
+fi
+
+echo "✅ Offline GNOME Snapcraft template ready at $TEMPLATE_DIR"
+echo "✅ Combined tar available: $BUILD_DIR/gnome-offline-template.tar"
+echo "Use the template with: cd $TEMPLATE_DIR && snapcraft --offline"

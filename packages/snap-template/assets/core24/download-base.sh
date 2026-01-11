@@ -12,6 +12,9 @@ echo "Downloading pinned base: $BASE_NAME"
 
 snap download "$BASE_NAME"
 
+snap download snapcraft-gnome-3-38
+snap download snapcraft-gnome-42
+
 SNAP_FILE=$(ls *.snap)
 ASSERT_FILE=$(ls *.assert)
 

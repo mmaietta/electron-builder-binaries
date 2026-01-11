@@ -86,9 +86,9 @@ case "$CMD" in
   # build machine CI
   all)
     # "$BASE_DIR/core24/preflight-offline-check.sh"
-    "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$BUILD_DIR/electron"
+    # "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$BUILD_DIR/electron"
     "$BASE_DIR/core24/download-core.sh" arm64 "$BUILD_DIR/vendor"
-    "$BASE_DIR/core24/template.sh" arm64 "$TEMPLATE_DIR" "$ROOT/out/snap-template"
+    # "$BASE_DIR/core24/template.sh" arm64 "$TEMPLATE_DIR" "$ROOT/out/snap-template"
     # snapcraft --offline
     ;;
   # install local pinned base snaps
