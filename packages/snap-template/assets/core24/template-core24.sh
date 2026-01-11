@@ -13,6 +13,7 @@ BASE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 BUILD_DIR="$BASE_DIR/build/core24"
 WORK_DIR="$BUILD_DIR/work-$ARCH"
 TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
+OUT_DIR="$BASE_DIR/out/snap-template"
 
 DATE_UTC="$(date -u +%Y%m%d)"
 
@@ -40,6 +41,7 @@ echo "ARCH            : $ARCH"
 echo "SKIP_WAYLAND    : $SKIP_WAYLAND"
 echo "BASE_DIR        : $BASE_DIR"
 echo "WORK_DIR        : $WORK_DIR"
+echo "OUT_DIR         : $OUT_DIR"
 echo ""
 
 REQUIRED_CMDS=(
@@ -328,7 +330,7 @@ echo "[8/9] Packaging…"
 
 (
   cd "$TEMPLATE_DIR"
-  tar czf "${TEMPLATE_NAME}.tar.gz" "$TEMPLATE_NAME"
+  tar czf "$OUT_DIR/${TEMPLATE_NAME}.tar.gz" "$TEMPLATE_NAME"
 )
 
 echo "[9/9] Done."

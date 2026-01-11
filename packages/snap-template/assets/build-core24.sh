@@ -41,8 +41,7 @@ bash -e ${ROOT}/assets/core24/template-core24.sh $ARCH $TEMPLATE_DIR
 # bash -e ${ROOT}/assets/core24/runtime-smoke-test.sh $TEMPLATE_DIR/
 # bash -e ${ROOT}/assets/core24/generate-allowlist.sh $TEMPLATE_DIR/   # first time only
 
-find "$TEMPLATE_DIR" -type f -name "*.so*" -exec du -b {} + \
+find "$BUILD_DIR" -type f -name "*.so*" -exec du -b {} + \
   | awk '{print "{\"file\":\""$2"\",\"bytes\":"$1"}"}' \
   | jq -s '.' | jq 'sort_by(.bytes) | reverse | .[]'
 
-python3 ${ROOT}/assets/core24/generate-sbom-spdx.py $TEMPLATE_DIR $OUT_DIR/sbom-core24.spdx.json
