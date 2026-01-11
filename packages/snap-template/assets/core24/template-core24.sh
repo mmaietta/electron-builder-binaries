@@ -106,19 +106,29 @@ docker run --rm --privileged \
   ubuntu:24.04 \
   bash -lc '
     set -e
+
     apt update
     apt install -y snapd squashfs-tools
 
-    # add snap CLI symlink
-    # ln -s /usr/lib/snapd/snap /usr/bin/snap
+    # Docker-specific fixes
+    ln -sf /usr/lib/snapd/snap /usr/bin/snap
 
-    # start snapd daemon manually
+    # Start snapd
     mkdir -p /run/snapd
     /usr/lib/snapd/snapd &
-    sleep 8
+    
+    # IMPORTANT: wait for snapd to be ready
+    until snap version >/dev/null 2>&1; do
+      echo "Waiting for snapd..."
+      sleep 2
+    done
 
-    # install snapcraft and run build
+    # CRITICAL: seed a base snap FIRST
+    snap install core24
+
+    # Now install snapcraft (will NOT hang)
     snap install snapcraft --classic
+
     snapcraft --version
     snapcraft --build-for=amd64
   '
