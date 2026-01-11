@@ -30,19 +30,42 @@ echo ""
 
 # Check for required commands
 MISSING_CMDS=""
-for cmd in snapcraft unsquashfs python3 tree; do
+for cmd in snapcraft unsquashfs python3 tree patchelf; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Error: $cmd is required but not installed."
     MISSING_CMDS="$MISSING_CMDS $cmd"
   fi
 done
+
 if [ -n "$MISSING_CMDS" ]; then
-  if [[ $(uname -s) == "Linux" ]]; then
-    echo "Installing missing commands:$MISSING_CMDS"
+  echo "Missing commands:$MISSING_CMDS"
+
+  if [[ "$(uname -s)" == "Linux" ]]; then
+    echo "Attempting to install missing commands on Linux..."
+
+    # Update apt and install what is available
     sudo apt-get update
-    sudo apt-get install -y $MISSING_CMDS
+
+    # snapcraft may need snapd, check first
+    for cmd in $MISSING_CMDS; do
+      if [ "$cmd" == "snapcraft" ]; then
+        if ! command -v snap >/dev/null 2>&1; then
+          echo "Installing snapd first..."
+          sudo apt-get install -y snapd
+        fi
+        echo "Installing snapcraft via snap..."
+        sudo snap install snapcraft --classic
+      else
+        sudo apt-get install -y "$cmd" || echo "❌ Could not install $cmd via apt"
+      fi
+    done
+
   else
-    brew install $MISSING_CMDS
+    # macOS
+    echo "Installing missing commands via Homebrew..."
+    for cmd in $MISSING_CMDS; do
+      brew install "$cmd"
+    done
   fi
 fi
 
