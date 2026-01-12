@@ -36,10 +36,13 @@ rm electron.zip
 
 chmod +x electron
 
+ldd electron | grep "not found"  # Shows missing libs
+ldd electron | grep "=>" | awk '{print $3}' | xargs dpkg -S 2>/dev/null | cut -d: -f1 | sort -u
+
 echo "Recording version..."
-echo "v$ELECTRON_VERSION" > version.txt
+echo "v$ELECTRON_VERSION" > VERSION.txt
 
 echo "Generating checksums..."
-sha256sum electron LICENSE version.txt > SHA256SUMS
+sha256sum electron LICENSE VERSION.txt > SHA256SUMS
 
 echo "✓ Electron v$ELECTRON_VERSION pinned"
