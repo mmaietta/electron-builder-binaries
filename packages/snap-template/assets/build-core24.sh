@@ -85,16 +85,17 @@ case "$CMD" in
     ;;
   # build machine CI
   all)
-    # "$BASE_DIR/core24/preflight-offline-check.sh"
     "$BASE_DIR/core24/download-electron.sh" arm64 30.0.0 "$ROOT/build/electron"
+    "$BASE_DIR/core24/download-electron.sh" amd64 30.0.0 "$ROOT/build/electron"
     "$BASE_DIR/core24/download-core.sh" arm64 "$BUILD_DIR/vendor"
     "$BASE_DIR/core24/download-core.sh" amd64 "$BUILD_DIR/vendor"
 
+    "$BASE_DIR/core24/template.sh" arm64 "$ROOT" 
+    "$BASE_DIR/core24/template.sh" amd64 "$ROOT" 
     ( 
       cd "$BUILD_DIR"
-      tar -czf "$BUILD_DIR/core24-snaps-${CORE_CHANNEL}.tar.gz" .
+      tar -czf "$BUILD_DIR/core24-snaps-stable.tar.gz" .
     )
-    # "$BASE_DIR/core24/template.sh" arm64 "$TEMPLATE_DIR" "$ROOT/out/snap-template"
     # snapcraft --offline
     ;;
   arm64|amd64)

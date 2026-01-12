@@ -9,10 +9,10 @@ set -e
 TEMPLATE_VERSION="1"
 
 ARCH="${1:-amd64}"
-BASE_DIR="${2:-$(cd "$(dirname "$0")/../.." && pwd)}"
-OUT_DIR="${3:-$BASE_DIR/out/snap-template}"
+ROOT="${2:-$(cd "$(dirname "$0")/../.." && pwd)}"
+BUILD_DIR="$ROOT/build/core24"
+OUT_DIR="${3:-$ROOT/out/snap-template}"
 
-BUILD_DIR="$BASE_DIR/core24"
 TEMPLATE_DIR="$BUILD_DIR/electron-runtime-template"
 
 TEMPLATE_NAME="snap-template-electron-core24-v${TEMPLATE_VERSION}-${ARCH}"
@@ -40,12 +40,13 @@ if [ ${#MISSING_CMDS[@]} -gt 0 ]; then
   echo "❌ Missing required commands: ${MISSING_CMDS[*]}"
   echo ""
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    echo "Installing on macOS:"
-    brew install squashfs coreutils python3 jq tree
+    echo "Install on macOS:"
+    echo "  brew install squashfs coreutils python3 jq"
   else
-    echo "Installing on Linux:"
-    sudo apt-get install squashfs-tools rsync python3 python3-yaml jq tree
+    echo "Install on Linux:"
+    echo "  sudo apt-get install squashfs-tools rsync python3 python3-yaml jq"
   fi
+  exit 1
 fi
 
 # Check for snapcraft
@@ -53,11 +54,11 @@ if ! command -v snapcraft >/dev/null 2>&1; then
   echo "❌ snapcraft not found"
   echo ""
   if [[ "$(uname -s)" == "Darwin" ]]; then
-    echo "Installing on macOS:"
-    brew install snapcraft
+    echo "Install on macOS:"
+    echo "  brew install snapcraft"
   else
-    echo "Installing on Linux:"
-    sudo snap install snapcraft --classic
+    echo "Install on Linux:"
+    echo "  sudo snap install snapcraft --classic"
   fi
   exit 1
 fi
@@ -197,7 +198,7 @@ echo "✅ Extracted to $EXTRACT_DIR"
 
 # Step 4: Copy runtime files to template
 echo ""
-echo "[4/6] Creating template structure..."
+echo "[4/6] Extracting content snap runtimes..."
 FINAL_TEMPLATE_DIR="$TEMPLATE_DIR/$TEMPLATE_NAME"
 rm -rf "$FINAL_TEMPLATE_DIR"
 mkdir -p "$FINAL_TEMPLATE_DIR/meta-reference"
@@ -205,13 +206,96 @@ mkdir -p "$FINAL_TEMPLATE_DIR/meta-reference"
 # Copy snap.yaml
 cp "$EXTRACT_DIR/meta/snap.yaml" "$FINAL_TEMPLATE_DIR/meta-reference/"
 
-# Copy runtime directories
-echo "Copying GNOME runtime files..."
-for dir in gnome-platform gpu-2404 data-dir graphics-core24 mesa-2404; do
-  if [ -d "$EXTRACT_DIR/$dir" ]; then
-    echo "  ✓ Copying $dir/"
-    rsync -a "$EXTRACT_DIR/$dir/" "$FINAL_TEMPLATE_DIR/$dir/"
+# Parse plugs to find content snaps
+echo "Detecting content snap dependencies..."
+CONTENT_SNAPS=$(cd "$FINAL_TEMPLATE_DIR" && python3 <<'PY'
+import yaml
+import sys
+
+try:
+    with open('meta-reference/snap.yaml') as f:
+        snap = yaml.safe_load(f)
+    
+    plugs = snap.get('plugs', {})
+    content_snaps = []
+    
+    for plug_name, plug_config in plugs.items():
+        if isinstance(plug_config, dict) and plug_config.get('interface') == 'content':
+            provider = plug_config.get('default-provider')
+            target = plug_config.get('target', '')
+            if provider:
+                # Extract snap name from provider (e.g., "gnome-46-2404:gnome-46-2404" -> "gnome-46-2404")
+                snap_name = provider.split(':')[0]
+                content_snaps.append(f"{snap_name}|{target}")
+    
+    for item in content_snaps:
+        print(item)
+        
+except Exception as e:
+    print(f"Error parsing snap.yaml: {e}", file=sys.stderr)
+    sys.exit(1)
+PY
+)
+
+# Download and extract each content snap
+CONTENT_SNAP_DIR="$WORK_DIR/content-snaps"
+mkdir -p "$CONTENT_SNAP_DIR"
+
+echo "$CONTENT_SNAPS" | while IFS='|' read -r snap_name target_path; do
+  [ -z "$snap_name" ] && continue
+  
+  echo ""
+  echo "Processing content snap: $snap_name"
+  echo "  Target: $target_path"
+  
+  # Look for any version of this snap already downloaded
+  CONTENT_SNAP_FILE=$(find "$CONTENT_SNAP_DIR" -name "${snap_name}_*.snap" -type f 2>/dev/null | head -1)
+  
+  # Download if not cached
+  if [ -z "$CONTENT_SNAP_FILE" ] || [ ! -f "$CONTENT_SNAP_FILE" ]; then
+    echo "  Downloading $snap_name..."
+    ( cd "$CONTENT_SNAP_DIR" && snap download "$snap_name" )
+    
+    # Find the downloaded snap (with revision number)
+    CONTENT_SNAP_FILE=$(find "$CONTENT_SNAP_DIR" -name "${snap_name}_*.snap" -type f 2>/dev/null | head -1)
+    
+    if [ -z "$CONTENT_SNAP_FILE" ] || [ ! -f "$CONTENT_SNAP_FILE" ]; then
+      echo "  ⚠ Failed to download $snap_name, skipping..."
+      # continue
+      exit 1
+    fi
+  else
+    echo "  ✓ Using cached: $(basename "$CONTENT_SNAP_FILE")"
   fi
+  
+  # Extract content snap
+  SNAP_BASENAME=$(basename "$CONTENT_SNAP_FILE" .snap)
+  CONTENT_EXTRACT_DIR="$WORK_DIR/content-extracted/$SNAP_BASENAME"
+  
+  if [ ! -d "$CONTENT_EXTRACT_DIR" ]; then
+    echo "  Extracting $(basename "$CONTENT_SNAP_FILE")..."
+    rm -rf "$CONTENT_EXTRACT_DIR"
+    mkdir -p "$WORK_DIR/content-extracted"
+    unsquashfs -q -d "$CONTENT_EXTRACT_DIR" "$CONTENT_SNAP_FILE"
+  else
+    echo "  ✓ Using cached extraction"
+  fi
+  
+  # Determine actual content directory in the snap
+  # Content snaps typically have structure like: /snap/gnome-46-2404/
+  # We need to find where the actual content is
+  CONTENT_DIR="$CONTENT_EXTRACT_DIR"
+  
+  # Copy to template at the target path
+  TARGET_DIR="$FINAL_TEMPLATE_DIR${target_path}"
+  mkdir -p "$TARGET_DIR"
+  
+  echo "  Copying content to template..."
+  rsync -a "$CONTENT_DIR/" "$TARGET_DIR/"
+  
+  # Count what we got
+  SO_COUNT_SNAP=$(find "$TARGET_DIR" -name "*.so*" -type f 2>/dev/null | wc -l | tr -d ' ')
+  echo "  ✓ Copied $SO_COUNT_SNAP libraries from $snap_name"
 done
 
 # Count libraries

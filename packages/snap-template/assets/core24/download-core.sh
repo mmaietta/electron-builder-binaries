@@ -17,7 +17,7 @@ if ! command -v docker &> /dev/null; then
   exit 1
 fi
 
-rm -rf "$OUT_DIR"
+rm -rf "$OUT_DIR/$ARCH"
 
 echo "➡️ Downloading $CORE_BASE for ${ARCHES[*]}..."
 
