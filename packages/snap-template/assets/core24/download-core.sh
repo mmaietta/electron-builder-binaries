@@ -17,13 +17,13 @@ if ! command -v docker &> /dev/null; then
   exit 1
 fi
 
-rm -rf "$OUT_DIR/$ARCH"
 
 echo "➡️ Downloading $CORE_BASE for ${ARCHES[*]}..."
 
 for ARCH in "${ARCHES[@]}"; do
   echo "📦 Downloading snaps for ${ARCH}..."
 
+  rm -rf "$OUT_DIR/$ARCH"
   mkdir -p "$OUT_DIR/$ARCH"
 
   docker run --rm \
