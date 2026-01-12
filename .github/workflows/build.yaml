@@ -70,8 +70,15 @@ jobs:
     uses: ./.github/workflows/build-nsis.yaml
     needs: detect
 
-  # squirrel:
-  #   uses: ./.github/workflows/build-squirrel.yaml
+  snap-template:
+    if: contains(needs.detect.outputs.matrix, '"snap-template"')
+    uses: ./.github/workflows/build-snap-template.yaml
+    needs: detect
+
+  squirrel:
+    if: contains(needs.detect.outputs.matrix, '"squirrel"')
+    uses: ./.github/workflows/build-squirrel.yaml
+    needs: detect
 
   combine:
     runs-on: macos-latest
@@ -81,7 +88,8 @@ jobs:
         appimage,
         ran,
         nsis,
-        # squirrel
+        snap-template,
+        squirrel
       ]
     if: |
       always() &&
