@@ -1,19 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
-# dmgbuild portable bundler (dual-arch, isolated pyenv roots)
+# Bundle minimal Python runtime with dmgbuild
+# Produces one tar.gz per architecture
 #
 # Output:
-#   dmgbuild-bundle-arm64-<version>.tar.gz
-#   dmgbuild-bundle-x86_64-<version>.tar.gz
+#   dmgbuild-bundle-<arch>-<version>.tar.gz
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="${1:-${SCRIPT_DIR}/dist}"
 PYTHON_VERSION="${2:-3.11.8}"
 DMGBUILD_VERSION="${3:-1.6.6}"
+PYTHON_PATH="${4:-}"
 
-PYENV_ROOT_ARM="$HOME/.pyenv-arm64"
-PYENV_ROOT_X86="$HOME/.pyenv-x86_64"
+if [[ -n "${PYTHON_PATH}" ]]; then
+  if [[ ! -x "${PYTHON_PATH}" ]]; then
+    echo "❌ Specified Python path is not executable: ${PYTHON_PATH}"
+    exit 1
+  fi
+  PYTHON_VERSION="$("${PYTHON_PATH}" --version | awk '{print $2}')"
+fi
 
 echo "🐍 dmgbuild portable bundler"
 echo "📁 Output directory: ${OUTPUT_DIR}"
@@ -31,63 +37,54 @@ if ! command -v pyenv >/dev/null; then
   exit 1
 fi
 
+CURRENT_ARCH="$(uname -m)"
+
+if [[ "$CURRENT_ARCH" == "arm64" ]]; then
+  ARCHS=(arm64 x86_64)
+elif [[ "$CURRENT_ARCH" == "x86_64" ]]; then
+  ARCHS=(x86_64 arm64)
+else
+  echo "❌ Unsupported architecture: $CURRENT_ARCH"
+  exit 1
+fi
+
 mkdir -p "${OUTPUT_DIR}"
 
 build_arch() {
   local ARCH="$1"
-  local PYENV_ROOT
-  local PYENV_CMD
-  local ARCHFLAGS
-  local PYTHON_BIN
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo "🏗️  Building ${ARCH}"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  if [[ "$ARCH" == "arm64" ]]; then
-    PYENV_ROOT="${PYENV_ROOT_ARM}"
-    PYENV_CMD="pyenv"
-    ARCHFLAGS="-arch arm64"
-  else
-    PYENV_ROOT="${PYENV_ROOT_X86}"
-    PYENV_CMD="arch -x86_64 pyenv"
-    ARCHFLAGS="-arch x86_64"
-  fi
-
-  export PYENV_ROOT
-  export ARCHFLAGS
-  export PYTHON_CONFIGURE_OPTS="--enable-optimizations"
-
-  mkdir -p "${PYENV_ROOT}"
-
-  ${PYENV_CMD} install --skip-existing "${PYTHON_VERSION}"
-
-  PYTHON_BIN="${PYENV_ROOT}/versions/${PYTHON_VERSION}/bin/python3"
-
-  if [[ ! -x "${PYTHON_BIN}" ]]; then
-    echo "❌ Python binary not found: ${PYTHON_BIN}"
-    exit 1
-  fi
-
+  local WORKDIR
   WORKDIR="$(mktemp -d)"
-  TOOLING_DIR="${WORKDIR}/tooling"
+  local TOOLING_DIR="${WORKDIR}/tooling"
 
   mkdir -p "${TOOLING_DIR}"
 
-  echo "🐍 Python: $(${PYTHON_BIN} --version)"
+  export ARCHFLAGS="-arch ${ARCH}"
+  export PYTHON_CONFIGURE_OPTS="--enable-optimizations"
 
-  "${PYTHON_BIN}" -m venv "${WORKDIR}/venv"
-  source "${WORKDIR}/venv/bin/activate"
+  if ! pyenv versions --bare | grep -qx "${PYTHON_VERSION}"; then
+    pyenv install "${PYTHON_VERSION}"
+  fi
+
+  cd "${WORKDIR}"
+  pyenv local "${PYTHON_VERSION}"
+
+  "$(pyenv which python3)" -m venv venv
+  source venv/bin/activate
 
   pip install --upgrade pip --quiet
   pip install --no-cache-dir "dmgbuild==${DMGBUILD_VERSION}"
 
   mkdir -p "${TOOLING_DIR}/python/bin"
-  cp "${WORKDIR}/venv/bin/python3" "${TOOLING_DIR}/python/bin/python3"
+  cp venv/bin/python3 "${TOOLING_DIR}/python/bin/python3"
   chmod +x "${TOOLING_DIR}/python/bin/python3"
 
-  SITE_PACKAGES="$(find "${WORKDIR}/venv/lib" -type d -name site-packages | head -n1)"
+  SITE_PACKAGES="$(find venv/lib -type d -name site-packages | head -n1)"
   mkdir -p "${TOOLING_DIR}/site-packages"
   cp -R "${SITE_PACKAGES}/"* "${TOOLING_DIR}/site-packages/"
 
@@ -99,13 +96,12 @@ build_arch() {
 
   # VERSION.txt
   {
-    echo "Architecture: ${ARCH}"
     echo "Python: ${PYTHON_VERSION}"
-    echo "dmgbuild: ${DMGBUILD_VERSION}"
+    echo "Architecture: ${ARCH}"
     echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
   } > "${TOOLING_DIR}/VERSION.txt"
 
-  # builder.sh
+  # builder.sh (arch-specific)
   cat > "${TOOLING_DIR}/builder.sh" <<EOF
 #!/bin/bash
 set -e
@@ -132,21 +128,24 @@ Includes:
 EOF
 
   deactivate
+  cd "${SCRIPT_DIR}"
 
   ARCHIVE="dmgbuild-bundle-${ARCH}-${DMGBUILD_VERSION}.tar.gz"
   ARCHIVE_PATH="${OUTPUT_DIR}/${ARCHIVE}"
 
   tar -czf "${ARCHIVE_PATH}" -C "${WORKDIR}" tooling
+
   shasum -a 256 "${ARCHIVE_PATH}" > "${ARCHIVE_PATH}.sha256"
 
   echo "✅ Created ${ARCHIVE}"
 
   rm -rf "${WORKDIR}"
-  unset PYENV_ROOT ARCHFLAGS PYTHON_CONFIGURE_OPTS
+  unset ARCHFLAGS PYTHON_CONFIGURE_OPTS
 }
 
-build_arch arm64
-build_arch x86_64
+for ARCH in "${ARCHS[@]}"; do
+  build_arch "${ARCH}"
+done
 
 echo ""
-echo "🎉 Bundles created in ${OUTPUT_DIR}"
+echo "🎉 All bundles created in ${OUTPUT_DIR}"
