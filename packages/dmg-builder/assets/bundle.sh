@@ -1,31 +1,48 @@
-#!/bin/env bash
-set -e
+#!/bin/bash
+set -euo pipefail
+
+# Usage:
+#   ./bundle.sh [OUTPUT_DIR] [VERSION]
+#
+# Arguments:
+#   OUTPUT_DIR  - Directory to create the bundle in (default: ./vendor)
+#   VERSION     - dmgbuild version constraint (default: latest)
+#               Examples: "==1.6.6", ">=1.6.0", "~=1.6.0"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT_DIR="${2:-${ROOT}/out}"
-DMGBUILD_VERSION="${1:-}"  # Set to specific version like "==1.6.6" or leave empty for latest
+OUT_DIR="${1:-${ROOT}/vendor}"
+TMP_DIR="${OUT_DIR}/dmg-builder-bundle"
+DMGBUILD_VERSION="${2:-}"
 
 echo "📦 Creating dmgbuild portable bundle..."
+echo "📁 Output directory: ${OUT_DIR}"
+if [ -n "$DMGBUILD_VERSION" ]; then
+    echo "📌 Version constraint: ${DMGBUILD_VERSION}"
+else
+    echo "📌 Version constraint: latest"
+fi
 
-rm -rf "${OUT_DIR}"
-mkdir -p "${OUT_DIR}"
+# Clean and create output directory
+rm -rf "${TMP_DIR}" "${OUT_DIR}"
+mkdir -p "${TMP_DIR}" "${OUT_DIR}"
 
+# Determine package spec
 PACKAGE_SPEC="dmgbuild${DMGBUILD_VERSION}"
-echo "⬇️  Installing ${PACKAGE_SPEC} and dependencies to ${OUT_DIR}..."
+
+echo "⬇️  Installing ${PACKAGE_SPEC} and dependencies to ${TMP_DIR}..."
 
 # Install with --no-cache-dir to ensure we get the latest package info from PyPI
-# This prevents issues with stale pip cache
 pip3 install \
-    --target="${OUT_DIR}" \
+    --target="${TMP_DIR}" \
     --upgrade \
     --no-cache-dir \
-    "${PACKAGE_SPEC}" 2>&1 | tee /dev/stderr
+    "${PACKAGE_SPEC}"
 
 echo "🔍 Discovering installed packages..."
 
-# Discover all Python packages in out directory
+# Discover all Python packages in output directory
 PACKAGES=()
-for dir in "${OUT_DIR}"/*/ ; do
+for dir in "${TMP_DIR}"/*/ ; do
     if [ -d "$dir" ]; then
         dirname=$(basename "$dir")
         # Skip special directories
@@ -42,13 +59,13 @@ done
 echo "🔨 Generating dynamic entrypoint for ${#PACKAGES[@]} packages..."
 
 # Generate the entrypoint dynamically based on discovered packages
-# First, write the header
-cat > "${OUT_DIR}/builder.py" << 'EOF'
+# First, the header:
+cat > "${TMP_DIR}/builder.py" << 'EOF'
 #!/usr/bin/env python3
 """
-Portable entrypoint for dmgbuild and all outed dependencies.
+Portable entrypoint for dmgbuild and all vendored dependencies.
 
-This entrypoint is dynamically generated based on the packages in the out directory.
+This entrypoint is dynamically generated based on the packages in the vendor directory.
 
 Usage:
   python3 builder.py [args]           # Runs dmgbuild (default)
@@ -62,7 +79,7 @@ from pathlib import Path
 
 
 def setup_vendor_path():
-    """Add out directory to Python path."""
+    """Add vendor directory to Python path."""
     vendor_dir = Path(__file__).parent.resolve()
     if str(vendor_dir) not in sys.path:
         sys.path.insert(0, str(vendor_dir))
@@ -75,15 +92,14 @@ EOF
 
 # Add each discovered package to the metadata
 for pkg in "${PACKAGES[@]}"; do
-    # Try to detect package type and features
     HAS_MAIN="False"
     HAS_CLI="False"
+    DESCRIPTION="Python package"
     
-    if [ -f "${OUT_DIR}/${pkg}/__main__.py" ]; then
+    if [ -f "${TMP_DIR}/${pkg}/__main__.py" ]; then
         HAS_MAIN="True"
     fi
-    
-    # Specific package descriptions
+    # Custom descriptions for known packages
     case "$pkg" in
         dmgbuild)
             DESCRIPTION="Create DMG files for macOS"
@@ -103,7 +119,7 @@ for pkg in "${PACKAGES[@]}"; do
             ;;
     esac
     
-    cat >> "${OUT_DIR}/builder.py" << EOF
+    cat >> "${TMP_DIR}/builder.py" << EOF
     '$pkg': {
         'description': '$DESCRIPTION',
         'has_main': $HAS_MAIN,
@@ -113,7 +129,7 @@ EOF
 done
 
 # Now write the footer with the rest of the functions
-cat >> "${OUT_DIR}/builder.py" << 'EOF'
+cat >> "${TMP_DIR}/builder.py" << 'EOF'
 }
 
 
@@ -173,8 +189,8 @@ def run_package_interactive(package_name):
 
 
 def list_packages():
-    """List all available outed packages."""
-    print("📦 Available outed packages:\n")
+    """List all available vendored packages."""
+    print("📦 Available vendored packages:\n")
     
     # Get versions for all packages
     for name, info in sorted(PACKAGES.items()):
@@ -204,7 +220,7 @@ def show_help():
         print(f"  {name:15s} - {info['description']} ({status})")
     
     print("\n🛠️  Special commands:")
-    print("  list           - List all outed packages")
+    print("  list           - List all vendored packages")
     print("  help           - Show this help message")
     print("  <pkg> --interactive  - Start interactive session with package")
     
@@ -217,7 +233,7 @@ def show_help():
 
 def main():
     """Main entrypoint router."""
-    # Setup out path first
+    # Setup vendor path first
     setup_vendor_path()
     
     # Determine which tool to run
@@ -272,7 +288,7 @@ if __name__ == '__main__':
     main()
 EOF
 
-chmod +x "${OUT_DIR}/builder.py"
+chmod +x "${TMP_DIR}/builder.py"
 
 # Cleanup unnecessary files
 echo "🧹 Cleaning up unnecessary files..."
@@ -280,43 +296,58 @@ echo "🧹 Cleaning up unnecessary files..."
 # Remove __pycache__ directories
 while IFS= read -r -d '' dir; do
     rm -rf "$dir"
-done < <(find "${OUT_DIR}" -type d -name "__pycache__" -print0)
+done < <(find "${TMP_DIR}" -type d -name "__pycache__" -print0)
 
 # Remove .dist-info directories
 while IFS= read -r -d '' dir; do
     rm -rf "$dir"
-done < <(find "${OUT_DIR}" -type d -name "*.dist-info" -print0)
+done < <(find "${TMP_DIR}" -type d -name "*.dist-info" -print0)
 
 # Remove .pyc files
 while IFS= read -r -d '' file; do
     rm -f "$file"
-done < <(find "${OUT_DIR}" -type f -name "*.pyc" -print0)
+done < <(find "${TMP_DIR}" -type f -name "*.pyc" -print0)
 
-echo "✅ Bundle created at: ${OUT_DIR}"
-echo ""
-echo "📦 Discovered packages:"
-for pkg in "${PACKAGES[@]}"; do
-    echo "  • $pkg"
-done
+echo "📝 Creating VERSION.txt with all package versions..."
 
-echo ""
-echo "💡 Usage: python3 ${OUT_DIR}/builder.py [command] [arguments]"
-
-# Show installed version
-if command -v python3 &> /dev/null; then
-    INSTALLED_VERSION=$(python3 -c "import sys; sys.path.insert(0, '${OUT_DIR}'); import dmgbuild; print(dmgbuild.__version__)" 2>/dev/null || echo "unknown")
-    echo "📌 Installed dmgbuild version: ${INSTALLED_VERSION}"
-fi
+# Create VERSION.txt with all package versions
+{
+    echo "# Python Package Versions"
+    echo "# Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+    echo ""
+    
+    for pkg in "${PACKAGES[@]}"; do
+        # Get version for each package
+        VERSION=$(python3 -c "import sys; sys.path.insert(0, '${TMP_DIR}'); import ${pkg}; print(${pkg}.__version__)" 2>/dev/null || echo "unknown")
+        printf "%-20s %s\n" "${pkg}" "${VERSION}"
+    done
+} > "${TMP_DIR}/VERSION.txt"
 
 echo "  Testing entrypoint:"
-python3 "${OUT_DIR}/builder.py" --help | head -n 10
+python3 "${TMP_DIR}/builder.py" --help | head -n 10
 echo "  Entrypoint test complete."
 
+echo "  Exporting to tar.gz archive..."
+ARCHIVE_NAME="dmg-builder-bundle.tar.gz"
+tar -czf "${OUT_DIR}/${ARCHIVE_NAME}" -C "${TMP_DIR}" .
 echo ""
-echo "✅ Bundle is ready to use!"
+
+echo "✅ Bundle created at: ${TMP_DIR}"
+echo "   Archive created at: ${OUT_DIR}/${ARCHIVE_NAME}"
+echo ""
+echo "📦 Discovered packages:"
+
+cat "${TMP_DIR}/VERSION.txt"
+
+echo ""
+echo "💡 Usage: python3 <path>/builder.py [command] [arguments]"
 echo ""
 echo "🚀 Quick examples:"
-echo "  python3 ${OUT_DIR}/builder.py -s settings.py MyApp MyApp.dmg"
-echo "  python3 ${OUT_DIR}/builder.py list"
-echo "  python3 ${OUT_DIR}/builder.py ds_store --interactive"
-echo "  python3 ${OUT_DIR}/builder.py help"
+echo "  python3 <path>/builder.py -s settings.py MyApp MyApp.dmg"
+echo "  python3 <path>/builder.py list"
+echo "  python3 <path>/builder.py ds_store --interactive"
+echo "  python3 <path>/builder.py help"
+echo ""
+
+# Cleanup temporary directory
+rm -rf "${TMP_DIR}"
