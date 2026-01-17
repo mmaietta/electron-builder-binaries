@@ -136,19 +136,14 @@ test_dmgbuild
 
 echo "Removing test files, bytecode, and metadata"
 find "$PREFIX" -type d \( -name test -o -name tests -o -name __pycache__ \) -exec rm -rf {} + 2>/dev/null || true
-test_dmgbuild
 find "$PREFIX" -type f \( -name "*.pyc" -o -name "*.pyo" -o -name "test_*.py" \) -delete
-test_dmgbuild
 find "$PREFIX" -type d \( -name "*.dist-info" -o -name "*.egg-info" \) -exec rm -rf {} + 2>/dev/null || true
-test_dmgbuild
 
 # Remove dev files
 rm -rf "$PREFIX"/{include,share} "$PREFIX/lib"/{pkgconfig,*.a} "$PREFIX/lib/python*/config-*"
-test_dmgbuild
 
 # Clean up
 find "$PREFIX" -type d -empty -delete 2>/dev/null || true
-test_dmgbuild
 
 ##############################################################################
 # STRIP BINARIES
@@ -221,6 +216,21 @@ codesign --force  \
 "$DIR_TO_ARCHIVE/dmgbuild"
 
 ###############################################################################
+# ARCHIVE (do it now to avoid including later test and cache files)
+###############################################################################
+
+echo "📦 Creating archive…"
+cd "${DIR_TO_ARCHIVE}"
+
+ARCHIVE="dmgbuild-bundle-${ARCH}-${DMGBUILD_VERSION}.tar.gz"
+ARCHIVE_PATH="${OUTPUT_DIR}/${ARCHIVE}"
+
+tar -czf "${ARCHIVE_PATH}" -C "${DIR_TO_ARCHIVE}" .
+
+shasum -a 256 "${ARCHIVE_PATH}" > "${ARCHIVE_PATH}.sha256"
+echo "✅ Created ${ARCHIVE}"
+
+###############################################################################
 # VERIFY
 ###############################################################################
 
@@ -234,9 +244,6 @@ codesign --verify --strict --verbose=1 "$DIR_TO_ARCHIVE/dmgbuild"
 find "$DIR_TO_ARCHIVE" -type f \
 \( -perm +111 -o -name "*.so" -o -name "*.dylib" \) \
 -exec codesign --verify --strict --verbose=1 {} \;
-
-"$DIR_TO_ARCHIVE/python/bin/python3" -m dmgbuild --help
-
 
 ###############################################################################
 # TESTING
@@ -292,16 +299,7 @@ echo "• Arch: $ARCH"
 echo "• Size: $SIZE"
 echo "• Path: $DIR_TO_ARCHIVE"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-cd "${DIR_TO_ARCHIVE}"
-
-ARCHIVE="dmgbuild-bundle-${ARCH}-${DMGBUILD_VERSION}.tar.gz"
-ARCHIVE_PATH="${OUTPUT_DIR}/${ARCHIVE}"
-
-tar -czf "${ARCHIVE_PATH}" -C "${DIR_TO_ARCHIVE}" .
-
-shasum -a 256 "${ARCHIVE_PATH}" > "${ARCHIVE_PATH}.sha256"
-
-echo "✅ Created ${ARCHIVE}"
 echo "Path: ${ARCHIVE_PATH}"
 echo "Size: $(du -sh "${ARCHIVE_PATH}" | cut -f1)"
+
+echo "✅ Created ${ARCHIVE}"
