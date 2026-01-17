@@ -70,6 +70,11 @@ jobs:
     uses: ./.github/workflows/build-nsis.yaml
     needs: detect
 
+  dmg-builder:
+    if: contains(needs.detect.outputs.matrix, '"dmg-builder"')
+    uses: ./.github/workflows/build-dmg-builder.yaml
+    needs: detect
+
   # squirrel:
   #   uses: ./.github/workflows/build-squirrel.yaml
 
@@ -81,6 +86,7 @@ jobs:
         appimage,
         ran,
         nsis,
+        dmg-builder
         # squirrel
       ]
     if: |
