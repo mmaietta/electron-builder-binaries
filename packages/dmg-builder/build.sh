@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# CONFIG
+PYTHON_VERSION="3.11.8"
+DMGBUILD_VERSION="1.6.7"
+
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 OUTPUT_DIR="${ROOT}/out/dmg-builder"
@@ -17,5 +21,5 @@ for ARCH in $ARCHS; do
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🏗️  Building Python runtime for ${ARCH}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    bash "$ROOT/assets/build-python-runtime.sh" "$ROOT" "$OUTPUT_DIR" "3.11.8" "1.6.6" "-" "${ARCH}"
+    bash "$ROOT/assets/build-python-runtime.sh" "$ROOT" "$OUTPUT_DIR" $PYTHON_VERSION $DMGBUILD_VERSION "-" "${ARCH}"
 done
