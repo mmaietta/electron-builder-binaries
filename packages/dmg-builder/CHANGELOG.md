@@ -1,5 +1,11 @@
 # dmg-builder
 
+## 1.1.0
+
+### Minor Changes
+
+- [#86](https://github.com/mmaietta/electron-builder-binaries/pull/86) [`8dbdd30`](https://github.com/mmaietta/electron-builder-binaries/commit/8dbdd30630774b878efcf5293542a0692f52121d) Thanks [@mmaietta](https://github.com/mmaietta)! - update dmg-builder to 1.6.7
+
 ## 1.0.0
 
 ### Major Changes
