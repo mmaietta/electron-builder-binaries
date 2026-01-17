@@ -8,7 +8,11 @@ OUTPUT_DIR="${ROOT}/out/dmg-builder"
 rm -rf "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}"
 
-for ARCH in arm64 x86_64; do
+# Default to current architecture
+# can also be space-separated list, e.g. "x86_64 arm64"
+ARCHS=${1:-"$(uname -m)"}
+
+for ARCH in $ARCHS; do
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🏗️  Building Python runtime for ${ARCH}"
