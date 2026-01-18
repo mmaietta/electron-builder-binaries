@@ -1,94 +1,97 @@
 #!/bin/sh
 # Bash 3.2 compatible
-# Usage: ./offline-pack-multiarch.sh <electron_version> <build_root>
-# Example: ./offline-pack-multiarch.sh 30.0.0 /path/to/build
+# Usage: ./generate-electron-snap-template.sh <cache_root> [root_dir]
+# Example: ./generate-electron-snap-template.sh build/electron /home/user/build
 
 set -e
 
-ELECTRON_VERSION="${1:?Electron version required (e.g. 30.0.0)}"
-BUILD_ROOT="${2:-$(pwd)}"
-OUTPUT_ROOT="${3:-$BUILD_ROOT/out/offline-snaps}"
+CACHE_ROOT="${1:?Path to cached Electron build required}"
+ROOT_DIR="${2:-$(pwd)}"
 
-# Architectures
-ARCHES="x64" # arm64 armv7l"
+# Unique output filename
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+HASH=$(echo "$CACHE_ROOT" | md5sum | cut -c1-6 2>/dev/null || echo "xxxxxx")
+UNIQUE_NAME="snap-template-${TIMESTAMP}-${HASH}.tar.gz"
 
-# Paths
-CACHE_ROOT="$BUILD_ROOT/electron"     # <- contains v30.0.0-ARCH folders
-PRIME_ROOT="$BUILD_ROOT/prime"
+# Directories
+PRIME_DIR="$ROOT_DIR/build/prime-template"
+OUT_DIR="$ROOT_DIR/out/snap-template"
 
-echo "▶ Offline multi-arch pack: Electron $ELECTRON_VERSION"
-echo "• Build root: $BUILD_ROOT"
+echo "▶ Generating offline Electron snap template"
 echo "• Cache root: $CACHE_ROOT"
-echo "• Output root: $OUTPUT_ROOT"
+echo "• Root dir: $ROOT_DIR"
+echo "• Output dir: $OUT_DIR"
+echo "• Prime dir: $PRIME_DIR"
+echo "• Unique tarball: $UNIQUE_NAME"
 echo ""
 
-# Clean output dir
-rm -rf "$OUTPUT_ROOT"
-mkdir -p "$OUTPUT_ROOT"
+# Clean previous prime
+rm -rf "$PRIME_DIR"
+mkdir -p "$PRIME_DIR/meta"
+mkdir -p "$PRIME_DIR/electron"
 
-# Loop over architectures
-for ARCH in $ARCHES; do
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Packing architecture: $ARCH"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+# Copy Electron binaries from cache
+echo "• Copying cached Electron..."
+cp -r "$CACHE_ROOT/v30.0.0-arm64/." "$PRIME_DIR/electron/"
 
-    CACHE_DIR="$CACHE_ROOT/v${ELECTRON_VERSION}-${ARCH}"
-    PRIME_DIR="$PRIME_ROOT/$ARCH"
-    mkdir -p "$PRIME_DIR"
+# Generate minimal snapcraft.yaml
+SNAPCRAFT_YAML="$PRIME_DIR/snapcraft.yaml"
+echo "• Generating snapcraft.yaml..."
+cat > "$SNAPCRAFT_YAML" <<'EOF'
+name: my-electron-app
+version: "30.0.0"
+base: core24
+confinement: strict
+summary: Minimal Electron app template
+description: A generator for a minimal Electron app template for core24 snaps.
 
-    # Tarball name (runtime delta)
-    DELTA_TAR="$CACHE_ROOT/runtime-delta-core24-${ARCH}.tar.gz"
+parts:
+    app:
+        plugin: dump
+        source: electron
+        stage-packages: []   # optional, empty if you want offline-only
 
-    # Snap metadata
-    SNAP_YAML_SRC="$CACHE_ROOT/snap.yaml"
+apps:
+    app:
+        extensions: [gnome]
+        command: electron/electron
+        plugs:
+            - browser-support
+            - network
+            - home
+EOF
 
-    # --- Clean prime for this arch
-    rm -rf "$PRIME_DIR"/*
-    echo "• Preparing prime for $ARCH"
+# Expand extensions into meta/snap.yaml
+echo "• Expanding extensions..."
+cd "$PRIME_DIR"
+snapcraft expand-extensions --quiet > meta/snap.yaml
 
-    # --- Extract runtime delta into prime/usr/lib
-    if [ -f "$DELTA_TAR" ]; then
-        echo "• Extracting runtime delta"
-        tar -xzf "$DELTA_TAR" -C "$PRIME_DIR"
-    else
-        echo "⚠ Runtime delta tarball missing: $DELTA_TAR"
-        echo "  You may skip if there is no extra runtime delta."
-    fi
+# Optional: show preview
+echo "• Expanded snap.yaml (first 20 lines):"
+head -n 20 meta/snap.yaml
+echo "  ..."
 
-    # --- Copy Electron app payload into prime/electron
-    if [ -d "$CACHE_DIR" ]; then
-        echo "• Copying Electron app payload from $CACHE_DIR"
-        cp -a "$CACHE_DIR" "$PRIME_DIR/electron"
-    else
-        echo "⚠ Electron app directory not found: $CACHE_DIR"
-        continue
-    fi
+# Pack offline
+rm -f "$PRIME_DIR/*.snap" "$SNAPCRAFT_YAML"
+echo "• Packing snap offline..."
+snapcraft pack
 
-    # --- Copy snap.yaml into prime/meta
-    if [ -f "$SNAP_YAML_SRC" ]; then
-        echo "• Copying snap.yaml"
-        mkdir -p "$PRIME_DIR/meta"
-        cp "$SNAP_YAML_SRC" "$PRIME_DIR/meta/snap.yaml"
-    else
-        echo "⚠ snap.yaml not found: $SNAP_YAML_SRC"
-        continue
-    fi
+# Move resulting snap to output directory
+mkdir -p "$OUT_DIR"
+SNAP_FILE=$(ls *.snap 2>/dev/null | head -n1)
+if [ -z "$SNAP_FILE" ]; then
+    echo "⚠ No snap generated"
+    exit 1
+fi
 
-    # --- Pack offline snap
-    echo "• Running snapcraft pack --offline"
-    cd "$PRIME_DIR"
-    snapcraft pack --offline
+rm -f "$OUT_DIR/$UNIQUE_NAME"
+tar czf "$OUT_DIR/$UNIQUE_NAME" "$SNAP_FILE"
 
-    # --- Move resulting snap to output
-    SNAP_NAME=$(basename $(ls *.snap 2>/dev/null) || echo "electron-${ELECTRON_VERSION}-${ARCH}.snap")
-    mkdir -p "$OUTPUT_ROOT/$ARCH"
-    mv "$PRIME_DIR/$SNAP_NAME" "$OUTPUT_ROOT/$ARCH/"
+echo "✓ Snap template tarball created:"
+echo "  $OUT_DIR/$UNIQUE_NAME"
 
-    echo "✓ Snap created: $OUTPUT_ROOT/$ARCH/$SNAP_NAME"
-    echo ""
-done
+# Clean up
+cd "$ROOT_DIR"
+rm -rf "$PRIME_DIR"
 
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "✓ All architectures complete!"
-echo "Results in: $OUTPUT_ROOT"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Done."
