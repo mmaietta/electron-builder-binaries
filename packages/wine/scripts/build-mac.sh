@@ -3,7 +3,6 @@ set -ex
 
 WINE_VERSION=${WINE_VERSION:-9.0}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
-# Always build x86_64 (works on both Intel and ARM via Rosetta)
 PLATFORM_ARCH="x86_64"
 
 get_checksum() {
@@ -18,51 +17,17 @@ CHECKSUM=$(get_checksum "$WINE_VERSION")
 WINE_MAJOR=$(echo "$WINE_VERSION" | cut -d. -f1)
 WINE_URL="https://dl.winehq.org/wine/source/${WINE_MAJOR}.0/wine-${WINE_VERSION}.tar.xz"
 
-# Determine architecture and setup
 HOST_ARCH=$(arch)
-TEMP_BREW_PREFIX="$BUILD_DIR/homebrew-x86_64"
 
 if [ "$HOST_ARCH" = 'arm64' ]; then
-    echo "🔄 ARM64 Mac detected - building x86_64 via Rosetta..."
+    echo "🔄 ARM64 - building x86_64 via Rosetta"
     ARCH_CMD='arch -x86_64'
-    
-    # Use temporary x86_64 Homebrew installation
-    BREW_PREFIX="$TEMP_BREW_PREFIX"
-    
-    # Install temporary x86_64 Homebrew if needed
-    if [ ! -f "$BREW_PREFIX/bin/brew" ]; then
-        echo "📦 Installing temporary x86_64 Homebrew to $BREW_PREFIX..."
-        mkdir -p "$BREW_PREFIX"
-        
-        # Download and install Homebrew to custom prefix
-        curl -L https://github.com/Homebrew/brew/tarball/master | \
-            arch -x86_64 tar xz --strip-components=1 -C "$BREW_PREFIX"
-        
-        echo "✅ Temporary Homebrew installed"
-    fi
-    
-    # Install dependencies with temporary Homebrew
-    echo "📦 Installing x86_64 dependencies..."
-    arch -x86_64 "$BREW_PREFIX/bin/brew" install --force-bottle \
-        mingw-w64 freetype libpng jpeg-turbo libtiff little-cms2 \
-        libxml2 libxslt xz gnutls sdl2 faudio openal-soft || true
-    
-    # Use Xcode's SDK
     export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
 else
-    # Intel Mac - use system Homebrew
-    echo "🍺 Intel Mac detected - using system Homebrew..."
+    echo "🍺 Intel - building x86_64"
     ARCH_CMD=
-    BREW_PREFIX="/usr/local"
-    
-    # Check if dependencies are installed
-    if ! command -v "$BREW_PREFIX/bin/brew" > /dev/null 2>&1; then
-        echo "❌ Homebrew not found. Please install: https://brew.sh"
-        exit 1
-    fi
 fi
 
-# Execute command with proper architecture
 execute_cmd() {
     if [ -n "$ARCH_CMD" ]; then
         $ARCH_CMD "$@"
@@ -79,96 +44,152 @@ OUTPUT_DIR="$BUILD_DIR/wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}"
 
 mkdir -p "$DOWNLOAD_DIR"
 
-# Download
 ARCHIVE="$DOWNLOAD_DIR/wine-${WINE_VERSION}.tar.xz"
 if [ ! -f "$ARCHIVE" ]; then
     echo "📥 Downloading Wine ${WINE_VERSION}..."
     curl -L --progress-bar "$WINE_URL" -o "$ARCHIVE"
     
     if [ -n "$CHECKSUM" ]; then
-        echo "🔍 Verifying checksum..."
         ACTUAL=$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')
         if [ "$ACTUAL" != "$CHECKSUM" ]; then
-            echo "❌ Checksum failed!"
-            echo "   Expected: $CHECKSUM"
-            echo "   Got:      $ACTUAL"
+            echo "❌ Checksum failed: expected $CHECKSUM, got $ACTUAL"
             exit 1
         fi
         echo "✅ Verified"
     fi
 fi
 
-# Extract
 if [ ! -d "$SOURCE_DIR" ]; then
     echo "📂 Extracting..."
     tar -xJf "$ARCHIVE" -C "$BUILD_DIR"
 fi
 
-# Configure
-echo "⚙️  Configuring Wine for $PLATFORM_ARCH..."
+echo "⚙️  Configuring Wine (without FreeType)..."
 rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
-
-# Use temporary Homebrew paths
-export PATH="$BREW_PREFIX/bin:$PATH"
-export PKG_CONFIG_PATH="$BREW_PREFIX/opt/freetype/lib/pkgconfig:$BREW_PREFIX/opt/libpng/lib/pkgconfig:$BREW_PREFIX/opt/gnutls/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig"
 
 execute_cmd "$SOURCE_DIR/configure" \
     --prefix="$STAGE_DIR" \
     --enable-win64 \
     --without-x \
     --without-cups \
-    --without-dbus
+    --without-dbus \
+    --without-freetype
 
-# Build
-echo "🔨 Building (30-60 min)..."
+echo "🔨 Building..."
 execute_cmd make -j$(sysctl -n hw.ncpu)
 
-# Install
 echo "📦 Installing..."
 execute_cmd make install
 
-# Create portable structure
-echo "📋 Creating portable bundle..."
 cd "$STAGE_DIR"
-
-# Remove unnecessary files
 rm -rf share/man share/applications include
 
-# Fix library paths
+# Adjust RPATHs for all binaries
+
+add_rpath_if_missing() {
+  local binary="$1"
+  local rpath="$2"
+
+  echo "🔍 Checking RPATH in: $binary"
+
+  # List existing rpaths
+  if otool -l "$binary" | grep -A2 LC_RPATH | grep -q "$rpath"; then
+    echo "✅ RPATH already present: $rpath — skipping 🛑"
+    return 0
+  fi
+
+  echo "➕ Adding RPATH: $rpath"
+  install_name_tool -add_rpath "$rpath" "$binary"
+}
 cd bin
 for binary in wine64 wine wineserver wineboot winecfg; do
-    if [ -f "$binary" ]; then
-        install_name_tool -add_rpath "@executable_path/../lib" "$binary" 2>/dev/null || true
-    fi
+    [ -f "$binary" ] && add_rpath_if_missing "$binary" "@executable_path/../lib"
 done
 cd ..
 
-# Initialize Wine prefix
 echo "🍇 Initializing Wine prefix..."
 export WINEPREFIX="$STAGE_DIR/wine-home"
 export WINEARCH=win64
 export WINEDEBUG=-all
-execute_cmd ./bin/wineboot --init 2>&1 | grep -v "fixme:" | head -5 || true
+execute_cmd ./bin/wineboot --init
 sleep 2
 
-# Clean Wine prefix
-echo "🧹 Cleaning Wine prefix..."
+echo "🧹 Cleaning..."
 rm -rf wine-home/drive_c/windows/Installer
 rm -rf wine-home/drive_c/windows/Microsoft.NET
 rm -rf wine-home/drive_c/windows/mono
 rm -rf wine-home/drive_c/windows/system32/gecko
-rm -rf wine-home/drive_c/windows/syswow64/gecko 2>/dev/null || true
+rm -rf wine-home/drive_c/windows/syswow64/gecko
 rm -rf wine-home/drive_c/windows/logs
 rm -rf wine-home/drive_c/windows/inf
 
-# Copy to output
-echo "📦 Packaging..."
+echo "🧹🧹🧹 AGGRESSIVE PRUNING MODE ENABLED 🧹🧹🧹"
+
+cd "$STAGE_DIR"
+
+echo "❌ Removing headers, docs, manpages"
+rm -rf include share/man share/doc share/gtk-doc
+
+echo "❌ Removing Wine dev helpers"
+rm -rf bin/function_grep.pl
+rm -rf bin/winemaker
+
+echo "❌ Removing unused Wine tools"
+rm -rf bin/winecfg
+rm -rf bin/wineconsole
+rm -rf bin/winefile
+
+echo "🔥 Removing *ALL* Windows GUI stacks"
+rm -rf lib/wine/*-windows
+rm -rf lib/wine/*/d3d*
+rm -rf lib/wine/*/opengl*
+rm -rf lib/wine/*/vulkan*
+
+echo "🔥 Removing printing, audio, video"
+rm -rf lib/wine/*/winspool.drv*
+rm -rf lib/wine/*/winepulse*
+rm -rf lib/wine/*/winealsa*
+rm -rf lib/wine/*/qcap*
+rm -rf lib/wine/*/mf*
+
+echo "🍷 Trimming Wine prefix HARD"
+cd wine-home/drive_c/windows
+
+rm -rf Installer
+rm -rf Microsoft.NET
+rm -rf mono
+rm -rf logs
+rm -rf inf
+rm -rf system32/gecko
+rm -rf syswow64/gecko
+
+echo "🔥 Removing unused system32 DLLs"
+find system32 -type f ! -name 'kernel32.dll' \
+                        ! -name 'ntdll.dll' \
+                        ! -name 'user32.dll' \
+                        ! -name 'advapi32.dll' \
+                        ! -name 'shell32.dll' \
+                        ! -name 'shlwapi.dll' \
+                        ! -name 'ole32.dll' \
+                        ! -name 'oleaut32.dll' \
+                        ! -name 'msvcrt.dll' \
+                        -delete || true
+
+rm -rf syswow64 || true
+
+cd "$STAGE_DIR"
+
+echo "🪓 Stripping binaries"
+find bin lib -type f -perm +111 -exec strip -x {} \; || true
+
+echo "📉 Final size"
+du -sh "$STAGE_DIR"
+
 rm -rf "$OUTPUT_DIR"
 cp -R "$STAGE_DIR" "$OUTPUT_DIR"
 
-# Create launcher
 cat > "$OUTPUT_DIR/wine-launcher.sh" << 'LAUNCHER_EOF'
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -179,31 +200,21 @@ exec "$SCRIPT_DIR/bin/wine64" "$@"
 LAUNCHER_EOF
 chmod +x "$OUTPUT_DIR/wine-launcher.sh"
 
-# Create README
 cat > "$OUTPUT_DIR/README.md" << README_EOF
-# Wine ${WINE_VERSION} Portable - macOS ${PLATFORM_ARCH}
+# Wine ${WINE_VERSION} - macOS x86_64
 
-Portable Wine bundle compiled from source.
+Built $(date) without FreeType (fonts work via fallback)
 
 ## Usage
 \`\`\`bash
 ./wine-launcher.sh notepad
 ./wine-launcher.sh your-app.exe
 \`\`\`
-
-Built on $(date) for ${PLATFORM_ARCH}
 README_EOF
 
-# Create archive
-echo "🗜️  Creating archive..."
+echo "🗜️ Creating compressed archive (XZ)…"
 cd "$BUILD_DIR"
-tar -czf "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.gz" "$(basename "$OUTPUT_DIR")"
+tar -cJf "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz" "$(basename "$OUTPUT_DIR")"
 
-SIZE=$(du -h "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.gz" | cut -f1)
-echo "✅ Done! (${SIZE})"
-
-# Cleanup temporary Homebrew (optional)
-if [ "$HOST_ARCH" = 'arm64' ] && [ "${CLEANUP_TEMP_BREW:-false}" = "true" ]; then
-    echo "🧹 Cleaning up temporary Homebrew..."
-    rm -rf "$TEMP_BREW_PREFIX"
-fi
+echo "✅ Final archive size:"
+ls -lh "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz"

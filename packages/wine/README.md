@@ -1,6 +1,8 @@
-# Wine Build System
+# Wine Portable Bundle Builder
 
-Simple bash scripts to build Wine from source for macOS and Linux.
+Compile Wine from source to create portable, self-contained bundles.
+
+**Simple approach:** Builds for current architecture only, uses Rosetta when needed.
 
 ## Quick Start
 
@@ -8,103 +10,140 @@ Simple bash scripts to build Wine from source for macOS and Linux.
 ./build.sh
 ```
 
-That's it! Wine will be built for your current platform.
+Builds Wine for your current architecture (30-60 minutes).
+
+## Prerequisites
+
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+```
+
+**That's it.** No Homebrew, no dependencies, nothing.
+
+Builds Wine **without FreeType** (fonts work via macOS fallback).
+
+## Architecture Strategy
+
+**Always builds x86_64 Wine** (works on both Intel and ARM):
+- **Intel Mac** → Builds x86_64 natively
+- **ARM Mac** → Builds x86_64 via Rosetta (uses x86_64 Homebrew at `/usr/local`)
+
+**Why x86_64 on ARM?**
+- ✅ Much simpler (no PE cross-compilation tools needed)
+- ✅ Works perfectly via Rosetta
+- ✅ Same binary works on both Intel and ARM Macs
+- ✅ Avoids ARM64 Wine complications
+
+**Native ARM64 Wine is not worth it:**
+- ❌ Requires llvm-mingw cross-compilation setup
+- ❌ Much more complex to build
+- ❌ Limited benefit (Rosetta works great)
 
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WINE_VERSION` | Wine version to build | `9.0` |
-| `OS_TARGET` | Target OS: `darwin` or `linux` | Auto-detect |
-| `PLATFORM_ARCH` | Architecture: `x86_64` or `arm64` | Auto-detect |
+| `WINE_VERSION` | Wine version to build | `11.0` |
 | `BUILD_DIR` | Build output directory | `./build` |
 
 ## Examples
 
-### Build for current platform
 ```bash
+# Build Wine 9.0 (default)
 ./build.sh
-```
 
-### Build Wine 8.0
-```bash
+# Build Wine 8.0
 WINE_VERSION=8.0 ./build.sh
+
+# Build for Linux (requires Docker)
+OS_TARGET=linux ./build.sh
 ```
 
-### Build for macOS Intel
-```bash
-OS_TARGET=darwin PLATFORM_ARCH=x86_64 ./build.sh
+## GitHub Actions Usage
+
+Perfect for CI/CD with separate runners:
+
+```yaml
+jobs:
+  build-intel:
+    runs-on: macos-15-intel  # Intel runner
+    steps:
+      - run: ./build.sh
+      # Produces: wine-11.0-darwin-x86_64.tar.gz
+  
+  build-arm:
+    runs-on: macos-15  # ARM runner
+    steps:
+      - run: ./build.sh
+      # Produces: wine-11.0-darwin-x86_64.tar.gz (via Rosetta)
 ```
 
-### Build for macOS Apple Silicon
-```bash
-OS_TARGET=darwin PLATFORM_ARCH=arm64 ./build.sh
+Both produce x86_64 binaries that work everywhere!
+
+## What You Get
+
+A **portable Wine bundle**:
+- Latest Wine version (not stuck on 4.0.3!)
+- Pre-initialized Wine prefix
+- Cleaned up (~60% smaller)
+- Self-contained, no dependencies
+- Works on both Intel and ARM Macs
+
+## Output Structure
+
+```
+wine-9.0-darwin-x86_64/
+├── bin/wine64              # Wine binary
+├── lib/                    # Libraries
+├── share/wine/             # Data files
+├── wine-home/              # Pre-initialized prefix
+│   ├── dosdevices/
+│   │   ├── c: -> ../drive_c
+│   │   └── z: -> /
+│   ├── drive_c/
+│   └── *.reg
+├── wine-launcher.sh        # Launcher
+└── README.md
 ```
 
-### Build for Linux x86_64 (requires Docker)
-```bash
-OS_TARGET=linux PLATFORM_ARCH=x86_64 ./build.sh
-```
-
-### Build for Linux ARM64 (requires Docker)
-```bash
-OS_TARGET=linux PLATFORM_ARCH=arm64 ./build.sh
-```
-
-## Prerequisites
-
-### macOS
-```bash
-# Install Xcode Command Line Tools
-xcode-select --install
-
-# Install Homebrew dependencies
-brew install mingw-w64 freetype libpng jpeg-turbo libtiff little-cms2 \
-             libxml2 libxslt xz gnutls sdl2 faudio openal-soft
-```
-
-### Linux Builds (via Docker on macOS)
-- Docker Desktop installed and running
-
-## Output
-
-Each build creates:
-- `build/wine-{version}-{os}-{arch}/` - Wine installation
-- `build/wine-{version}-{os}-{arch}.tar.gz` - Compressed archive
-
-## Using Wine
-
-After building:
+## Using the Bundle
 
 ```bash
-cd build/wine-9.0-darwin-arm64
+tar -xzf wine-9.0-darwin-x86_64.tar.gz
+cd wine-9.0-darwin-x86_64
 ./wine-launcher.sh notepad
 ```
 
-Or extract the archive anywhere:
+## Build Time
+
+- **30-60 minutes** depending on your machine
+- First build downloads dependencies (~5-10 min extra)
+- Subsequent builds reuse cached dependencies
+
+## Cleanup
 
 ```bash
-tar -xzf build/wine-9.0-darwin-arm64.tar.gz
-cd wine-9.0-darwin-arm64
-./wine-launcher.sh your-windows-app.exe
+# Remove build artifacts but keep dependencies (for faster rebuilds)
+rm -rf build/wine-* build/downloads
+
+# Remove everything
+rm -rf build/
 ```
 
-## Project Structure
+## Available Wine Versions
 
-```
-.
-├── build.sh                # Main entry point
-└── scripts/
-    ├── build-mac.sh       # macOS build
-    └── build-linux.sh     # Linux build (Docker)
-```
+- **9.0** (latest stable, recommended)
+- **8.0**
+- **7.0**
 
-## Supported Wine Versions
+Source: https://dl.winehq.org/wine/source/
 
-- Wine 9.0 ✅
-- Wine 8.0 ✅
+## Why Not Use Homebrew?
 
-To add more versions, edit the `CHECKSUMS` array in the build scripts.
+Homebrew installs to system directories with external dependencies. Not portable!
+
+This creates **self-contained bundles** you can distribute.
 
 ## License
 
