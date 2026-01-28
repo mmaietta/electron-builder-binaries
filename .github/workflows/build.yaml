@@ -80,6 +80,11 @@ jobs:
     uses: ./.github/workflows/build-squirrel.yaml
     needs: detect
 
+  wine:
+    if: contains(needs.detect.outputs.matrix, '"wine"')
+    uses: ./.github/workflows/build-wine.yaml
+    needs: detect
+
   combine:
     runs-on: macos-latest
     needs: [
@@ -89,7 +94,8 @@ jobs:
         ran,
         nsis,
         dmg-builder,
-        squirrel
+        squirrel,
+        wine
       ]
     if: |
       always() &&
