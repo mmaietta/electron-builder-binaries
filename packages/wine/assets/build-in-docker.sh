@@ -46,6 +46,7 @@ if [ "$OS_TARGET" = "darwin" ]; then
         fi
     )
 
+    BREW_PREFIX="$(brew --prefix)"
     export PATH="$BREW_PREFIX/opt/bison/bin:$PATH"
     export PATH="$BREW_PREFIX/opt/flex/bin:$PATH"
     export PATH="$BREW_PREFIX/opt/make/libexec/gnubin:$PATH"
