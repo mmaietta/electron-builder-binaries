@@ -2,13 +2,13 @@
 set -ex
 
 WINE_VERSION=${WINE_VERSION:-11.0}
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+BUILD_DIR=${BUILD_DIR:-$ROOT/build}
 PLATFORM_ARCH="x86_64"
 
 get_checksum() {
     case "$1" in
-        9.0) echo "527e9fb2c46f0131d2e2349391aea3062e63bb03b1ced2a0cc8f4c1b03f99173" ;;
-        8.0) echo "542496c086a38e0e5a8d8d3db5d9eada8b6ee51fcab664dd58dcd75ac11c0e6a" ;;
+        11.0) echo "c07a6857933c1fc60dff5448d79f39c92481c1e9db5aa628db9d0358446e0701" ;;
         *) echo "" ;;
     esac
 }
@@ -120,19 +120,12 @@ sleep 2
 # 🧪 DLL TRACE
 ############################################
 
-TRACE_EXES="
-/Users/mikemaietta/Downloads/nsis-bundle/windows/makensis.exe
-/Users/mikemaietta/Downloads/nsis-bundle/windows/Bin/makensis.exe
-/Users/mikemaietta/Downloads/nsis-bundle/windows/Bin/zip2exe.exe
-/Users/mikemaietta/Downloads/rcedit-windows-2_0_0/rcedit-x64.exe
-/Users/mikemaietta/Downloads/win-codesign-windows-x64/bin/osslsigncode.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makecat.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/pvk2pfx.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makecert.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/signtool.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makeappx.exe
-/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makepri.exe
-"
+echo "🧪 Generating DLL load traces"
+TRACE_EXES_FILE="$(
+  ./generate-trace-exes.sh \
+  | grep '^EXE_LIST_FILE=' \
+  | cut -d= -f2
+)"
 
 echo "🧪 Tracing DLL loads"
 TRACE_LOG="$BUILD_DIR/dll-trace.log"
@@ -140,11 +133,11 @@ TRACE_LOG="$BUILD_DIR/dll-trace.log"
 
 export WINEDEBUG=+loaddll
 
-echo "$TRACE_EXES" | while IFS= read exe; do
+while IFS= read exe; do
   [ -z "$exe" ] && continue
-  echo "▶️ Running $exe"
+  echo "▶️ Tracing $exe"
   "$STAGE_DIR/bin/wine64" "$exe" || true
-done 2>&1 | tee -a "$TRACE_LOG"
+done < "$TRACE_EXES_FILE"
 
 ############################################
 # 🧠 GENERATE ALLOW-LISTS
