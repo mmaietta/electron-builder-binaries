@@ -1,0 +1,20 @@
+
+
+
+
+# AUTO-GENERATED – DO NOT EDIT
+# Build helpers
+# Generated from Wine config.log
+# Toolchain
+# Wine dependencies
+brew "autoconf"
+brew "automake"
+brew "bison"
+brew "flex"
+brew "gettext"
+brew "gnutls"
+brew "libtool"
+brew "make"
+brew "pkg-config"
+brew "xz"
+tap "homebrew/core"
