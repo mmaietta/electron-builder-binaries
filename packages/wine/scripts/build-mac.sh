@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-WINE_VERSION=${WINE_VERSION:-9.0}
+WINE_VERSION=${WINE_VERSION:-11.0}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 PLATFORM_ARCH="x86_64"
 
@@ -70,12 +70,12 @@ mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
 
 execute_cmd "$SOURCE_DIR/configure" \
-    --prefix="$STAGE_DIR" \
-    --enable-win64 \
-    --without-x \
-    --without-cups \
-    --without-dbus \
-    --without-freetype
+  --prefix="$STAGE_DIR" \
+  --enable-win64 \
+  --without-x \
+  --without-cups \
+  --without-dbus \
+  --without-freetype
 
 echo "🔨 Building..."
 execute_cmd make -j$(sysctl -n hw.ncpu)
@@ -89,19 +89,19 @@ rm -rf share/man share/applications include
 # Adjust RPATHs for all binaries
 
 add_rpath_if_missing() {
-  local binary="$1"
-  local rpath="$2"
-
-  echo "🔍 Checking RPATH in: $binary"
-
-  # List existing rpaths
-  if otool -l "$binary" | grep -A2 LC_RPATH | grep -q "$rpath"; then
-    echo "✅ RPATH already present: $rpath — skipping 🛑"
-    return 0
-  fi
-
-  echo "➕ Adding RPATH: $rpath"
-  install_name_tool -add_rpath "$rpath" "$binary"
+    local binary="$1"
+    local rpath="$2"
+    
+    echo "🔍 Checking RPATH in: $binary"
+    
+    # List existing rpaths
+    if otool -l "$binary" | grep -A2 LC_RPATH | grep -q "$rpath"; then
+        echo "✅ RPATH already present: $rpath — skipping 🛑"
+        return 0
+    fi
+    
+    echo "➕ Adding RPATH: $rpath"
+    install_name_tool -add_rpath "$rpath" "$binary"
 }
 cd bin
 for binary in wine64 wine wineserver wineboot winecfg; do
@@ -116,105 +116,120 @@ export WINEDEBUG=-all
 execute_cmd ./bin/wineboot --init
 sleep 2
 
-echo "🧹 Cleaning..."
-rm -rf wine-home/drive_c/windows/Installer
-rm -rf wine-home/drive_c/windows/Microsoft.NET
-rm -rf wine-home/drive_c/windows/mono
-rm -rf wine-home/drive_c/windows/system32/gecko
-rm -rf wine-home/drive_c/windows/syswow64/gecko
-rm -rf wine-home/drive_c/windows/logs
-rm -rf wine-home/drive_c/windows/inf
+############################################
+# 🧪 DLL TRACE
+############################################
 
-echo "🧹🧹🧹 AGGRESSIVE PRUNING MODE ENABLED 🧹🧹🧹"
+TRACE_EXES="
+/Users/mikemaietta/Downloads/nsis-bundle/windows/makensis.exe
+/Users/mikemaietta/Downloads/nsis-bundle/windows/Bin/makensis.exe
+/Users/mikemaietta/Downloads/nsis-bundle/windows/Bin/zip2exe.exe
+/Users/mikemaietta/Downloads/rcedit-windows-2_0_0/rcedit-x64.exe
+/Users/mikemaietta/Downloads/win-codesign-windows-x64/bin/osslsigncode.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makecat.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/pvk2pfx.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makecert.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/signtool.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makeappx.exe
+/Users/mikemaietta/Downloads/windows-kits-bundle-10_0_26100_0/x64/makepri.exe
+"
 
-cd "$STAGE_DIR"
+echo "🧪 Tracing DLL loads"
+TRACE_LOG="$BUILD_DIR/dll-trace.log"
+: > "$TRACE_LOG"
 
-echo "❌ Removing headers, docs, manpages"
-rm -rf include share/man share/doc share/gtk-doc
+export WINEDEBUG=+loaddll
 
-echo "❌ Removing Wine dev helpers"
-rm -rf bin/function_grep.pl
-rm -rf bin/winemaker
+echo "$TRACE_EXES" | while IFS= read exe; do
+  [ -z "$exe" ] && continue
+  echo "▶️ Running $exe"
+  "$STAGE_DIR/bin/wine64" "$exe" || true
+done 2>&1 | tee -a "$TRACE_LOG"
 
-echo "❌ Removing unused Wine tools"
-rm -rf bin/winecfg
-rm -rf bin/wineconsole
-rm -rf bin/winefile
+############################################
+# 🧠 GENERATE ALLOW-LISTS
+############################################
 
-echo "🔥 Removing *ALL* Windows GUI stacks"
-rm -rf lib/wine/*-windows
-rm -rf lib/wine/*/d3d*
-rm -rf lib/wine/*/opengl*
-rm -rf lib/wine/*/vulkan*
+echo "🧠 Generating allow-lists"
 
-echo "🔥 Removing printing, audio, video"
-rm -rf lib/wine/*/winspool.drv*
-rm -rf lib/wine/*/winepulse*
-rm -rf lib/wine/*/winealsa*
-rm -rf lib/wine/*/qcap*
-rm -rf lib/wine/*/mf*
+SYS32_ALLOW="$BUILD_DIR/system32.allow"
+WINE_ALLOW="$BUILD_DIR/wine.allow"
 
-echo "🍷 Trimming Wine prefix HARD"
-cd wine-home/drive_c/windows
+# Extract system32 DLL names
+grep -o 'system32\\\\[^"]*\.dll' "$TRACE_LOG" \
+  | sed 's|.*system32\\\\||' \
+  | tr 'A-Z' 'a-z' \
+  | sort -u > "$SYS32_ALLOW"
 
-rm -rf Installer
-rm -rf Microsoft.NET
-rm -rf mono
-rm -rf logs
-rm -rf inf
-rm -rf system32/gecko
-rm -rf syswow64/gecko
+# Convert foo.dll → foo (for dll.so matching)
+sed 's/\.dll$//' "$SYS32_ALLOW" \
+  | sort -u > "$WINE_ALLOW"
 
-echo "🔥 Removing unused system32 DLLs"
-find system32 -type f ! -name 'kernel32.dll' \
-                        ! -name 'ntdll.dll' \
-                        ! -name 'user32.dll' \
-                        ! -name 'advapi32.dll' \
-                        ! -name 'shell32.dll' \
-                        ! -name 'shlwapi.dll' \
-                        ! -name 'ole32.dll' \
-                        ! -name 'oleaut32.dll' \
-                        ! -name 'msvcrt.dll' \
-                        -delete || true
+echo "✅ Allowed system32 DLLs:"
+cat "$SYS32_ALLOW"
 
-rm -rf syswow64 || true
+############################################
+# 🔥 PRUNE lib/wine/*-windows
+############################################
 
-cd "$STAGE_DIR"
+echo "🔥 Pruning Wine Windows DLLs"
+cd "$STAGE_DIR/lib/wine/${PLATFORM_ARCH}-windows"
+
+for f in *.dll.so; do
+  base="$(basename "$f" .dll.so)"
+  if ! grep -qx "$base" "$WINE_ALLOW"; then
+    rm -f "$f"
+  fi
+done
+
+############################################
+# 🔥 PRUNE PREFIX system32
+############################################
+
+echo "🔥 Pruning prefix system32"
+cd "$WINEPREFIX/drive_c/windows/system32"
+
+for f in *.dll; do
+  lower="$(echo "$f" | tr 'A-Z' 'a-z')"
+  if ! grep -qx "$lower" "$SYS32_ALLOW"; then
+    rm -f "$f"
+  fi
+done
+
+############################################
+# 🧹 REMOVE BULK WINDOWS CONTENT
+############################################
+
+echo "🧹 Removing Windows bulk"
+cd "$WINEPREFIX/drive_c/windows"
+
+rm -rf \
+  Installer \
+  Microsoft.NET \
+  mono \
+  syswow64 \
+  logs \
+  inf \
+  Temp \
+  system32/gecko
+
+############################################
+# 🪓 STRIP BINARIES
+############################################
 
 echo "🪓 Stripping binaries"
-find bin lib -type f -perm +111 -exec strip -x {} \; || true
+find "$STAGE_DIR/bin" "$STAGE_DIR/lib" -type f -perm +111 -exec strip -x {} \; || true
 
-echo "📉 Final size"
-du -sh "$STAGE_DIR"
+############################################
+# 📦 PACKAGE
+############################################
 
-rm -rf "$OUTPUT_DIR"
-cp -R "$STAGE_DIR" "$OUTPUT_DIR"
+echo "📦 Packaging archive"
+mkdir -p "$OUTPUT_DIR"
+cp -R "$STAGE_DIR/"* "$OUTPUT_DIR"
 
-cat > "$OUTPUT_DIR/wine-launcher.sh" << 'LAUNCHER_EOF'
-#!/usr/bin/env bash
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export WINEPREFIX="${WINEPREFIX:-$SCRIPT_DIR/wine-home}"
-export WINEDEBUG="${WINEDEBUG:--all}"
-export DYLD_LIBRARY_PATH="$SCRIPT_DIR/lib:${DYLD_LIBRARY_PATH:-}"
-exec "$SCRIPT_DIR/bin/wine64" "$@"
-LAUNCHER_EOF
-chmod +x "$OUTPUT_DIR/wine-launcher.sh"
-
-cat > "$OUTPUT_DIR/README.md" << README_EOF
-# Wine ${WINE_VERSION} - macOS x86_64
-
-Built $(date) without FreeType (fonts work via fallback)
-
-## Usage
-\`\`\`bash
-./wine-launcher.sh notepad
-./wine-launcher.sh your-app.exe
-\`\`\`
-README_EOF
-
-echo "🗜️ Creating compressed archive (XZ)…"
-cd "$BUILD_DIR"
+cd "$ROOT"
 tar -cJf "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz" "$(basename "$OUTPUT_DIR")"
 
-echo "✅ Final archive size:"
-ls -lh "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz"
+echo "✅ DONE"
+du -sh "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz"
