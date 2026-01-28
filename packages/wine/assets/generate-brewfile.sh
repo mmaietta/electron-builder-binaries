@@ -32,12 +32,9 @@ map_lib_to_brew() {
     echo "# AUTO-GENERATED – DO NOT EDIT"
     echo "# Generated from Wine config.log"
     echo
-    echo 'tap "homebrew/core"'
-    echo
     echo "# Toolchain"
-    echo 'brew "pkg-config"'
-    echo 'brew "bison"'
-    echo 'brew "flex"'
+    echo 'brew "pkg-config", "2.5.1"'
+    echo 'brew "bison", "3.8.2"'
     echo 'brew "libtool"'
     echo 'brew "gettext"'
     echo
