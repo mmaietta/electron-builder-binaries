@@ -5,7 +5,8 @@ set -euo pipefail
 set -x
 
 WINE_VERSION=${WINE_VERSION:-11.0}
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR=${BUILD_DIR:-$ROOT_DIR/build}
 PLATFORM_ARCH="x86_64"
 
@@ -74,58 +75,58 @@ fi
 
 # Configure Wine
 echo "⚙️  Configuring Wine (without FreeType)..."
-rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
-mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
-cd "$BUILD_WINE_DIR"
+# rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
+# mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
+# cd "$BUILD_WINE_DIR"
 
-execute_cmd "$SOURCE_DIR/configure" \
-  --prefix="$STAGE_DIR" \
-  --enable-win64 \
-  --without-x \
-  --without-cups \
-  --without-dbus \
-  --without-freetype
+# execute_cmd "$SOURCE_DIR/configure" \
+#   --prefix="$STAGE_DIR" \
+#   --enable-win64 \
+#   --without-x \
+#   --without-cups \
+#   --without-dbus \
+#   --without-freetype
 
-echo "🔨 Building..."
-execute_cmd make -j$(sysctl -n hw.ncpu)
+# echo "🔨 Building..."
+# execute_cmd make -j$(sysctl -n hw.ncpu)
 
-echo "📦 Installing..."
-execute_cmd make install
+# echo "📦 Installing..."
+# execute_cmd make install
 
-cd "$ROOT_DIR"
+# cd "$ROOT_DIR"
 
-# Remove unnecessary directories
-rm -rf "$STAGE_DIR/share/man" "$STAGE_DIR/share/applications" "$STAGE_DIR/include"
+# # Remove unnecessary directories
+# rm -rf "$STAGE_DIR/share/man" "$STAGE_DIR/share/applications" "$STAGE_DIR/include"
 
-# Adjust RPATHs for all binaries
-add_rpath_if_missing() {
-    local binary="$1"
-    local rpath="$2"
+# # Adjust RPATHs for all binaries
+# add_rpath_if_missing() {
+#     local binary="$1"
+#     local rpath="$2"
     
-    echo "🔍 Checking RPATH in: $binary"
+#     echo "🔍 Checking RPATH in: $binary"
     
-    # List existing rpaths
-    if otool -l "$binary" | grep -A2 LC_RPATH | grep -q "$rpath"; then
-        echo "✅ RPATH already present: $rpath — skipping 🛑"
-        return 0
-    fi
+#     # List existing rpaths
+#     if otool -l "$binary" | grep -A2 LC_RPATH | grep -q "$rpath"; then
+#         echo "✅ RPATH already present: $rpath — skipping 🛑"
+#         return 0
+#     fi
     
-    echo "➕ Adding RPATH: $rpath"
-    install_name_tool -add_rpath "$rpath" "$binary"
-}
+#     echo "➕ Adding RPATH: $rpath"
+#     install_name_tool -add_rpath "$rpath" "$binary"
+# }
 
-for binary in wine64 wine wineserver wineboot winecfg; do
-    binary_path="$STAGE_DIR/bin/$binary"
-    [ -f "$binary_path" ] && add_rpath_if_missing "$binary_path" "@executable_path/../lib"
-done
+# for binary in wine64 wine wineserver wineboot winecfg; do
+#     binary_path="$STAGE_DIR/bin/$binary"
+#     [ -f "$binary_path" ] && add_rpath_if_missing "$binary_path" "@executable_path/../lib"
+# done
 
-# Initialize Wine prefix
-echo "🍇 Initializing Wine prefix..."
-export WINEPREFIX="$STAGE_DIR/wine-home"
-export WINEARCH=win64
-export WINEDEBUG=-all
-execute_cmd "$STAGE_DIR/bin/wineboot" --init
-sleep 2
+# # Initialize Wine prefix
+# echo "🍇 Initializing Wine prefix..."
+# export WINEPREFIX="$STAGE_DIR/wine-home"
+# export WINEARCH=win64
+# export WINEDEBUG=-all
+# execute_cmd "$STAGE_DIR/bin/wineboot" --init
+# sleep 2
 
 ############################################
 # 🧪 DLL TRACE
@@ -133,7 +134,7 @@ sleep 2
 
 echo "🧪 Generating DLL load traces"
 TRACE_EXES_FILE=$(
-  "$ROOT_DIR/generate-trace-exes.sh" \
+  sh "$SCRIPT_DIR/generate-trace-exes.sh" \
   | grep '^EXE_LIST_FILE=' \
   | cut -d= -f2
 )
@@ -146,7 +147,7 @@ export WINEDEBUG=+loaddll
 while IFS= read -r exe; do
   [ -z "$exe" ] && continue
   echo "▶️ Tracing $exe"
-  "$STAGE_DIR/bin/wine64" "$exe" >> "$TRACE_LOG" 2>&1 || true
+  "$STAGE_DIR/bin/wine" "$exe" >> "$TRACE_LOG" 2>&1 || true
 done < "$TRACE_EXES_FILE"
 
 ############################################

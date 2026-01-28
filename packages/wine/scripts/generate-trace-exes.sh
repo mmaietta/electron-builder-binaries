@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -exo pipefail
 
 echo "🧪 Electron Builder EXE discovery"
 echo "--------------------------------"
