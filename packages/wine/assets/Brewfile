@@ -8,10 +8,10 @@
 # Wine dependencies
 brew "autoconf"
 brew "automake"
-brew "bison", "3.8.2"
+brew "bison"
 brew "gettext"
 brew "gnutls"
 brew "libtool"
 brew "make"
-brew "pkg-config", "2.5.1"
+brew "pkg-config"
 brew "xz"
