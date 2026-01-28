@@ -117,6 +117,10 @@ rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
 
+export CC=x86_64-w64-mingw32-gcc
+export CXX=x86_64-w64-mingw32-g++
+export PKG_CONFIG_PATH="$HOMEBREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:$PKG_CONFIG_PATH"
+
 execute_cmd "$SOURCE_DIR/configure" \
 --prefix="$STAGE_DIR" \
 --enable-win64 \

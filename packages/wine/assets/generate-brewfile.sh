@@ -38,6 +38,7 @@ map_lib_to_brew() {
     echo 'brew "libtool"'
     echo 'brew "gettext"'
     echo 'brew "flex"'
+    echo 'brew "mingw-w64"'
     echo
     
     echo "# Wine dependencies"

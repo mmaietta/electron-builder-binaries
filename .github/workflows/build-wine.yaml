@@ -3,6 +3,10 @@ name: Build Wine
 on:
   workflow_call:
   workflow_dispatch:
+
+concurrency: 
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true # for the love of all that is holy, cancel in progress runs on new pushes. linux builds take forever
     
 jobs:
   mac:
