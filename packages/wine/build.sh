@@ -5,7 +5,8 @@ set -e
 # Compiles Wine from source for distribution
 
 WINE_VERSION=${WINE_VERSION:-11.0}
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR=${BUILD_DIR:-$SCRIPT_DIR/build}
 PLATFORM_ARCH=${PLATFORM_ARCH:-$(uname -m)}
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
@@ -20,8 +21,6 @@ case "$OS_TARGET" in
 esac
 
 export WINE_VERSION BUILD_DIR PLATFORM_ARCH OS_TARGET
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
 echo "🍷 Wine Portable Bundle Builder"

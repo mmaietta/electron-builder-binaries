@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-set -ex
+set -euo pipefail
+
+# Enable command tracing
+set -x
 
 WINE_VERSION=${WINE_VERSION:-11.0}
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUILD_DIR=${BUILD_DIR:-$ROOT/build}
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BUILD_DIR=${BUILD_DIR:-$ROOT_DIR/build}
 PLATFORM_ARCH="x86_64"
 
 get_checksum() {
@@ -25,7 +28,7 @@ if [ "$HOST_ARCH" = 'arm64' ]; then
     export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
 else
     echo "🍺 Intel - building x86_64"
-    ARCH_CMD=
+    ARCH_CMD=''
 fi
 
 execute_cmd() {
@@ -41,9 +44,13 @@ SOURCE_DIR="$BUILD_DIR/wine-${WINE_VERSION}"
 BUILD_WINE_DIR="$BUILD_DIR/wine64-build"
 STAGE_DIR="$BUILD_DIR/wine-stage"
 OUTPUT_DIR="$BUILD_DIR/wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}"
+TRACE_LOG="$BUILD_DIR/dll-trace.log"
+SYS32_ALLOW="$BUILD_DIR/system32.allow"
+WINE_ALLOW="$BUILD_DIR/wine.allow"
 
 mkdir -p "$DOWNLOAD_DIR"
 
+# Download and verify archive
 ARCHIVE="$DOWNLOAD_DIR/wine-${WINE_VERSION}.tar.xz"
 if [ ! -f "$ARCHIVE" ]; then
     echo "📥 Downloading Wine ${WINE_VERSION}..."
@@ -59,11 +66,13 @@ if [ ! -f "$ARCHIVE" ]; then
     fi
 fi
 
+# Extract source
 if [ ! -d "$SOURCE_DIR" ]; then
     echo "📂 Extracting..."
     tar -xJf "$ARCHIVE" -C "$BUILD_DIR"
 fi
 
+# Configure Wine
 echo "⚙️  Configuring Wine (without FreeType)..."
 rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
@@ -83,11 +92,12 @@ execute_cmd make -j$(sysctl -n hw.ncpu)
 echo "📦 Installing..."
 execute_cmd make install
 
-cd "$STAGE_DIR"
-rm -rf share/man share/applications include
+cd "$ROOT_DIR"
+
+# Remove unnecessary directories
+rm -rf "$STAGE_DIR/share/man" "$STAGE_DIR/share/applications" "$STAGE_DIR/include"
 
 # Adjust RPATHs for all binaries
-
 add_rpath_if_missing() {
     local binary="$1"
     local rpath="$2"
@@ -103,17 +113,18 @@ add_rpath_if_missing() {
     echo "➕ Adding RPATH: $rpath"
     install_name_tool -add_rpath "$rpath" "$binary"
 }
-cd bin
-for binary in wine64 wine wineserver wineboot winecfg; do
-    [ -f "$binary" ] && add_rpath_if_missing "$binary" "@executable_path/../lib"
-done
-cd ..
 
+for binary in wine64 wine wineserver wineboot winecfg; do
+    binary_path="$STAGE_DIR/bin/$binary"
+    [ -f "$binary_path" ] && add_rpath_if_missing "$binary_path" "@executable_path/../lib"
+done
+
+# Initialize Wine prefix
 echo "🍇 Initializing Wine prefix..."
 export WINEPREFIX="$STAGE_DIR/wine-home"
 export WINEARCH=win64
 export WINEDEBUG=-all
-execute_cmd ./bin/wineboot --init
+execute_cmd "$STAGE_DIR/bin/wineboot" --init
 sleep 2
 
 ############################################
@@ -121,22 +132,21 @@ sleep 2
 ############################################
 
 echo "🧪 Generating DLL load traces"
-TRACE_EXES_FILE="$(
-  ./generate-trace-exes.sh \
+TRACE_EXES_FILE=$(
+  "$ROOT_DIR/generate-trace-exes.sh" \
   | grep '^EXE_LIST_FILE=' \
   | cut -d= -f2
-)"
+)
 
 echo "🧪 Tracing DLL loads"
-TRACE_LOG="$BUILD_DIR/dll-trace.log"
 : > "$TRACE_LOG"
 
 export WINEDEBUG=+loaddll
 
-while IFS= read exe; do
+while IFS= read -r exe; do
   [ -z "$exe" ] && continue
   echo "▶️ Tracing $exe"
-  "$STAGE_DIR/bin/wine64" "$exe" || true
+  "$STAGE_DIR/bin/wine64" "$exe" >> "$TRACE_LOG" 2>&1 || true
 done < "$TRACE_EXES_FILE"
 
 ############################################
@@ -144,9 +154,6 @@ done < "$TRACE_EXES_FILE"
 ############################################
 
 echo "🧠 Generating allow-lists"
-
-SYS32_ALLOW="$BUILD_DIR/system32.allow"
-WINE_ALLOW="$BUILD_DIR/wine.allow"
 
 # Extract system32 DLL names
 grep -o 'system32\\\\[^"]*\.dll' "$TRACE_LOG" \
@@ -166,9 +173,10 @@ cat "$SYS32_ALLOW"
 ############################################
 
 echo "🔥 Pruning Wine Windows DLLs"
-cd "$STAGE_DIR/lib/wine/${PLATFORM_ARCH}-windows"
+WINE_WINDOWS_DIR="$STAGE_DIR/lib/wine/${PLATFORM_ARCH}-windows"
 
-for f in *.dll.so; do
+for f in "$WINE_WINDOWS_DIR"/*.dll.so; do
+  [ ! -f "$f" ] && continue
   base="$(basename "$f" .dll.so)"
   if ! grep -qx "$base" "$WINE_ALLOW"; then
     rm -f "$f"
@@ -180,10 +188,11 @@ done
 ############################################
 
 echo "🔥 Pruning prefix system32"
-cd "$WINEPREFIX/drive_c/windows/system32"
+SYSTEM32_DIR="$WINEPREFIX/drive_c/windows/system32"
 
-for f in *.dll; do
-  lower="$(echo "$f" | tr 'A-Z' 'a-z')"
+for f in "$SYSTEM32_DIR"/*.dll; do
+  [ ! -f "$f" ] && continue
+  lower="$(basename "$f" | tr 'A-Z' 'a-z')"
   if ! grep -qx "$lower" "$SYS32_ALLOW"; then
     rm -f "$f"
   fi
@@ -194,24 +203,24 @@ done
 ############################################
 
 echo "🧹 Removing Windows bulk"
-cd "$WINEPREFIX/drive_c/windows"
+WINDOWS_DIR="$WINEPREFIX/drive_c/windows"
 
 rm -rf \
-  Installer \
-  Microsoft.NET \
-  mono \
-  syswow64 \
-  logs \
-  inf \
-  Temp \
-  system32/gecko
+  "$WINDOWS_DIR/Installer" \
+  "$WINDOWS_DIR/Microsoft.NET" \
+  "$WINDOWS_DIR/mono" \
+  "$WINDOWS_DIR/syswow64" \
+  "$WINDOWS_DIR/logs" \
+  "$WINDOWS_DIR/inf" \
+  "$WINDOWS_DIR/Temp" \
+  "$WINDOWS_DIR/system32/gecko"
 
 ############################################
 # 🪓 STRIP BINARIES
 ############################################
 
 echo "🪓 Stripping binaries"
-find "$STAGE_DIR/bin" "$STAGE_DIR/lib" -type f -perm +111 -exec strip -x {} \; || true
+find "$STAGE_DIR/bin" "$STAGE_DIR/lib" -type f -perm +111 -exec strip -x {} \; 2>/dev/null || true
 
 ############################################
 # 📦 PACKAGE
@@ -219,10 +228,9 @@ find "$STAGE_DIR/bin" "$STAGE_DIR/lib" -type f -perm +111 -exec strip -x {} \; |
 
 echo "📦 Packaging archive"
 mkdir -p "$OUTPUT_DIR"
-cp -R "$STAGE_DIR/"* "$OUTPUT_DIR"
+cp -R "$STAGE_DIR/"* "$OUTPUT_DIR/"
 
-cd "$ROOT"
-tar -cJf "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz" "$(basename "$OUTPUT_DIR")"
+tar -C "$BUILD_DIR" -cJf "$ROOT_DIR/wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz" "$(basename "$OUTPUT_DIR")"
 
 echo "✅ DONE"
-du -sh "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz"
+du -sh "$ROOT_DIR/wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.xz"
