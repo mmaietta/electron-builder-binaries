@@ -51,6 +51,10 @@ if [ "$OS_TARGET" = "darwin" ]; then
     export PATH="$BREW_PREFIX/opt/flex/bin:$PATH"
     export PATH="$BREW_PREFIX/opt/make/libexec/gnubin:$PATH"
 
+    export CC=x86_64-w64-mingw32-gcc
+    export CXX=x86_64-w64-mingw32-g++
+    export PKG_CONFIG_PATH="$BREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:$PKG_CONFIG_PATH"
+    
     # Sanity checks (fail fast)
     bison --version | grep -E '3\.' >/dev/null || {
         echo "❌ Wrong bison in PATH"
@@ -116,10 +120,6 @@ echo "⚙️  Configuring Wine (without FreeType)..."
 rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
-
-export CC=x86_64-w64-mingw32-gcc
-export CXX=x86_64-w64-mingw32-g++
-export PKG_CONFIG_PATH="$BREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:$PKG_CONFIG_PATH"
 
 execute_cmd "$SOURCE_DIR/configure" \
 --prefix="$STAGE_DIR" \
