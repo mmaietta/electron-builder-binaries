@@ -21,9 +21,13 @@ PLATFORM_ARCH="x86_64"
 OS_TARGET="${OS_TARGET:-$(uname -s | tr '[:upper:]' '[:lower:]')}"
 HOST_ARCH=$(arch)
 
+IS_DARWIN=false
+if [ "$OS_TARGET" = "darwin" ]; then
+  IS_DARWIN=true
+fi
 
 ARCH_CMD=''
-if [ "$OS_TARGET" = "darwin" ]; then
+if $IS_DARWIN; then
     echo "🍺 Ensuring Homebrew dependencies (brew bundle)"
     
     if ! command -v brew >/dev/null 2>&1; then
@@ -50,9 +54,6 @@ if [ "$OS_TARGET" = "darwin" ]; then
     export PATH="$BREW_PREFIX/opt/bison/bin:$PATH"
     export PATH="$BREW_PREFIX/opt/flex/bin:$PATH"
     export PATH="$BREW_PREFIX/opt/make/libexec/gnubin:$PATH"
-
-    export CC=x86_64-w64-mingw32-gcc
-    export CXX=x86_64-w64-mingw32-g++
     export PKG_CONFIG_PATH="$BREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:${PKG_CONFIG_PATH:$BREW_PREFIX/lib/pkgconfig}"
 
     # Sanity checks (fail fast)
@@ -68,6 +69,14 @@ if [ "$OS_TARGET" = "darwin" ]; then
         ARCH_CMD='arch -x86_64'
         export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
     fi
+fi
+
+if $IS_DARWIN; then
+  export CC=x86_64-w64-mingw32-gcc
+  export CXX=x86_64-w64-mingw32-g++
+else
+  unset CC
+  unset CXX
 fi
 
 execute_cmd() {
@@ -121,14 +130,24 @@ rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
 
+CONFIGURE_FLAGS=(
+  --prefix="$STAGE_DIR"
+  --enable-win64
+  --without-x
+  --without-cups
+  --without-dbus
+  --without-freetype
+)
+
+if $IS_DARWIN; then
+  CONFIGURE_FLAGS+=(
+    --host=x86_64-w64-mingw32
+  )
+fi
+
 execute_cmd "$SOURCE_DIR/configure" \
---prefix="$STAGE_DIR" \
---enable-win64 \
---without-x \
---without-cups \
---without-dbus \
---without-freetype \
-2>&1 | tee configure.log
+  "${CONFIGURE_FLAGS[@]}" \
+  2>&1 | tee configure.log
 
 if [ "$OS_TARGET" = "darwin" ]; then
     # 🧠 Auto-update Brewfile if dependencies changed
@@ -175,7 +194,7 @@ export WINEARCH=win64
 export WINEDEBUG=-all
 export DISPLAY=:99  # Virtual display for headless
 
-if [ "$OS_TARGET" = "darwin" ]; then
+if $IS_DARWIN; then
     execute_cmd "$STAGE_DIR/bin/wineboot" --init
     sleep 2
 else
