@@ -36,8 +36,8 @@ mkdir -p "$BUILD_DIR"
 
 if [ "$OS_TARGET" = "darwin" ]; then
     bash "$SCRIPT_DIR/scripts/build-mac.sh"
-elif [ "$OS_TARGET" = "linux" ]; then
-    bash "$SCRIPT_DIR/scripts/build-linux.sh"
+# elif [ "$OS_TARGET" = "linux" ]; then
+#     bash "$SCRIPT_DIR/scripts/build-linux.sh"
 else
     echo "❌ Unsupported OS: $OS_TARGET"
     exit 1
