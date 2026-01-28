@@ -37,6 +37,7 @@ map_lib_to_brew() {
     echo 'brew "bison", "3.8.2"'
     echo 'brew "libtool"'
     echo 'brew "gettext"'
+    echo 'brew "flex"'
     echo
     
     echo "# Wine dependencies"

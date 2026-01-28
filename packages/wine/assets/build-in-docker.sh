@@ -45,6 +45,18 @@ if [ "$OS_TARGET" = "darwin" ]; then
             echo "🍻 Brewfile dependencies already satisfied"
         fi
     )
+
+    export PATH="$BREW_PREFIX/opt/bison/bin:$PATH"
+    export PATH="$BREW_PREFIX/opt/flex/bin:$PATH"
+    export PATH="$BREW_PREFIX/opt/make/libexec/gnubin:$PATH"
+
+    # Sanity checks (fail fast)
+    bison --version | grep -E '3\.' >/dev/null || {
+        echo "❌ Wrong bison in PATH"
+        which bison
+        bison --version
+        exit 1
+    }
     
     if [ "$HOST_ARCH" = 'arm64' ]; then
         echo "🔄 ARM64 - building x86_64 via Rosetta"
