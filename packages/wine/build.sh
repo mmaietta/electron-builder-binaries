@@ -35,7 +35,7 @@ echo ""
 mkdir -p "$BUILD_DIR"
 
 if [ "$OS_TARGET" = "darwin" ]; then
-    bash "$SCRIPT_DIR/assets/build-mac.sh"
+    bash "$SCRIPT_DIR/assets/build-in-docker.sh"
 elif [ "$OS_TARGET" = "linux" ]; then
     bash "$SCRIPT_DIR/assets/build-linux.sh"
 else

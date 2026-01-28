@@ -18,27 +18,12 @@ get_checksum() {
 }
 
 PLATFORM_ARCH="x86_64"
-PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
+OS_TARGET="${OS_TARGET:-$(uname -s | tr '[:upper:]' '[:lower:]')}"
 HOST_ARCH=$(arch)
 
-if [ "$HOST_ARCH" = 'arm64' ] && [ "$PLATFORM" = "darwin" ]; then
-    echo "🔄 ARM64 - building x86_64 via Rosetta"
-    ARCH_CMD='arch -x86_64'
-    export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
-else
-    echo "🍺 building x86_64"
-    ARCH_CMD=''
-fi
 
-execute_cmd() {
-    if [ -n "$ARCH_CMD" ]; then
-        $ARCH_CMD "$@"
-    else
-        "$@"
-    fi
-}
-
-if [ "$PLATFORM" = "darwin" ]; then
+ARCH_CMD=''
+if [ "$OS_TARGET" = "darwin" ]; then
     echo "🍺 Ensuring Homebrew dependencies (brew bundle)"
     
     if ! command -v brew >/dev/null 2>&1; then
@@ -61,7 +46,20 @@ if [ "$PLATFORM" = "darwin" ]; then
         fi
     )
     
+    if [ "$HOST_ARCH" = 'arm64' ]; then
+        echo "🔄 ARM64 - building x86_64 via Rosetta"
+        ARCH_CMD='arch -x86_64'
+        export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+    fi
 fi
+
+execute_cmd() {
+    if [[ -n "$ARCH_CMD" ]]; then
+        $ARCH_CMD "$@"
+    else
+        "$@"
+    fi
+}
 
 CHECKSUM=$(get_checksum "$WINE_VERSION")
 WINE_MAJOR=$(echo "$WINE_VERSION" | cut -d. -f1)
@@ -107,15 +105,15 @@ mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
 
 execute_cmd "$SOURCE_DIR/configure" \
-    --prefix="$STAGE_DIR" \
-    --enable-win64 \
-    --without-x \
-    --without-cups \
-    --without-dbus \
-    --without-freetype \
-    2>&1 | tee configure.log
+--prefix="$STAGE_DIR" \
+--enable-win64 \
+--without-x \
+--without-cups \
+--without-dbus \
+--without-freetype \
+2>&1 | tee configure.log
 
-if [ "$PLATFORM" = "darwin" ]; then
+if [ "$OS_TARGET" = "darwin" ]; then
     # 🧠 Auto-update Brewfile if dependencies changed
     bash "$SCRIPT_DIR/generate-brewfile.sh" "$BUILD_WINE_DIR/config.log"
 fi
@@ -160,25 +158,25 @@ export WINEARCH=win64
 export WINEDEBUG=-all
 export DISPLAY=:99  # Virtual display for headless
 
-if [ "$PLATFORM" = "Darwin" ]; then
+if [ "$OS_TARGET" = "darwin" ]; then
     execute_cmd "$STAGE_DIR/bin/wineboot" --init
     sleep 2
 else
-
-# Start a virtual X server if not running
-if ! command -v Xvfb &> /dev/null; then
-    echo "⚠️  Xvfb not available"
-    exit 1
-else
-    Xvfb :99 -screen 0 1024x768x24 &
-    XVFB_PID=$!
-    sleep 2
-    
-    "$STAGE_DIR/bin/wineboot" --init
-    sleep 2
-    
-    # Kill Xvfb
-    kill $XVFB_PID
+    # Start a virtual X server if not running
+    if ! command -v Xvfb &> /dev/null; then
+        echo "⚠️  Xvfb not available"
+        exit 1
+    else
+        Xvfb :99 -screen 0 1024x768x24 &
+        XVFB_PID=$!
+        sleep 2
+        
+        "$STAGE_DIR/bin/wineboot" --init
+        sleep 2
+        
+        # Kill Xvfb
+        kill $XVFB_PID
+    fi
 fi
 
 ############################################

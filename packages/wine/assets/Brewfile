@@ -1,7 +1,6 @@
 
 
 
-
 # AUTO-GENERATED – DO NOT EDIT
 # Build helpers
 # Generated from Wine config.log
@@ -9,12 +8,10 @@
 # Wine dependencies
 brew "autoconf"
 brew "automake"
-brew "bison"
-brew "flex"
+brew "bison", "3.8.2"
 brew "gettext"
 brew "gnutls"
 brew "libtool"
 brew "make"
-brew "pkg-config"
+brew "pkg-config", "2.5.1"
 brew "xz"
-tap "homebrew/core"
