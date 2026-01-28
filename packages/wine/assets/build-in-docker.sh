@@ -53,8 +53,8 @@ if [ "$OS_TARGET" = "darwin" ]; then
 
     export CC=x86_64-w64-mingw32-gcc
     export CXX=x86_64-w64-mingw32-g++
-    export PKG_CONFIG_PATH="$BREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:$PKG_CONFIG_PATH"
-    
+    export PKG_CONFIG_PATH="$BREW_PREFIX/x86_64-w64-mingw32/lib/pkgconfig:${PKG_CONFIG_PATH:$BREW_PREFIX/lib/pkgconfig}"
+
     # Sanity checks (fail fast)
     bison --version | grep -E '3\.' >/dev/null || {
         echo "❌ Wrong bison in PATH"
