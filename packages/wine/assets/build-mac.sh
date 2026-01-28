@@ -96,7 +96,7 @@ execute_cmd make install
 cd "$ROOT_DIR"
 
 # Remove unnecessary directories
-rm -rf "$STAGE_DIR/share/man" "$STAGE_DIR/share/applications" "$STAGE_DIR/include"
+rm -rf "$STAGE_DIR/share/man"  "$STAGE_DIR/share/doc"  "$STAGE_DIR/share/gtk-doc" "$STAGE_DIR/include" # "$STAGE_DIR/share/applications"
 
 # Adjust RPATHs for all binaries
 add_rpath_if_missing() {
