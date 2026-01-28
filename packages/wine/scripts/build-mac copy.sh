@@ -3,8 +3,7 @@ set -ex
 
 WINE_VERSION=${WINE_VERSION:-9.0}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
-# Always build x86_64 (works on both Intel and ARM via Rosetta)
-PLATFORM_ARCH="x86_64"
+PLATFORM_ARCH=${PLATFORM_ARCH:-$(arch)}
 
 get_checksum() {
     case "$1" in
@@ -18,51 +17,24 @@ CHECKSUM=$(get_checksum "$WINE_VERSION")
 WINE_MAJOR=$(echo "$WINE_VERSION" | cut -d. -f1)
 WINE_URL="https://dl.winehq.org/wine/source/${WINE_MAJOR}.0/wine-${WINE_VERSION}.tar.xz"
 
-# Determine architecture and setup
+# Determine architecture and Homebrew paths
 HOST_ARCH=$(arch)
-TEMP_BREW_PREFIX="$BUILD_DIR/homebrew-x86_64"
+X86_BREW_HOME='/usr/local'
 
 if [ "$HOST_ARCH" = 'arm64' ]; then
-    echo "🔄 ARM64 Mac detected - building x86_64 via Rosetta..."
+    ARCH_BREW_HOME='/opt/homebrew'
     ARCH_CMD='arch -x86_64'
     
-    # Use temporary x86_64 Homebrew installation
-    BREW_PREFIX="$TEMP_BREW_PREFIX"
-    
-    # Install temporary x86_64 Homebrew if needed
-    if [ ! -f "$BREW_PREFIX/bin/brew" ]; then
-        echo "📦 Installing temporary x86_64 Homebrew to $BREW_PREFIX..."
-        mkdir -p "$BREW_PREFIX"
-        
-        # Download and install Homebrew to custom prefix
-        curl -L https://github.com/Homebrew/brew/tarball/master | \
-            arch -x86_64 tar xz --strip-components=1 -C "$BREW_PREFIX"
-        
-        echo "✅ Temporary Homebrew installed"
-    fi
-    
-    # Install dependencies with temporary Homebrew
-    echo "📦 Installing x86_64 dependencies..."
-    arch -x86_64 "$BREW_PREFIX/bin/brew" install --force-bottle \
-        mingw-w64 freetype libpng jpeg-turbo libtiff little-cms2 \
-        libxml2 libxslt xz gnutls sdl2 faudio openal-soft || true
-    
-    # Use Xcode's SDK
+    # Use Xcode's SDK for ARM builds
     export SDKROOT="$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
 else
-    # Intel Mac - use system Homebrew
-    echo "🍺 Intel Mac detected - using system Homebrew..."
+    ARCH_BREW_HOME="$X86_BREW_HOME"
     ARCH_CMD=
-    BREW_PREFIX="/usr/local"
-    
-    # Check if dependencies are installed
-    if ! command -v "$BREW_PREFIX/bin/brew" > /dev/null 2>&1; then
-        echo "❌ Homebrew not found. Please install: https://brew.sh"
-        exit 1
-    fi
 fi
 
 # Execute command with proper architecture
+# On ARM Mac building x86_64: prefixes with 'arch -x86_64'
+# On Intel Mac: runs command directly
 execute_cmd() {
     if [ -n "$ARCH_CMD" ]; then
         $ARCH_CMD "$@"
@@ -110,9 +82,17 @@ rm -rf "$BUILD_WINE_DIR" "$STAGE_DIR"
 mkdir -p "$BUILD_WINE_DIR" "$STAGE_DIR"
 cd "$BUILD_WINE_DIR"
 
-# Use temporary Homebrew paths
-export PATH="$BREW_PREFIX/bin:$PATH"
-export PKG_CONFIG_PATH="$BREW_PREFIX/opt/freetype/lib/pkgconfig:$BREW_PREFIX/opt/libpng/lib/pkgconfig:$BREW_PREFIX/opt/gnutls/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig"
+# Use architecture-specific Homebrew paths
+export PATH="$ARCH_BREW_HOME/bin:$PATH"
+
+# Set PKG_CONFIG_PATH to find all Homebrew libraries
+# export PKG_CONFIG_PATH="$ARCH_BREW_HOME/opt/freetype/lib/pkgconfig:$ARCH_BREW_HOME/opt/libpng/lib/pkgconfig:$ARCH_BREW_HOME/opt/gnutls/lib/pkgconfig:$ARCH_BREW_HOME/lib/pkgconfig"
+export FREETYPE_PREFIX="$(brew --prefix freetype)"
+
+export PKG_CONFIG_PATH="$FREETYPE_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+export CFLAGS="-I$FREETYPE_PREFIX/include"
+export LDFLAGS="-L$FREETYPE_PREFIX/lib"
+
 
 execute_cmd "$SOURCE_DIR/configure" \
     --prefix="$STAGE_DIR" \
@@ -201,9 +181,3 @@ tar -czf "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.gz" "$(basename "$OUT
 
 SIZE=$(du -h "wine-${WINE_VERSION}-darwin-${PLATFORM_ARCH}.tar.gz" | cut -f1)
 echo "✅ Done! (${SIZE})"
-
-# Cleanup temporary Homebrew (optional)
-if [ "$HOST_ARCH" = 'arm64' ] && [ "${CLEANUP_TEMP_BREW:-false}" = "true" ]; then
-    echo "🧹 Cleaning up temporary Homebrew..."
-    rm -rf "$TEMP_BREW_PREFIX"
-fi

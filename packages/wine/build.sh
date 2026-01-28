@@ -1,27 +1,21 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 
-# Wine Build System - Main Entry Point
-# Usage: ./build.sh
+# Wine Portable Bundle Builder
+# Compiles Wine from source for distribution
 
 WINE_VERSION=${WINE_VERSION:-11.0}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build}
 PLATFORM_ARCH=${PLATFORM_ARCH:-$(uname -m)}
 OS_TARGET=${OS_TARGET:-$(uname | tr '[:upper:]' '[:lower:]')}
 
-# Normalize architecture
 case "$PLATFORM_ARCH" in
-    x86_64) PLATFORM_ARCH="x86_64" ;;
-    amd64) PLATFORM_ARCH="x86_64" ;;
-    x64) PLATFORM_ARCH="x86_64" ;;
-    arm64) PLATFORM_ARCH="arm64" ;;
-    aarch64) PLATFORM_ARCH="arm64" ;;
+    x86_64|amd64|x64) PLATFORM_ARCH="x86_64" ;;
+    arm64|aarch64) PLATFORM_ARCH="arm64" ;;
 esac
 
-# Normalize OS
 case "$OS_TARGET" in
-    darwin) OS_TARGET="darwin" ;;
-    macos) OS_TARGET="darwin" ;;
+    darwin|macos) OS_TARGET="darwin" ;;
     linux) OS_TARGET="linux" ;;
 esac
 
@@ -30,7 +24,7 @@ export WINE_VERSION BUILD_DIR PLATFORM_ARCH OS_TARGET
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
-echo "🍷 Wine Build System"
+echo "🍷 Wine Portable Bundle Builder"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Wine Version:    $WINE_VERSION"
 echo "Platform:        $OS_TARGET"
@@ -51,6 +45,6 @@ else
 fi
 
 echo ""
-echo "✅ Build complete!"
+echo "✅ Portable Wine bundle complete!"
 echo "📦 Output: $BUILD_DIR/wine-${WINE_VERSION}-${OS_TARGET}-${PLATFORM_ARCH}.tar.gz"
 echo ""
