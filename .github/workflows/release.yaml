@@ -57,13 +57,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         shell: bash
-
-      - name: Generate GitHub App token
-        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae
-        id: generate-token
-        with:
-          export-git-user: true
-          creds: ${{ secrets.RELEASE_BOT_APP_CREDS }}
       
       - name: Create versions PR & prepare publish
         id: changesets
@@ -73,10 +66,9 @@ jobs:
           publish: "pnpm ci:publish"
           commit: 'chore(deploy): Release'
           title: 'chore(deploy): Release'
-          setupGitUser: false
           createGithubReleases: false
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create scoped releases
         if: steps.changesets.outputs.published == 'true'
@@ -84,7 +76,7 @@ jobs:
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
 
       
