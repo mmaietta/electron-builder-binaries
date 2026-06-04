@@ -68,16 +68,31 @@ jobs:
       
       - name: Create versions PR & prepare publish
         id: changesets
+        if: github.repository == 'electron-userland/electron-builder-binaries'
         uses: changesets/action@7af85527bb2f43a404b5823a6cad47661be255c1 # v1.5.3 - @marshallofsound fork
         with:
           version: "pnpm ci:version"
           publish: "pnpm ci:publish"
           commit: 'chore(deploy): Release'
           title: 'chore(deploy): Release'
-          setupGitUser: false # We use the GitHub App's token which has its own user, so we don't need to set up a user here
+          setupGitUser: false
           createGithubReleases: false
         env:
-          GITHUB_TOKEN: "${{ github.repository == 'electron-userland/electron-builder-binaries' && steps.generate-token.outputs.token || secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+      - name: Create versions PR & prepare publish (electron-builder-binaries forks)
+        id: changesets-fork
+        if: github.repository != 'electron-userland/electron-builder-binaries'
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0 - @changesets/action main branch
+        with:
+          version: "pnpm ci:version"
+          publish: "pnpm ci:publish"
+          commit: 'chore(deploy): Release'
+          title: 'chore(deploy): Release'
+          setupGitUser: true
+          createGithubReleases: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create scoped releases
         if: steps.changesets.outputs.published == 'true'
@@ -85,7 +100,16 @@ jobs:
           echo "Releases created with tags: ${{ steps.changesets.outputs.publishedPackages }}"
           node scripts/changeset-publish.js
         env:
-          GITHUB_TOKEN: "${{ github.repository == 'electron-userland/electron-builder-binaries' && steps.generate-token.outputs.token || secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+
+      - name: Create scoped releases (electron-builder-binaries forks)
+        if: steps.changesets-fork.outputs.published == 'true'
+        run: |
+          echo "Releases created with tags: ${{ steps.changesets-fork.outputs.publishedPackages }}"
+          node scripts/changeset-publish.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets-fork.outputs.publishedPackages }}
 
       
