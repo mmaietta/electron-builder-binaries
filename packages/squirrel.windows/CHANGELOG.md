@@ -1,5 +1,11 @@
 # squirrel.windows
 
+## 1.1.1
+
+### Patch Changes
+
+- [`14fd962`](https://github.com/electron-userland/electron-builder-binaries/commit/14fd96207a29a54031b1da1eaa0442b2baee4f0c) Thanks [@mmaietta](https://github.com/mmaietta)! - fix(squirrel.windows): bundle standalone NuGet.CommandLine portable exe instead of Chocolatey shim
+
 ## 1.1.0
 
 ### Minor Changes
